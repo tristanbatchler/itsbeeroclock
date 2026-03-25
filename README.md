@@ -70,26 +70,41 @@ This is for my reference, but if you happen to be in a similar environment and w
 
 ### For local dev
 ```bash
+# 1. Install asdf (Arch Linux)
 paru -S asdf-vm
+# Note: Ensure 'source /opt/asdf-vm/asdf.fish' is in your ~/.config/fish/config.fish
+
+# 2. Clone and enter the project root
 git clone https://github.com/tristanbatchler/itsbeeroclock.git
+cd itsbeeroclock
 
-cd itsbeeroclock/backend
-asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
+# 3. Add plugins and install tools
+asdf plugin add golang
+asdf plugin add nodejs
 asdf install golang 1.25.8
-echo -e "golang 1.25.8" > .tool-versions
-
-
-
-cd ../frontend
-asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
 asdf install nodejs 24.14.1
-echo -e "nodejs 24.14.1" > .tool-versions
+
+# 4. Set project-wide versions in the root
+asdf set golang 1.25.8
+asdf set nodejs 24.14.1
+
+# 5. Install Frontend dependencies
+cd frontend
 npm install
+
+# 6. Setup Backend
+cd ../backend/lambdas
+go mod tidy
 ```
+
 
 ### For deployment
 ```bash
 paru -S aws-cli-v2
-npm install -g aws-cdk
-aws configure
+cd infra
+npm install
+aws login
+cd cdk
+npx cdk bootstrap
+npx cdk deploy
 ```

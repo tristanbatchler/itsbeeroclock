@@ -21,3 +21,6 @@ Thumbs.db
 
 # Tooling
 .tool-versions
+
+# Logs
+backend/cmd/local/__debug_*
