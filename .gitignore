@@ -1,0 +1,23 @@
+# Go
+*.exe
+*.test
+/tmp
+bin/
+*.zip
+
+# Node
+node_modules/
+dist/
+.env
+.env.local
+
+# CDK
+infra/cdk.out/
+cdk.context.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tooling
+.tool-versions
