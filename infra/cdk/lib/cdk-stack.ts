@@ -27,6 +27,13 @@ export class BeerOClockStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../../backend/lambda_deployments/health.zip'),
     });
 
+    const addDrinkFn = new lambda.Function(this, 'AddDrinkFn', {
+      runtime: lambda.Runtime.PROVIDED_AL2023,
+      architecture: lambda.Architecture.ARM_64,
+      handler: 'bootstrap',
+      code: lambda.Code.fromAsset('../../backend/lambda_deployments/add_drink.zip'),
+    });
+
     const normaliseRequestFn = new cloudfront.Function(this, 'NormaliseRequest', {
       functionName: 'beeroclock-normalise-request',
       code: cloudfront.FunctionCode.fromInline(`
@@ -66,6 +73,9 @@ export class BeerOClockStack extends cdk.Stack {
     const apiResource = api.root.addResource('api');
     const health = apiResource.addResource('health');
     health.addMethod('GET');
+
+    const drinks = apiResource.addResource('drinks');
+    drinks.addMethod('POST', new apigw.LambdaIntegration(addDrinkFn));
 
     const certificate = acm.Certificate.fromCertificateArn(
       this,

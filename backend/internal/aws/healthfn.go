@@ -7,12 +7,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type response struct {
-	Message string `json:"message"`
-}
-
 var HealthHandler ApiProxyGatewayHandler = func(ctx context.Context, apr events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	body, err := json.Marshal(response{Message: "Beer O'Clock is healthy!"})
+	body, err := json.Marshal(AppResponse{Message: "Beer O'Clock is healthy!"})
 	if err != nil {
 		return events.APIGatewayProxyResponse{}, err
 	}

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.15.2",
+    "@supabase/auth-ui-react": "^0.4.7",
+    "@supabase/supabase-js": "^2.100.1",
     "aws-amplify": "^6.16.3",
     "idb": "^8.0.3",
     "lucide-react": "^1.7.0",
