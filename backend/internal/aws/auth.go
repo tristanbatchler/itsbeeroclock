@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -40,6 +41,7 @@ type JSONWebKey struct {
 }
 
 func getJWKS() (*JWKS, error) {
+	log.Printf("getJWKS called, cache age: %v", time.Since(jwksCacheTime))
 	jwksMutex.RLock()
 	if jwksCache != nil && time.Since(jwksCacheTime) < cacheDuration {
 		jwksMutex.RUnlock()

@@ -6,6 +6,7 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
 const domainName = 'itsbeeroclock.au';
@@ -26,13 +27,11 @@ export class BeerOClockStack extends cdk.Stack {
       handler: 'bootstrap',
       code: lambda.Code.fromAsset('../../backend/deployment.zip'),
       environment: {
-        SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET || '', 
         SUPABASE_URL: process.env.SUPABASE_URL || '',
       },
     });
 
-    // Add CloudWatch permissions
-    apiFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    apiFn.addToRolePolicy(new iam.PolicyStatement({
       actions: [
         'logs:CreateLogGroup',
         'logs:CreateLogStream',
@@ -75,9 +74,14 @@ export class BeerOClockStack extends cdk.Stack {
 
     const api = new apigw.LambdaRestApi(this, 'BeerOClockApi', {
       handler: apiFn,
-      proxy: true, 
+      proxy: true,
+      deployOptions: {
+        stageName: 'prod',
+        loggingLevel: apigw.MethodLoggingLevel.INFO,
+        dataTraceEnabled: true,
+        metricsEnabled: true,
+      },
     });
-
 
     const certificate = acm.Certificate.fromCertificateArn(
       this,
