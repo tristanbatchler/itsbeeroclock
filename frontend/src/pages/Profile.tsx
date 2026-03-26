@@ -5,10 +5,11 @@ import { getUserProfile, saveUserProfile } from '../utils/storage';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
+import { Link } from 'react-router-dom';
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const existing = getUserProfile();
   const [gender, setGender] = useState<'male' | 'female'>(existing?.gender || 'male');
   const [weight, setWeight] = useState(existing?.weight?.toString() || '80');
@@ -29,8 +30,10 @@ export function Profile() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <Card className="p-6 w-full max-w-md text-center">
-          <h2 className="text-xl font-bold mb-4">Sign in to continue</h2>
-          <Button onClick={signInWithGoogle} className="w-full mb-2">Sign in with Google</Button>
+          <h2 className="text-xl font-bold mb-4">Sign in to save your data</h2>
+          <Link to="/sign-in">
+            <Button className="w-full">Sign In</Button>
+          </Link>
         </Card>
       </div>
     );

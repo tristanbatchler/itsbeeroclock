@@ -20,18 +20,14 @@ export class BeerOClockStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
-    const healthFn = new lambda.Function(this, 'HealthFn', {
+    const apiFn = new lambda.Function(this, 'ApiFn', {
       runtime: lambda.Runtime.PROVIDED_AL2023,
       architecture: lambda.Architecture.ARM_64,
       handler: 'bootstrap',
-      code: lambda.Code.fromAsset('../../backend/lambda_deployments/health.zip'),
-    });
-
-    const addDrinkFn = new lambda.Function(this, 'AddDrinkFn', {
-      runtime: lambda.Runtime.PROVIDED_AL2023,
-      architecture: lambda.Architecture.ARM_64,
-      handler: 'bootstrap',
-      code: lambda.Code.fromAsset('../../backend/lambda_deployments/add_drink.zip'),
+      code: lambda.Code.fromAsset('../../backend/deployment.zip'),
+      environment: {
+        SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET || '', 
+      },
     });
 
     const normaliseRequestFn = new cloudfront.Function(this, 'NormaliseRequest', {
@@ -67,15 +63,10 @@ export class BeerOClockStack extends cdk.Stack {
     });
 
     const api = new apigw.LambdaRestApi(this, 'BeerOClockApi', {
-      handler: healthFn,
-      proxy: false,
+      handler: apiFn,
+      proxy: true, 
     });
-    const apiResource = api.root.addResource('api');
-    const health = apiResource.addResource('health');
-    health.addMethod('GET');
 
-    const drinks = apiResource.addResource('drinks');
-    drinks.addMethod('POST', new apigw.LambdaIntegration(addDrinkFn));
 
     const certificate = acm.Certificate.fromCertificateArn(
       this,

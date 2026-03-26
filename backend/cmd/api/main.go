@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	lambda.Start(aws.AddDrinkHandler)
+	lambda.Start(aws.Router)
 }
