@@ -27,8 +27,19 @@ export class BeerOClockStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../../backend/deployment.zip'),
       environment: {
         SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET || '', 
+        SUPABASE_URL: process.env.SUPABASE_URL || '',
       },
     });
+
+    // Add CloudWatch permissions
+    apiFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: [
+        'logs:CreateLogGroup',
+        'logs:CreateLogStream',
+        'logs:PutLogEvents',
+      ],
+      resources: ['*'],
+    }));
 
     const normaliseRequestFn = new cloudfront.Function(this, 'NormaliseRequest', {
       functionName: 'beeroclock-normalise-request',
