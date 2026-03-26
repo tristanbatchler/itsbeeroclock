@@ -43,5 +43,5 @@ export function calculateTimeUntilSober(drinks: Drink[], profile: UserProfile | 
   const hours = (bac - legalLimit) / 0.015;
   const soberTime = new Date(currentTime + hours * 60 * 60 * 1000);
 
-  return { canDrive: false, hoursUntilSober: hours.toFixed(1), soberTime };
+  return { canDrive: false, hoursUntilSober: hours, soberTime };
 }

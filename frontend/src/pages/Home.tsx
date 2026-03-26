@@ -20,6 +20,7 @@ import { DrinkLog } from '../components/DrinkLog';
 import { DrinkSizeSelector } from '../components/DrinkSizeSelector';
 import { BeerSelector } from '../components/BeerSelector';
 import { type DrinkSize, type Beer, type Drink } from '../types/drinks';
+import { formatHours } from '../utils/time';
 
 export function Home() {
   const { drinks, addDrink, removeDrink, clearSession, undoLast } = useSession();
@@ -83,7 +84,7 @@ export function Home() {
                 {canDrive ? '✓ Safe to drive' : '⚠️ Do NOT drive'}
               </p>
               <p className={`text-sm mt-1 ${canDrive ? 'text-green-700 dark:text-green-200' : 'text-red-700 dark:text-red-200'}`}>
-                {canDrive ? `Under limit (${currentBAC.toFixed(3)}% BAC)` : `Wait ${hoursUntilSober}h until ${soberTime?.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`}
+                {canDrive ? `Under limit (${currentBAC.toFixed(3)}% BAC)` : `Wait ${formatHours(hoursUntilSober)} until ${soberTime?.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`}
               </p>
             </div>
           </div>
