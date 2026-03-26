@@ -30,21 +30,32 @@ echo -e "# Project Summary\n" > "$outputFile"
 
 # Extensions regex (same filtering behavior as PowerShell)
 # Matches files with specific extensions OR files with no extension (LICENSE, PKGBUILD, etc)
-regex='\.(cpp|h|hpp|c|cs|py|js|ts|java|go|rs|nim|sh|ps1|gd|jsonc|json|pyi|md|ml|sql|mk|makefile|txt|html|css)$|^[^.]+$'
+regex='\.(cpp|h|hpp|c|cs|py|js|jsx|ts|tsx|java|go|rs|nim|sh|ps1|gd|jsonc|json|pyi|md|ml|sql)$|^[^.]+$'
 
 # Process each git-tracked file
 git ls-files | grep -E "$regex" | while IFS= read -r file; do
+    echo "[DEBUG] Considering: $file" >&2
     # Skip this script (if named summarize.sh) and output file
     if [[ "$file" == "summarize.sh" || "$file" == "$outputFile" ]]; then
+        echo "[DEBUG] Skipping script/output: $file" >&2
         continue
     fi
 
-    # Omit requested files and directories
-    case "$file" in
-        .vscode/*|test/*|README.md|LICENSE|dune-project|.gitignore|.ocamlformat|shared/maps.ml|*/shared/maps.ml|lib/server/maps/*.ml)
-            continue
-            ;;
-    esac
+
+    # Never exclude anything under frontend/src/
+    if [[ "$file" != frontend/src/* ]]; then
+        case "$file" in
+            .vscode/*|test/*|README.md|LICENSE|dune-project|.gitignore|.ocamlformat|shared/maps.ml|*/shared/maps.ml|lib/server/maps/*.ml \
+            |package-lock.json|**/package-lock.json|frontend/node_modules/*|frontend/node_modules/**|frontend/dist/*|frontend/dist/**|frontend/public/*|frontend/public/** \
+            |frontend/package-lock.json|frontend/package.json|frontend/tsconfig*.json|frontend/vite.config.ts|frontend/eslint.config.js \
+            |infra/cdk/test/*|infra/cdk/test/**|infra/cdk/node_modules/*|infra/cdk/node_modules/**|infra/cdk/cdk.out/*|infra/cdk/cdk.out/**|infra/cdk/.gitignore|infra/cdk/.npmignore|infra/cdk/README.md|infra/cdk/package-lock.json|infra/cdk/package.json|infra/cdk/jest.config.js|infra/cdk/tsconfig.json|infra/cdk/cdk.json|infra/cdk/bin/cdk.ts|infra/cdk/lib/cdk-stack.ts)
+                echo "[DEBUG] Excluded by pattern: $file" >&2
+                continue
+                ;;
+        esac
+    else
+        echo "[DEBUG] Always include: $file" >&2
+    fi
 
     # Exclude server files if --no-server
     if $no_server; then
@@ -107,10 +118,6 @@ git ls-files | grep -E "$regex" | while IFS= read -r file; do
                 .pyi)         lang="python" ;;
                 .ml)          lang="ocaml" ;;
                 .sql)         lang="sql" ;;
-                .mk|.makefile) lang="makefile" ;;
-                .txt)         lang="" ;;
-                .html)        lang="html" ;;
-                .css)         lang="css" ;;
                 *)            lang="" ;;
             esac
             ;;
