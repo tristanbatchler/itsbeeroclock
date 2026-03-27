@@ -1,3 +1,4 @@
+import type { Drink } from "../types/drinks";
 import { supabase } from "./supabase";
 
 async function getAuthToken(): Promise<string | null> {
@@ -63,10 +64,15 @@ async function fetchWithAuth<T>(
 export const api = {
     health: () => fetch('/api/health').then(res => res.json()),
 
-    addDrink: (drink: { beerId: string; size: string; timestamp: number }) =>
+    addDrink: (drink: { id: string; beerId: string; size: string; timestamp: number }) =>
         fetchWithAuth('/api/drinks', {
             method: 'POST',
             body: JSON.stringify(drink),
         }),
     getBeers: () => fetch('/api/beers').then(res => res.json()),
+    syncDrinks: (drinks: Drink[]) => 
+        fetchWithAuth('/sync', {
+            method: 'POST',
+            body: JSON.stringify(drinks),
+        }),
 };

@@ -19,13 +19,11 @@ export class BeerOClockStack extends cdk.Stack {
       throw new Error('APP_DOMAIN_NAME environment variable not set');
     }
 
-
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
-
 
     const apiFn = new lambda.Function(this, 'ApiFn', {
       runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -50,17 +48,17 @@ export class BeerOClockStack extends cdk.Stack {
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: cdk.RemovalPolicy.DESTROY, // TODO: Change to RETAIN for v1.0
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     table.addGlobalSecondaryIndex({
-      indexName: 'UserIndex',
-      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
+      indexName: 'GSI1',
+      partitionKey: { name: 'GSI1PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI1SK', type: dynamodb.AttributeType.STRING },
     });
 
+    // Grant permissions and add environment variable
     table.grantReadWriteData(apiFn);
-
     apiFn.addEnvironment('TABLE_NAME', table.tableName);
 
     const normaliseRequestFn = new cloudfront.Function(this, 'NormaliseRequest', {
@@ -149,5 +147,6 @@ export class BeerOClockStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'CloudFrontUrl', { value: `https://${distribution.distributionDomainName}` });
     new cdk.CfnOutput(this, 'ApiUrl', { value: api.url });
+    new cdk.CfnOutput(this, 'TableName', { value: table.tableName });
   }
 }

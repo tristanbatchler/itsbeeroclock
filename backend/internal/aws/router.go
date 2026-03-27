@@ -15,13 +15,6 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 		}
 	}()
 
-	log.Printf("=== FULL REQUEST ===")
-	log.Printf("Method: %s", req.HTTPMethod)
-	log.Printf("Path: %s", req.Path)
-	log.Printf("Resource: %s", req.Resource)
-	log.Printf("Stage: %s", req.RequestContext.Stage)
-	log.Printf("===================")
-
 	// Public routes
 	switch {
 	case req.Path == "/api/health" && req.HTTPMethod == "GET":
@@ -38,6 +31,12 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 		case req.Path == "/api/drinks" && req.HTTPMethod == "POST":
 			log.Printf("Matched POST /api/drinks route for userID: %s", authCtx.UserID)
 			return AddDrinkHandler(ctx, authCtx, req)
+		case req.Path == "/api/drinks" && req.HTTPMethod == "GET":
+			log.Printf("Matched GET /api/drinks route for userID: %s", authCtx.UserID)
+			return GetDrinksHandler(ctx, authCtx, req)
+		case req.Path == "/api/sync" && req.HTTPMethod == "POST":
+			log.Printf("Matched POST /api/sync route for userID: %s", authCtx.UserID)
+			return SyncDrinksHandler(ctx, authCtx, req)
 		default:
 			return events.APIGatewayProxyResponse{
 				StatusCode: 404,

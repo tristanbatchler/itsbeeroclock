@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Star, Sparkles, AlertTriangle, CheckCircle2, Clock, } from 'lucide-react';
-import { useSession } from '../hooks/useSession';
-import { api } from '../lib/api';
-
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  Plus,
+  Star,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
+import { useSession } from "../hooks/useSession";
+import { api } from "../lib/api";
+import { useAuth } from "../hooks/useAuth";
 
 import {
   getCustomBeers,
@@ -11,23 +18,25 @@ import {
   getRecentBeerIds,
   addRecentBeer,
   getUserProfile,
-} from '../utils/storage';
+} from "../utils/storage";
 
-import { useBAC } from '../hooks/useBAC';
-import { Button } from '../components/Button';
-import { Card } from '../components/Card';
-import { DrinkLog } from '../components/DrinkLog';
-import { DrinkSizeSelector } from '../components/DrinkSizeSelector';
-import { BeerSelector } from '../components/BeerSelector';
-import { PrivacyNotice } from '../components/PrivacyNotice';
-import { type DrinkSize, type Beer, type Drink } from '../types/drinks';
-import { formatHours } from '../utils/time';
+import { useBAC } from "../hooks/useBAC";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
+import { DrinkLog } from "../components/DrinkLog";
+import { DrinkSizeSelector } from "../components/DrinkSizeSelector";
+import { BeerSelector } from "../components/BeerSelector";
+import { PrivacyNotice } from "../components/PrivacyNotice";
+import { type DrinkSize, type Beer, type Drink } from "../types/drinks";
+import { formatHours } from "../utils/time";
 
 export function Home() {
-  const { drinks, addDrink, removeDrink, clearSession, undoLast } = useSession();
-  const [selectedSize, setSelectedSize] = useState<DrinkSize>('schooner');
+  const { drinks, addDrink, removeDrink, clearSession, undoLast } =
+    useSession();
+  const [selectedSize, setSelectedSize] = useState<DrinkSize>("schooner");
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const { user } = useAuth();
 
   const profile = getUserProfile();
   const favoriteIds = getFavoriteIds();
@@ -37,66 +46,101 @@ export function Home() {
   useEffect(() => {
     const fetchBeers = async () => {
       try {
-        const beers = await api.getBeers() as Beer[];
+        const beers = (await api.getBeers()) as Beer[];
         setAllBeers([...beers, ...getCustomBeers()]);
       } catch (err) {
-        console.error('Failed to fetch beers:', err);
+        console.error("Failed to fetch beers:", err);
       }
     };
 
     fetchBeers();
   }, []);
 
-  const [selectedBeer, setSelectedBeer] = useState<Beer | null>(() => {
-    const recent = recentIds.map((id: string) => allBeers.find(b => b.id === id)).filter(Boolean)[0] as Beer | undefined;
-    const favorite = allBeers.find(b => favoriteIds.includes(b.id));
-    return recent || favorite || allBeers[0] || null;
-  });
+  useEffect(() => {
+    const syncLocalDrinks = async () => {
+      if (user && drinks.length > 0 && profile?.optInHistory) {
+        try {
+          await api.syncDrinks(drinks);
+          clearSession();
+        } catch (err) {
+          console.error("Failed to sync drinks:", err);
+        }
+      }
+    };
+    syncLocalDrinks();
+  }, [user, drinks, profile?.optInHistory, clearSession]);
 
-  const recentBeers = recentIds.map((id: string) => allBeers.find(b => b.id === id)).filter(Boolean) as Beer[];
+  const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
+
+  const derivedSelectedBeer =
+    selectedBeer ??
+    (() => {
+      if (allBeers.length === 0) return null;
+
+      const recent = recentIds
+        .map((id) => allBeers.find((b) => b.id === id))
+        .filter(Boolean)[0] as Beer | undefined;
+
+      const favorite = allBeers.find((b) => favoriteIds.includes(b.id));
+      const defaultBeer = allBeers[0];
+
+      return recent || favorite || defaultBeer || null;
+    })();
+
+  const recentBeers = recentIds
+    .map((id: string) => allBeers.find((b) => b.id === id))
+    .filter(Boolean) as Beer[];
 
   const handleAddDrink = async () => {
-    if (!selectedBeer) return setShowBeerSelector(true);
+    if (!derivedSelectedBeer) return setShowBeerSelector(true);
+
+    const drinkId = window.crypto.randomUUID();
+    const timestamp = new Date().getTime();
 
     const drink: Drink = {
-        id: crypto.randomUUID(),
-        beerId: selectedBeer.id,
-        size: selectedSize,
-        timestamp: Date.now(),
+      id: drinkId,
+      beerId: derivedSelectedBeer.id,
+      size: selectedSize,
+      timestamp: timestamp,
     };
     addDrink(drink);
-    addRecentBeer(selectedBeer.id);
-    
+    addRecentBeer(derivedSelectedBeer.id);
+
     setJustAdded(true);
 
     if (profile?.optInHistory) {
       try {
-          await api.addDrink({
-              beerId: selectedBeer.id,
-              size: selectedSize,
-              timestamp: Date.now(),
-          });
+        await api.addDrink({
+          id: drinkId,
+          beerId: derivedSelectedBeer.id,
+          size: selectedSize,
+          timestamp: timestamp,
+        });
       } catch (err) {
-          console.error('Failed to back up to cloud:', err);
+        console.error("Failed to back up to cloud:", err);
       }
     }
 
     setTimeout(() => setJustAdded(false), 750);
-};
+  };
 
-  const { totalStandardDrinks, currentBAC, canDrive, hoursUntilSober, soberTime } = useBAC(drinks, allBeers, profile);
+  const {
+    totalStandardDrinks,
+    currentBAC,
+    canDrive,
+    hoursUntilSober,
+    soberTime,
+  } = useBAC(drinks, allBeers, profile);
 
   useEffect(() => {
     if (!profile?.optInHistory && drinks.length > 0 && currentBAC === 0) {
-      // Only clear from localStorage, not in-memory
       try {
-        localStorage.removeItem('beeroclock_session');
+        localStorage.removeItem("beeroclock_session");
       } catch (error) {
         console.error("Failed to clear session from localStorage.", error);
       }
     }
   }, [profile?.optInHistory, drinks.length, currentBAC]);
-
 
   return (
     <div className="space-y-6">
@@ -104,28 +148,52 @@ export function Home() {
       {!profile && (
         <Card className="p-5 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-amber-300 dark:border-amber-800 shadow-lg">
           <div className="flex items-start gap-3">
-            <div className="bg-amber-500 text-white p-2 rounded-xl"><Sparkles className="size-5" /></div>
+            <div className="bg-amber-500 text-white p-2 rounded-xl">
+              <Sparkles className="size-5" />
+            </div>
             <div className="flex-1">
-              <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">Get the full experience</p>
-              <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">Set up your profile to see BAC estimates.</p>
-              <Link to="/profile"><Button size="sm" className="shadow-md">Set Up Profile</Button></Link>
+              <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                Get the full experience
+              </p>
+              <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                Set up your profile to see BAC estimates.
+              </p>
+              <Link to="/profile">
+                <Button size="sm" className="shadow-md">
+                  Set Up Profile
+                </Button>
+              </Link>
             </div>
           </div>
         </Card>
       )}
 
       {profile && drinks.length > 0 && (
-        <Card className={`p-5 border-2 shadow-xl ${canDrive ? 'bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700' : 'bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700'}`}>
+        <Card
+          className={`p-5 border-2 shadow-xl ${canDrive ? "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700" : "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700"}`}
+        >
           <div className="flex items-start gap-3">
-            <div className={`p-2.5 rounded-xl ${canDrive ? 'bg-green-500' : 'bg-red-500'}`}>
-              {canDrive ? <CheckCircle2 className="size-6 text-white" strokeWidth={3} /> : <AlertTriangle className="size-6 text-white" strokeWidth={3} />}
+            <div
+              className={`p-2.5 rounded-xl ${canDrive ? "bg-green-500" : "bg-red-500"}`}
+            >
+              {canDrive ? (
+                <CheckCircle2 className="size-6 text-white" strokeWidth={3} />
+              ) : (
+                <AlertTriangle className="size-6 text-white" strokeWidth={3} />
+              )}
             </div>
             <div className="flex-1">
-              <p className={`font-bold text-lg ${canDrive ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
-                {canDrive ? '✓ Safe to drive' : '⚠️ Do NOT drive'}
+              <p
+                className={`font-bold text-lg ${canDrive ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100"}`}
+              >
+                {canDrive ? "✓ Safe to drive" : "⚠️ Do NOT drive"}
               </p>
-              <p className={`text-sm mt-1 ${canDrive ? 'text-green-700 dark:text-green-200' : 'text-red-700 dark:text-red-200'}`}>
-                {canDrive ? `Under limit (${currentBAC.toFixed(3)}% BAC)` : `Wait ${formatHours(hoursUntilSober)} until ${soberTime?.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`}
+              <p
+                className={`text-sm mt-1 ${canDrive ? "text-green-700 dark:text-green-200" : "text-red-700 dark:text-red-200"}`}
+              >
+                {canDrive
+                  ? `Under limit (${currentBAC.toFixed(3)}% BAC)`
+                  : `Wait ${formatHours(hoursUntilSober)} until ${soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`}
               </p>
             </div>
           </div>
@@ -134,43 +202,85 @@ export function Home() {
 
       <Card className="p-6 bg-linear-to-br from-card to-muted/30 shadow-xl border-2">
         <div className="flex items-center gap-2 mb-5">
-          <div className="bg-primary/20 p-2 rounded-xl"><Plus className="size-5 text-primary" strokeWidth={3} /></div>
+          <div className="bg-primary/20 p-2 rounded-xl">
+            <Plus className="size-5 text-primary" strokeWidth={3} />
+          </div>
           <h2 className="font-bold text-lg">Quick Add Drink</h2>
         </div>
-        
+
         <div className="mb-5">
-          <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wide">What are you drinking?</p>
-          <button onClick={() => setShowBeerSelector(true)} className="w-full p-4 bg-primary/10 hover:bg-primary/20 rounded-2xl flex items-center justify-between transition-all group border-2 border-transparent hover:border-primary/30">
+          <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wide">
+            What are you drinking?
+          </p>
+          <button
+            onClick={() => setShowBeerSelector(true)}
+            className="w-full p-4 bg-primary/10 hover:bg-primary/20 rounded-2xl flex items-center justify-between transition-all group border-2 border-transparent hover:border-primary/30"
+          >
             <div className="text-left">
-              <p className="font-bold text-lg">{selectedBeer?.name}</p>
-              {selectedBeer?.brewery && <p className="text-sm text-muted-foreground">{selectedBeer.brewery}</p>}
-              <p className="text-sm font-semibold text-primary mt-1">{selectedBeer?.abv}% ABV</p>
+              <p className="font-bold text-lg">{derivedSelectedBeer?.name}</p>
+              {derivedSelectedBeer?.brewery && (
+                <p className="text-sm text-muted-foreground">
+                  {derivedSelectedBeer.brewery}
+                </p>
+              )}
+              <p className="text-sm font-semibold text-primary mt-1">
+                {derivedSelectedBeer?.abv}% ABV
+              </p>
             </div>
-            <div className="bg-primary/20 group-hover:bg-primary/30 p-2 rounded-xl"><Star className="size-5 text-primary" /></div>
+            <div className="bg-primary/20 group-hover:bg-primary/30 p-2 rounded-xl">
+              <Star className="size-5 text-primary" />
+            </div>
           </button>
         </div>
 
         <div className="mb-5">
-          <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide">What size?</p>
-          <DrinkSizeSelector selectedSize={selectedSize} onSelectSize={setSelectedSize} />
+          <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide">
+            What size?
+          </p>
+          <DrinkSizeSelector
+            selectedSize={selectedSize}
+            onSelectSize={setSelectedSize}
+          />
         </div>
 
-        <Button onClick={handleAddDrink} className="w-full h-16 text-lg shadow-xl hover:shadow-2xl transition-all" size="lg">
-          {justAdded ? <><CheckCircle2 className="size-6 mr-2" strokeWidth={3} /> Added!</> : <><Plus className="size-6 mr-2" strokeWidth={3} /> Add Drink</>}
+        <Button
+          onClick={handleAddDrink}
+          className="w-full h-16 text-lg shadow-xl hover:shadow-2xl transition-all"
+          size="lg"
+        >
+          {justAdded ? (
+            <>
+              <CheckCircle2 className="size-6 mr-2" strokeWidth={3} /> Added!
+            </>
+          ) : (
+            <>
+              <Plus className="size-6 mr-2" strokeWidth={3} /> Add Drink
+            </>
+          )}
         </Button>
       </Card>
 
       {recentBeers.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <div className="bg-muted p-1.5 rounded-lg"><Clock className="size-4 text-muted-foreground" /></div>
+            <div className="bg-muted p-1.5 rounded-lg">
+              <Clock className="size-4 text-muted-foreground" />
+            </div>
             <h3 className="font-bold text-sm">Recently Had</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {recentBeers.map((beer: Beer) => (
-              <Card key={beer.id} className={`p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-102 border-2 ${selectedBeer?.id === beer.id ? 'border-primary bg-primary/10' : 'border-transparent'}`} onClick={() => setSelectedBeer(beer)}>
-                <p className="font-semibold text-sm line-clamp-1">{beer.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">{beer.abv}% ABV</p>
+              <Card
+                key={beer.id}
+                className={`p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-102 border-2 ${derivedSelectedBeer?.id === beer.id ? "border-primary bg-primary/10" : "border-transparent"}`}
+                onClick={() => setSelectedBeer(beer)}
+              >
+                <p className="font-semibold text-sm line-clamp-1">
+                  {beer.name}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {beer.abv}% ABV
+                </p>
               </Card>
             ))}
           </div>
@@ -181,24 +291,41 @@ export function Home() {
         <Card className="p-6 shadow-xl">
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-4 bg-muted/50 rounded-2xl">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Current BAC</p>
-              <p className="text-3xl font-bold text-primary">{currentBAC.toFixed(3)}%</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
+                Current BAC
+              </p>
+              <p className="text-3xl font-bold text-primary">
+                {currentBAC.toFixed(3)}%
+              </p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-2xl">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">Std Drinks</p>
-              <p className="text-3xl font-bold text-primary">{totalStandardDrinks.toFixed(1)}</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
+                Std Drinks
+              </p>
+              <p className="text-3xl font-bold text-primary">
+                {totalStandardDrinks.toFixed(1)}
+              </p>
             </div>
           </div>
         </Card>
       )}
-      <DrinkLog 
-        drinks={drinks} 
+      <DrinkLog
+        drinks={drinks}
         allBeers={allBeers}
-        onUndo={undoLast} 
-        onRemoveDrink={removeDrink} 
-        onClear={clearSession} 
+        onUndo={undoLast}
+        onRemoveDrink={removeDrink}
+        onClear={clearSession}
       />
-      {showBeerSelector && <BeerSelector allBeers={allBeers} onSelect={(beer: Beer) => { setSelectedBeer(beer); setShowBeerSelector(false); }} onClose={() => setShowBeerSelector(false)} />}
+      {showBeerSelector && (
+        <BeerSelector
+          allBeers={allBeers}
+          onSelect={(beer: Beer) => {
+            setSelectedBeer(beer);
+            setShowBeerSelector(false);
+          }}
+          onClose={() => setShowBeerSelector(false)}
+        />
+      )}
     </div>
   );
 }
