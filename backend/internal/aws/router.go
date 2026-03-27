@@ -33,7 +33,7 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 		switch {
 		case req.Path == "/api/drinks" && req.HTTPMethod == "POST":
 			log.Printf("Matched POST /api/drinks route for userID: %s", authCtx.UserID)
-			return AddDrinkHandler(ctx, req)
+			return AddDrinkHandler(ctx, authCtx, req)
 		default:
 			return events.APIGatewayProxyResponse{
 				StatusCode: 404,

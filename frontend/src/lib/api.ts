@@ -6,7 +6,7 @@ async function getAuthToken(): Promise<string | null> {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-            console.error('❌ Error getting session:', error);
+            console.error('Error getting session:', error);
             return null;
         }
         
@@ -14,10 +14,9 @@ async function getAuthToken(): Promise<string | null> {
             // Check if token is expired
             const expiresAt = session.expires_at;
             if (expiresAt && expiresAt * 1000 < Date.now()) {
-                console.log('⏰ Token expired, refreshing...');
                 const { data: { session: refreshed }, error: refreshError } = await supabase.auth.refreshSession();
                 if (refreshError || !refreshed) {
-                    console.log('⚠️ Could not refresh token');
+                    console.log('Could not refresh token');
                     return null;
                 }
                 return refreshed.access_token;
@@ -26,7 +25,7 @@ async function getAuthToken(): Promise<string | null> {
         }
         return null;
     } catch (err) {
-        console.error('❌ Failed to get auth token:', err);
+        console.error('Failed to get auth token:', err);
         return null;
     }
 }
@@ -44,9 +43,7 @@ async function fetchWithAuth<T>(
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        console.log('✅ Adding Authorization header');
     } else {
-        console.log('❌ No token found - aborting API call');
         throw new Error('User is not authenticated');
     }
 
@@ -57,7 +54,6 @@ async function fetchWithAuth<T>(
 
     if (!response.ok) {
         const error = await response.text();
-        console.error('❌ API error:', response.status, error);
         throw new Error(error || `Request failed with status ${response.status}`);
     }
 
@@ -67,7 +63,7 @@ async function fetchWithAuth<T>(
 export const api = {
     health: () => fetch('/api/health').then(res => res.json()),
 
-    addDrink: (drink: { beerId: string; beerName: string; size: string; timestamp: number }) =>
+    addDrink: (drink: { beerId: string; size: string; timestamp: number }) =>
         fetchWithAuth('drinks', {
             method: 'POST',
             body: JSON.stringify(drink),

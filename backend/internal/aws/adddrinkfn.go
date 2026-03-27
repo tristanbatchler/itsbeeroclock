@@ -1,27 +1,47 @@
-// backend/internal/aws/adddrinkfn.go
 package aws
 
 import (
 	"context"
 	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
 )
 
-var AddDrinkHandler ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// AuthContext is passed via the router's WithAuth – you can extract it if needed
-	// For now, just handle the request
-	log.Printf("Received AddDrink request with body: %s", req.Body)
+var AddDrinkHandler AuthenticatedApiProxyGatewayHandler = func(
+	ctx context.Context,
+	authCtx *AuthContext,
+	req events.APIGatewayProxyRequest,
+) (events.APIGatewayProxyResponse, error) {
 
-	body, err := json.Marshal(AppResponse{Message: "Drink added successfully!"})
-	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+	log.Printf("AddDrink by user: %s (%s)", authCtx.UserID, authCtx.Email)
+	log.Printf("Request body: %s", req.Body)
+
+	// Parse request
+	var drinkRecord models.DrinkRecord
+
+	if err := json.Unmarshal([]byte(req.Body), &drinkRecord); err != nil {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       `{"error": "invalid request body"}`,
+		}, err
 	}
 
+	// Save to DynamoDB
+	if err := SaveDrink(ctx, authCtx.UserID, drinkRecord); err != nil {
+		log.Printf("Error saving drink: %v", err)
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Body:       `{"error": "failed to save drink"}`,
+		}, err
+	}
+
+	respBody, _ := json.Marshal(AppResponse{Message: "Drink added successfully!"})
 	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Body:       string(body),
+		StatusCode: http.StatusCreated,
+		Body:       string(respBody),
 		Headers:    map[string]string{"Content-Type": "application/json"},
 	}, nil
 }

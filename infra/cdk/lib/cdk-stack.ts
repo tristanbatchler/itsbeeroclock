@@ -7,6 +7,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 
 export class BeerOClockStack extends cdk.Stack {
@@ -24,6 +25,7 @@ export class BeerOClockStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
+
 
     const apiFn = new lambda.Function(this, 'ApiFn', {
       runtime: lambda.Runtime.PROVIDED_AL2023,
@@ -43,6 +45,23 @@ export class BeerOClockStack extends cdk.Stack {
       ],
       resources: ['*'],
     }));
+
+    const table = new dynamodb.Table(this, 'BeerTable', {
+      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // TODO: Change to RETAIN for v1.0
+    });
+
+    table.addGlobalSecondaryIndex({
+      indexName: 'UserIndex',
+      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
+    });
+
+    table.grantReadWriteData(apiFn);
+
+    apiFn.addEnvironment('TABLE_NAME', table.tableName);
 
     const normaliseRequestFn = new cloudfront.Function(this, 'NormaliseRequest', {
       functionName: 'beeroclock-normalise-request',

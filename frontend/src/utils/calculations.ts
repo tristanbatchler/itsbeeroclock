@@ -12,9 +12,9 @@ export function getStandardDrinks(drink: Drink, beer: Beer) {
 export function getDrinkDisplay(drink: Drink, beers: Beer[]) {
   const beer = beers.find(b => b.id === drink.beerId);
   return {
-    name: drink.beerName,
     size: drink.size in DRINK_LABELS ? DRINK_LABELS[drink.size] : drink.size,
     standardDrinks: beer ? getStandardDrinks(drink, beer) : 0,
+    name: beer ? beer.name : 'Unknown Beer',
   };
 }
 

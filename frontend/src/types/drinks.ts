@@ -45,7 +45,6 @@ export interface Beer {
 export interface Drink {
   id: string;
   beerId: string;
-  beerName: string;
   size: DrinkSize;
   timestamp: number;
 }

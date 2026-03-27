@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -14,7 +15,7 @@ var HealthHandler ApiProxyGatewayHandler = func(ctx context.Context, apr events.
 	}
 
 	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
+		StatusCode: http.StatusOK,
 		Body:       string(body),
 		Headers:    map[string]string{"Content-Type": "application/json"},
 	}, nil
