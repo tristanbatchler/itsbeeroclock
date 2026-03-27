@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Star, Sparkles, AlertTriangle, CheckCircle2, Clock, } from 'lucide-react';
-import { DEFAULT_BEERS } from '../data/defaultBeers'; 
 import { useSession } from '../hooks/useSession';
 import { api } from '../lib/api';
 
@@ -31,9 +30,22 @@ export function Home() {
   const [justAdded, setJustAdded] = useState(false);
 
   const profile = getUserProfile();
-  const allBeers = [...DEFAULT_BEERS, ...getCustomBeers()];
   const favoriteIds = getFavoriteIds();
   const recentIds = getRecentBeerIds();
+  const [allBeers, setAllBeers] = useState<Beer[]>([]);
+
+  useEffect(() => {
+    const fetchBeers = async () => {
+      try {
+        const beers = await api.getBeers() as Beer[];
+        setAllBeers([...beers, ...getCustomBeers()]);
+      } catch (err) {
+        console.error('Failed to fetch beers:', err);
+      }
+    };
+
+    fetchBeers();
+  }, []);
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(() => {
     const recent = recentIds.map((id: string) => allBeers.find(b => b.id === id)).filter(Boolean)[0] as Beer | undefined;
@@ -57,14 +69,16 @@ export function Home() {
     
     setJustAdded(true);
 
-    try {
-        await api.addDrink({
-            beerId: selectedBeer.id,
-            size: selectedSize,
-            timestamp: Date.now(),
-        });
-    } catch (err) {
-        console.error('Failed to back up to cloud:', err);
+    if (profile?.optInHistory) {
+      try {
+          await api.addDrink({
+              beerId: selectedBeer.id,
+              size: selectedSize,
+              timestamp: Date.now(),
+          });
+      } catch (err) {
+          console.error('Failed to back up to cloud:', err);
+      }
     }
 
     setTimeout(() => setJustAdded(false), 750);
@@ -177,8 +191,14 @@ export function Home() {
           </div>
         </Card>
       )}
-      <DrinkLog drinks={drinks} onUndo={undoLast} onRemoveDrink={(id => removeDrink(id))} onClear={clearSession} />
-      {showBeerSelector && <BeerSelector onSelect={(beer: Beer) => { setSelectedBeer(beer); setShowBeerSelector(false); }} onClose={() => setShowBeerSelector(false)} />}
+      <DrinkLog 
+        drinks={drinks} 
+        allBeers={allBeers}
+        onUndo={undoLast} 
+        onRemoveDrink={removeDrink} 
+        onClear={clearSession} 
+      />
+      {showBeerSelector && <BeerSelector allBeers={allBeers} onSelect={(beer: Beer) => { setSelectedBeer(beer); setShowBeerSelector(false); }} onClose={() => setShowBeerSelector(false)} />}
     </div>
   );
 }

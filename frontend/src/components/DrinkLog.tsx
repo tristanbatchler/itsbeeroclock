@@ -1,20 +1,21 @@
 import type { Drink } from '../types/drinks';
 import { X } from 'lucide-react';
 import { getDrinkDisplay } from '../utils/calculations';
-import { DEFAULT_BEERS } from '../data/defaultBeers';
 import { formatRelativeTime } from '../utils/time';
 import { Card } from './Card';
 import { Button } from './Button';
+import { type Beer } from '../types/drinks';
 
 
 interface Props {
   drinks: Drink[];
+  allBeers: Beer[];
   onUndo: () => void;
   onRemoveDrink: (id: string) => void;
   onClear: () => void;
 }
 
-export function DrinkLog({ drinks, onUndo, onRemoveDrink, onClear }: Props) {
+export function DrinkLog({ drinks, allBeers, onUndo, onRemoveDrink, onClear }: Props) {
 
   const sortedDrinks = [...drinks].sort((a, b) => b.timestamp - a.timestamp);
 
@@ -44,7 +45,7 @@ export function DrinkLog({ drinks, onUndo, onRemoveDrink, onClear }: Props) {
 
       <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
         {sortedDrinks.map((drink) => {
-          const display = getDrinkDisplay(drink, DEFAULT_BEERS);
+          const display = getDrinkDisplay(drink, allBeers);
           return (
             <Card key={drink.id} className="p-4 flex justify-between items-center border-l-4 border-primary">
               <div>

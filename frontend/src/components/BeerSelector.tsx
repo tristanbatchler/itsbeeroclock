@@ -2,24 +2,21 @@ import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Search, Star, Plus, Beer as BeerIcon } from 'lucide-react';
 import type { Beer } from '../types/drinks';
-import { DEFAULT_BEERS } from '../data/defaultBeers'; 
-import { getCustomBeers, getFavoriteIds, toggleFavorite } from '../utils/storage'; 
+import { getFavoriteIds, toggleFavorite } from '../utils/storage'; 
 import { Input } from './Input'; 
 import { Button } from './Button'; 
 import { Card } from './Card'; 
 
 interface Props {
+  allBeers: Beer[];
   onSelect: (beer: Beer) => void;
   onClose: () => void;
 }
 
-export function BeerSelector({ onSelect, onClose }: Props) {
+export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(getFavoriteIds);
-  const [customBeers] = useState<Beer[]>(getCustomBeers);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(getFavoriteIds());
   const [activeTab, setActiveTab] = useState<'all' | 'favorites'>('all');
-
-  const allBeers = useMemo(() => [...DEFAULT_BEERS, ...customBeers], [customBeers]);
 
   const filteredBeers = useMemo(() => {
     let beers = allBeers;

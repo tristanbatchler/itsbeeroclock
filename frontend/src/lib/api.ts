@@ -68,4 +68,5 @@ export const api = {
             method: 'POST',
             body: JSON.stringify(drink),
         }),
+    getBeers: () => fetchWithAuth('beers'),
 };

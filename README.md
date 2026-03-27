@@ -46,13 +46,13 @@ Everything about Beer O'clock is for Queenslanders who just want a no-BS way to 
 
 ### Backend
 - Go Lambda functions
-- API Gateway with Cognito JWT authoriser
+- API Gateway with Supabase JWT authoriser
 
 ### Database
 - DynamoDB single-table design (for authenticated users)
 
 ### Authentication
-- Cognito User Pool  
+- Supabase to handle authentication
 - Google and Apple SSO
 - Magic link (SES)  
 - Anonymous sessions supported until explicit opt-in  

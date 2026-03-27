@@ -67,7 +67,7 @@ export function Root() {
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   }`}
                 >
-                  <Icon className={`size-6 ${isActive ? 'animate-bounce' : ''}`} strokeWidth={2.5} />
+                  <Icon className={"size-6"} strokeWidth={2.5} />
                   <span className="text-xs font-semibold">{item.label}</span>
                 </Link>
               );

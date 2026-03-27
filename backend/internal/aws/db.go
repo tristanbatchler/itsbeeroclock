@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -24,7 +26,7 @@ func init() {
 
 func SaveDrink(ctx context.Context, userID string, drinkRecord models.DrinkRecord) error {
 	drinkRecord.PK = fmt.Sprintf("USER#%s", userID)
-	drinkRecord.SK = fmt.Sprintf("DRINK#%d", drinkRecord.Timestamp)
+	drinkRecord.SK = fmt.Sprintf("DRINK#%d%s", drinkRecord.Timestamp, uuid.New().String())
 
 	av, err := attributevalue.MarshalMap(drinkRecord)
 	if err != nil {
