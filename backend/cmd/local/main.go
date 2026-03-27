@@ -66,8 +66,8 @@ func adaptHandler(fn aws.ApiProxyGatewayHandler) http.HandlerFunc {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/health", adaptHandler(aws.HealthHandler))
-	mux.HandleFunc("POST /api/drinks", adaptHandler(aws.AddDrinkHandler))
+	// Route all /api/* requests through the production router
+	mux.HandleFunc("/api/", adaptHandler(aws.Router))
 
 	server := &http.Server{
 		Addr:    ":8080",

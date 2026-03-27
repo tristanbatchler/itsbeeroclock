@@ -10,13 +10,13 @@ import (
 	"log"
 	"math/big"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
 var (
@@ -57,7 +57,7 @@ func getJWKS() (*JWKS, error) {
 		return jwksCache, nil
 	}
 
-	supabaseURL := os.Getenv("SUPABASE_URL")
+	supabaseURL := utils.GetVar("SUPABASE_URL")
 	if supabaseURL == "" {
 		return nil, fmt.Errorf("SUPABASE_URL not set")
 	}
@@ -113,6 +113,7 @@ func VerifyJWT(tokenString string) (*AuthContext, error) {
 
 	jwks, err := getJWKS()
 	if err != nil {
+		log.Printf("Error getting JWKS: %s", err.Error())
 		return nil, err
 	}
 
@@ -133,6 +134,7 @@ func VerifyJWT(tokenString string) (*AuthContext, error) {
 	})
 
 	if err != nil {
+		log.Printf("Error parsing JWT: %s", err.Error())
 		return nil, err
 	}
 
@@ -143,12 +145,14 @@ func VerifyJWT(tokenString string) (*AuthContext, error) {
 		}
 		email, _ := claims["email"].(string)
 
+		log.Printf("JWT valid for userID: %s, email: %s", userID, email)
 		return &AuthContext{
 			UserID: userID,
 			Email:  email,
 		}, nil
 	}
 
+	log.Printf("Invalid JWT")
 	return nil, fmt.Errorf("invalid token")
 }
 

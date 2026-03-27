@@ -9,11 +9,15 @@ import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
-const domainName = 'itsbeeroclock.au';
-
 export class BeerOClockStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const domainName = process.env.APP_DOMAIN_NAME;
+    if (!domainName) {
+      throw new Error('APP_DOMAIN_NAME environment variable not set');
+    }
+
 
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,

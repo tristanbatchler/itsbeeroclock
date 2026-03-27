@@ -9,7 +9,7 @@ bin/
 node_modules/
 dist/
 .env
-.env.local
+.env.prod
 
 # CDK
 infra/cdk.out/

@@ -1,9 +1,23 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Beer, User, History as HistoryIcon, Home as HomeIcon } from 'lucide-react';
-import { ThemeToggle } from './components/ThemeToggle';
+import { AppMenu } from './components/AppMenu';
+import { useState, useRef, useEffect } from 'react';
 
 export function Root() {
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   const navItems = [
     { path: '/', icon: HomeIcon, label: 'Track' },
@@ -26,7 +40,7 @@ export function Root() {
                 <p className="text-zinc-800 dark:text-zinc-900 text-xs font-medium">Queensland's Drink Tracker</p>
               </div>
             </div>
-            <ThemeToggle />
+            <AppMenu />
           </div>
         </div>
       </header>
@@ -43,7 +57,6 @@ export function Root() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
               return (
                 <Link
                   key={item.path}

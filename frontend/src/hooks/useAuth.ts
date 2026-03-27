@@ -7,13 +7,18 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('🔄 Auth state changed:', session?.user?.email ?? 'logged out');
       setUser(session?.user ?? null);
+      // Force a re-render of any components that use the token
+      // by updating a timestamp if needed
     });
 
     return () => subscription.unsubscribe();
@@ -29,9 +34,20 @@ export function useAuth() {
       },
     },
   });
+  
   const signInWithApple = () => supabase.auth.signInWithOAuth({ provider: 'apple' });
-  const signInWithMagicLink = (email: string) => supabase.auth.signInWithOtp({ email });
-  const signOut = () => supabase.auth.signOut();
+  
+  const signInWithMagicLink = (email: string) => supabase.auth.signInWithOtp({ 
+    email,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth/callback`
+    }
+  });
+  
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    // The onAuthStateChange will handle setting user to null
+  };
 
   return { user, loading, signInWithGoogle, signInWithApple, signInWithMagicLink, signOut };
 }

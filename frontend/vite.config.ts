@@ -23,6 +23,8 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL),
       'import.meta.env.SUPABASE_PUBLISHABLE_KEY': JSON.stringify(env.SUPABASE_PUBLISHABLE_KEY),
       'import.meta.env.SUPABASE_SECRET_KEY': JSON.stringify(env.SUPABASE_SECRET_KEY),
+      'import.meta.env.APP_DOMAIN_NAME': JSON.stringify(env.APP_DOMAIN_NAME),
+      'import.meta.env.APP_SUPPORT_EMAIL': JSON.stringify(env.APP_SUPPORT_EMAIL),
     }
   };
 });

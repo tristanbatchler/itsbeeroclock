@@ -32,6 +32,7 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 	return WithAuth(func(ctx context.Context, authCtx *AuthContext, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		switch {
 		case req.Path == "/api/drinks" && req.HTTPMethod == "POST":
+			log.Printf("Matched POST /api/drinks route for userID: %s", authCtx.UserID)
 			return AddDrinkHandler(ctx, req)
 		default:
 			return events.APIGatewayProxyResponse{

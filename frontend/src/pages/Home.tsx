@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Star, Sparkles, AlertTriangle, CheckCircle2, Clock, } from 'lucide-react';
 import { DEFAULT_BEERS } from '../data/defaultBeers'; 
 import { useSession } from '../hooks/useSession';
+import { api } from '../lib/api';
 
 
 import {
@@ -19,6 +20,7 @@ import { Card } from '../components/Card';
 import { DrinkLog } from '../components/DrinkLog';
 import { DrinkSizeSelector } from '../components/DrinkSizeSelector';
 import { BeerSelector } from '../components/BeerSelector';
+import { PrivacyNotice } from '../components/PrivacyNotice';
 import { type DrinkSize, type Beer, type Drink } from '../types/drinks';
 import { formatHours } from '../utils/time';
 
@@ -58,8 +60,38 @@ export function Home() {
 
   const { totalStandardDrinks, currentBAC, canDrive, hoursUntilSober, soberTime } = useBAC(drinks, allBeers, profile);
 
+  // On mount: if not opted in to history, and BAC is 0, clear session from localStorage (but not in-memory)
+  useEffect(() => {
+    if (!profile?.optInHistory && drinks.length > 0 && currentBAC === 0) {
+      // Only clear from localStorage, not in-memory
+      try {
+        localStorage.removeItem('beeroclock_session');
+      } catch (error) {
+        console.error("Failed to clear session from localStorage.", error);
+      }
+    }
+  }, [profile?.optInHistory, drinks.length, currentBAC]);
+
+  const testApiCall = async () => {
+    try {
+      const result = await api.addDrink({
+        beerId: 'test',
+        beerName: 'Test Beer',
+        size: 'schooner',
+        timestamp: Date.now(),
+      });
+      console.log('✅ API call succeeded:', result);
+    } catch (error) {
+      console.error('❌ API call failed:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <PrivacyNotice />
+      <Button onClick={testApiCall} variant="outline" className="mt-4">
+        Test API
+      </Button>
       {!profile && (
         <Card className="p-5 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-amber-300 dark:border-amber-800 shadow-lg">
           <div className="flex items-start gap-3">
