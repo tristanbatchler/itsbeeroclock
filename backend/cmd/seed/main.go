@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
+	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
 type CatalogueItem struct {
@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 	db := dynamodb.NewFromConfig(cfg)
-	tableName := os.Getenv("TABLE_NAME")
+	tableName := utils.GetVar("TABLE_NAME")
 
 	beers := []models.Beer{
 		{ID: "xxxx-gold", Name: "XXXX Gold", Brewery: "XXXX", ABV: 3.5},

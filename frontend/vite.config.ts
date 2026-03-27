@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.SUPABASE_SECRET_KEY': JSON.stringify(env.SUPABASE_SECRET_KEY),
       'import.meta.env.APP_DOMAIN_NAME': JSON.stringify(env.APP_DOMAIN_NAME),
       'import.meta.env.APP_SUPPORT_EMAIL': JSON.stringify(env.APP_SUPPORT_EMAIL),
+      'import.meta.env.TABLE_NAME': JSON.stringify(env.TABLE_NAME),
     }
   };
 });

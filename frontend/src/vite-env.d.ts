@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly SUPABASE_SECRET_KEY?: string
   readonly APP_DOMAIN_NAME: string
   readonly APP_SUPPORT_EMAIL: string
+  readonly TABLE_NAME: string
 }
 
 interface ImportMeta {
