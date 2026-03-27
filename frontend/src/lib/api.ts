@@ -47,7 +47,7 @@ async function fetchWithAuth<T>(
         throw new Error('User is not authenticated');
     }
 
-    const response = await fetch(`/api/${endpoint}`, {
+    const response = await fetch(endpoint, {
         ...options,
         headers,
     });
@@ -64,9 +64,9 @@ export const api = {
     health: () => fetch('/api/health').then(res => res.json()),
 
     addDrink: (drink: { beerId: string; size: string; timestamp: number }) =>
-        fetchWithAuth('drinks', {
+        fetchWithAuth('/api/drinks', {
             method: 'POST',
             body: JSON.stringify(drink),
         }),
-    getBeers: () => fetchWithAuth('beers'),
+    getBeers: () => fetch('/api/beers').then(res => res.json()),
 };

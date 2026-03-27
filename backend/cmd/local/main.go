@@ -16,6 +16,7 @@ import (
 
 func adaptHandler(fn aws.ApiProxyGatewayHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("🔵 adaptHandler called for path: %s", r.URL.Path)
 		req := events.APIGatewayProxyRequest{
 			HTTPMethod:            r.Method,
 			Path:                  r.URL.Path,
@@ -40,6 +41,7 @@ func adaptHandler(fn aws.ApiProxyGatewayHandler) http.HandlerFunc {
 			req.Body = string(bodyBytes)
 		}
 
+		log.Printf("🟢 Calling aws.Router with path: %s", req.Path)
 		resp, err := fn(r.Context(), req)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

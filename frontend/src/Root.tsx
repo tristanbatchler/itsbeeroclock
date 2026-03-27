@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Beer, User, History as HistoryIcon, Home as HomeIcon } from 'lucide-react';
+import { User, History as HistoryIcon, Home as HomeIcon } from 'lucide-react';
 import { AppMenu } from './components/AppMenu';
 import { useState, useRef, useEffect } from 'react';
 
@@ -33,7 +33,7 @@ export function Root() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-black/10 backdrop-blur-sm p-2 rounded-2xl">
-                <Beer className="size-8" strokeWidth={2.5} />
+                <img src="/favicon.png" alt="Logo" className="w-8 h-8 rounded-xl" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">Beer O'clock</h1>
