@@ -18,8 +18,10 @@
   --background: #09090b;
   --foreground: #fafafa;
   --card: #18181b;
-  --primary: #facc15;
-  --muted: #27272a;
+  --primary: #eab308;
+  --primary-foreground: #18181b;
+  --muted: #18181b;
+  --muted-foreground: #71717a;
   --border: #27272a;
 }
 
@@ -148,6 +150,31 @@
     opacity: 1;
   }
 }
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-2px, 0, 0);
+  }
+  20%,
+  80% {
+    transform: translate3d(4px, 0, 0);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-6px, 0, 0);
+  }
+  40%,
+  60% {
+    transform: translate3d(6px, 0, 0);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }

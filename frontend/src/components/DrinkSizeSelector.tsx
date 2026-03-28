@@ -1,18 +1,25 @@
-import { DRINK_SIZES, type DrinkSize } from '../types/drinks';
-import { Button } from './Button';
-import { PotIcon, SchonerIcon, PintIcon, CanIcon, BottleIcon } from './BeerSizeIcons';
+import { DRINK_SIZES, type DrinkSize } from "../types/drinks";
+import {
+  PotIcon,
+  SchonerIcon,
+  PintIcon,
+  CanIcon,
+  BottleIcon,
+} from "./BeerSizeIcons";
 
 interface Props {
-  selectedSize: DrinkSize;
+  selectedSize: DrinkSize | null;
   onSelectSize: (size: DrinkSize) => void;
 }
 
-const BAR_SIZES: DrinkSize[] = ['pot', 'schooner', 'pint'];
+const BAR_SIZES: DrinkSize[] = ["pot", "schooner", "pint"];
+// If you want to add the packaged sizes back in later, you can add a second row or a scrollable flex container!
+
 const sizeIcons: Record<DrinkSize, React.ElementType> = {
   pot: PotIcon,
   schooner: SchonerIcon,
   pint: PintIcon,
-  jug: PintIcon, // Placeholders
+  jug: PintIcon,
   tinnie: CanIcon,
   can440: CanIcon,
   bottle330: BottleIcon,
@@ -22,39 +29,35 @@ const sizeIcons: Record<DrinkSize, React.ElementType> = {
 
 export function DrinkSizeSelector({ selectedSize, onSelectSize }: Props) {
   return (
-    <div className="space-y-5">
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <div className="bg-amber-100 dark:bg-amber-900/30 p-1.5 rounded-lg">
-            <PintIcon className="size-4 text-amber-600 dark:text-amber-400" />
-          </div>
-          <p className="text-sm font-bold text-foreground/80">At the Bar</p>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {BAR_SIZES.map(size => {
-            const ml = DRINK_SIZES[size];
-            const label = size.charAt(0).toUpperCase() + size.slice(1);
-            const Icon = sizeIcons[size];
-            return (
-              <Button
-                key={size}
-                variant={selectedSize === size ? 'default' : 'outline'}
-                onClick={() => onSelectSize(size)}
-                className={`flex flex-col h-auto py-4 gap-2 transition-all ${
-                  selectedSize === size ? 'shadow-lg ring-2 ring-primary/20' : ''
-                }`}
-              >
-                <Icon className="size-8" />
-                <div>
-                  <span className="font-bold text-base block">{label}</span>
-                  <span className="text-xs opacity-80">{ml}ml</span>
-                </div>
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-      {/* Similar implementation for PACKAGE_SIZES can be mirrored here if needed! */}
+    <div className="w-full bg-muted/40 p-1.5 rounded-2xl flex items-stretch border border-border/50 shadow-inner">
+      {BAR_SIZES.map((size) => {
+        const ml = DRINK_SIZES[size];
+        const label = size.charAt(0).toUpperCase() + size.slice(1);
+        const Icon = sizeIcons[size];
+        const isActive = selectedSize === size;
+
+        return (
+          <button
+            key={size}
+            onClick={() => onSelectSize(size)}
+            className={`flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl transition-all duration-300 cursor-pointer ${
+              isActive
+                ? "bg-card text-foreground shadow-md ring-1 ring-border/50 scale-[1.02]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            }`}
+          >
+            <Icon
+              className={`size-6 mb-1 transition-colors ${isActive ? "text-primary" : "text-muted-foreground/50"}`}
+            />
+            <span className="font-bold text-sm leading-none">{label}</span>
+            <span
+              className={`text-[10px] mt-1 font-medium ${isActive ? "text-muted-foreground" : "opacity-50"}`}
+            >
+              {ml}ml
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,10 +1,12 @@
-import type { Drink } from "../types/drinks";
+import { useState } from "react";
+import type { Drink, Beer } from "../types/drinks";
+import { Repeat, Trash2 } from "lucide-react";
 import { getDrinkDisplay } from "../utils/calculations";
 import { formatRelativeTime } from "../utils/time";
 import { Card } from "./Card";
 import { Button } from "./Button";
-import { type Beer } from "../types/drinks";
 import { CancelButton } from "./CancelButton";
+import { Modal } from "./Modal";
 
 interface Props {
   drinks: Drink[];
@@ -12,6 +14,7 @@ interface Props {
   onUndo: () => void;
   onRemoveDrink: (id: string) => void;
   onClear: () => void;
+  onRepeat: (drink: Drink) => void;
 }
 
 export function DrinkLog({
@@ -20,8 +23,19 @@ export function DrinkLog({
   onUndo,
   onRemoveDrink,
   onClear,
+  onRepeat,
 }: Props) {
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [drinkToRepeat, setDrinkToRepeat] = useState<Drink | null>(null);
+
   const sortedDrinks = [...drinks].sort((a, b) => b.timestamp - a.timestamp);
+
+  const confirmRepeat = () => {
+    if (drinkToRepeat) {
+      onRepeat(drinkToRepeat);
+      setDrinkToRepeat(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -40,7 +54,7 @@ export function DrinkLog({
           </Button>
           <Button
             variant="destructive"
-            onClick={onClear}
+            onClick={() => setClearModalOpen(true)}
             className="text-[10px] font-black text-muted-foreground hover:text-primary uppercase tracking-widest"
             disabled={drinks.length === 0}
           >
@@ -65,15 +79,25 @@ export function DrinkLog({
                   {display.size} · {formatRelativeTime(drink.timestamp)}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <div className="font-bold text-2xl text-primary">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="text-right mr-2">
+                  <div className="font-bold text-2xl text-primary leading-none">
                     {display.standardDrinks.toFixed(1)}
                   </div>
                   <div className="text-[8px] text-muted-foreground uppercase font-black">
                     Std Drinks
                   </div>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDrinkToRepeat(drink)}
+                  aria-label="Repeat drink"
+                >
+                  <Repeat className="size-4 text-muted-foreground hover:text-primary hover:rotate-180 transition-all duration-300" />
+                </Button>
+
                 <CancelButton onClick={() => onRemoveDrink(drink.id)} />
               </div>
             </Card>
@@ -85,6 +109,88 @@ export function DrinkLog({
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={clearModalOpen}
+        onClose={() => setClearModalOpen(false)}
+        title="Clear Session?"
+      >
+        <div className="text-center">
+          <div className="bg-red-100 dark:bg-red-900/30 p-5 rounded-full inline-flex items-center justify-center mb-5 border-4 border-red-50 dark:border-red-900/50">
+            <Trash2
+              className="size-10 text-red-600 dark:text-red-400"
+              strokeWidth={2.5}
+            />
+          </div>
+
+          <p className="text-lg font-bold text-foreground mb-2">
+            Wipe your entire session?
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            This will permanently delete all drinks currently logged for
+            tonight. <br />
+            <strong className="text-red-500 dark:text-red-400 font-semibold mt-1 inline-block">
+              This cannot be undone.
+            </strong>
+          </p>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setClearModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30 border-0"
+              onClick={() => {
+                onClear();
+                setClearModalOpen(false);
+              }}
+            >
+              Wipe Session
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!drinkToRepeat}
+        onClose={() => setDrinkToRepeat(null)}
+        title="Another Round?"
+      >
+        <div className="text-center">
+          <div className="bg-primary/10 p-4 rounded-full inline-block mb-4">
+            <Repeat className="size-8 text-primary" />
+          </div>
+          <p className="text-foreground font-medium mb-1">
+            Log another exact copy?
+          </p>
+          <p className="text-lg font-bold text-primary mb-8">
+            {drinkToRepeat ? getDrinkDisplay(drinkToRepeat, allBeers).size : ""}{" "}
+            of{" "}
+            {drinkToRepeat ? getDrinkDisplay(drinkToRepeat, allBeers).name : ""}
+          </p>
+
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setDrinkToRepeat(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={confirmRepeat}
+            >
+              Log It
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

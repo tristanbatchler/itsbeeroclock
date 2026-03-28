@@ -1,23 +1,16 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   Plus,
-  Star,
-  Sparkles,
   AlertTriangle,
   CheckCircle2,
-  Clock,
+  ChevronRight,
+  Search,
 } from "lucide-react";
 import { useSession } from "../hooks/useSession";
 import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 
-import {
-  getCustomBeers,
-  getRecentBeerIds,
-  addRecentBeer,
-  getUserProfile,
-} from "../utils/storage";
+import { getCustomBeers, getUserProfile } from "../utils/storage";
 
 import { useBAC } from "../hooks/useBAC";
 import { Button } from "../components/Button";
@@ -26,19 +19,26 @@ import { DrinkLog } from "../components/DrinkLog";
 import { DrinkSizeSelector } from "../components/DrinkSizeSelector";
 import { BeerSelector } from "../components/BeerSelector";
 import { PrivacyNotice } from "../components/PrivacyNotice";
+import { UnauthenticatedNotice } from "../components/UnauthenticatedNotice";
 import { type DrinkSize, type Beer, type Drink } from "../types/drinks";
 import { formatHours } from "../utils/time";
 
 export function Home() {
   const { drinks, addDrink, removeDrink, clearSession, undoLast } =
     useSession();
-  const [selectedSize, setSelectedSize] = useState<DrinkSize>("schooner");
+  const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+
+  // Derived error state
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  // Targeted shake states
+  const [shakeBeer, setShakeBeer] = useState(false);
+  const [shakeSize, setShakeSize] = useState(false);
+
   const { user } = useAuth();
 
   const profile = getUserProfile();
-  const recentIds = getRecentBeerIds();
   const [allBeers, setAllBeers] = useState<Beer[]>([]);
 
   useEffect(() => {
@@ -70,12 +70,34 @@ export function Home() {
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
-  const recentBeers = recentIds
-    .map((id: string) => allBeers.find((b) => b.id === id))
-    .filter(Boolean) as Beer[];
+  // Dynamically derive the error message
+  let currentError = "";
+  if (hasAttemptedSubmit) {
+    if (!selectedBeer && !selectedSize) {
+      currentError = "Please select a beverage and size.";
+    } else if (!selectedBeer) {
+      currentError = "Please select a beverage to log.";
+    } else if (!selectedSize) {
+      currentError = "Please select a drink size.";
+    }
+  }
 
   const handleAddDrink = async () => {
-    if (!selectedBeer) return setShowBeerSelector(true);
+    // Targeted Shaking Logic
+    if (!selectedBeer || !selectedSize) {
+      setHasAttemptedSubmit(true);
+      if (!selectedBeer) {
+        setShakeBeer(true);
+        setTimeout(() => setShakeBeer(false), 500);
+      }
+      if (!selectedSize) {
+        setShakeSize(true);
+        setTimeout(() => setShakeSize(false), 500);
+      }
+      return;
+    }
+
+    setHasAttemptedSubmit(false); // Reset on successful validation
 
     const drinkId = window.crypto.randomUUID();
     const timestamp = new Date().getTime();
@@ -87,8 +109,6 @@ export function Home() {
       timestamp: timestamp,
     };
     addDrink(drink);
-    addRecentBeer(selectedBeer.id);
-
     setJustAdded(true);
 
     if (profile?.optInHistory) {
@@ -105,6 +125,28 @@ export function Home() {
     }
 
     setTimeout(() => setJustAdded(false), 750);
+  };
+
+  const handleRepeatDrink = async (drinkToCopy: Drink) => {
+    const drinkId = window.crypto.randomUUID();
+    const timestamp = new Date().getTime();
+
+    const newDrink: Drink = {
+      id: drinkId,
+      beerId: drinkToCopy.beerId,
+      size: drinkToCopy.size,
+      timestamp: timestamp,
+    };
+
+    addDrink(newDrink);
+
+    if (profile?.optInHistory) {
+      try {
+        await api.addDrink(newDrink);
+      } catch (err) {
+        console.error("Failed to back up to cloud:", err);
+      }
+    }
   };
 
   const bacData = useBAC(drinks, allBeers, user ? profile : null);
@@ -126,28 +168,7 @@ export function Home() {
   return (
     <div className="space-y-6">
       <PrivacyNotice />
-      {!profile && (
-        <Card className="p-5 bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-amber-300 dark:border-amber-800 shadow-lg">
-          <div className="flex items-start gap-3">
-            <div className="bg-amber-500 text-white p-2 rounded-xl">
-              <Sparkles className="size-5" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                Get the full experience
-              </p>
-              <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                Set up your profile to see BAC estimates.
-              </p>
-              <Link to="/profile">
-                <Button size="sm" className="shadow-md">
-                  Set Up Profile
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </Card>
-      )}
+      {!profile && drinks.length > 0 && <UnauthenticatedNotice />}
 
       {profile && drinks.length > 0 && (
         <Card
@@ -182,46 +203,102 @@ export function Home() {
       )}
 
       <Card className="p-6 bg-linear-to-br from-card to-muted/30 shadow-xl border-2">
-        <div className="flex items-center gap-2 mb-5">
-          <div className="bg-primary/20 p-2 rounded-xl">
-            <Plus className="size-5 text-primary" strokeWidth={3} />
-          </div>
-          <h2 className="font-bold text-lg">Quick Add Drink</h2>
-        </div>
-
-        <div className="mb-5">
-          <p className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wide">
+        <div className="mb-6">
+          <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide">
             What are you drinking?
           </p>
+
           <button
             onClick={() => setShowBeerSelector(true)}
-            className="w-full p-4 bg-primary/10 hover:bg-primary/20 rounded-2xl flex items-center justify-between transition-all group border-2 border-transparent hover:border-primary/30"
+            className={`w-full p-4 rounded-2xl flex items-center justify-between transition-all group active:scale-[0.98] cursor-pointer text-left ${
+              shakeBeer
+                ? "animate-shake border-2 border-orange-500 border-dashed bg-orange-50 dark:bg-orange-950/20"
+                : selectedBeer
+                  ? "bg-card border-2 border-border hover:border-primary shadow-sm hover:shadow-md"
+                  : "bg-primary/5 border-2 border-primary border-dashed hover:bg-primary/15"
+            }`}
           >
-            <div className="text-left">
-              <p className="font-bold text-lg">{selectedBeer?.name}</p>
-              {selectedBeer?.brewery && (
-                <p className="text-sm text-muted-foreground">
-                  {selectedBeer.brewery}
-                </p>
-              )}
-              <p className="text-sm font-semibold text-primary mt-1">
-                {selectedBeer?.abv}% ABV
-              </p>
-            </div>
-            <div className="bg-primary/20 group-hover:bg-primary/30 p-2 rounded-xl">
-              <Star className="size-5 text-primary" />
-            </div>
+            {!selectedBeer ? (
+              <div className="flex items-center gap-4 w-full py-2">
+                <div
+                  className={`p-3 rounded-xl shadow-sm transition-colors ${
+                    shakeBeer
+                      ? "bg-orange-500 text-white"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  <Search className="size-6" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <p
+                    className={`font-black text-lg uppercase tracking-tight leading-none ${
+                      shakeBeer
+                        ? "text-orange-600 dark:text-orange-400"
+                        : "text-foreground"
+                    }`}
+                  >
+                    Select Beverage
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 font-medium">
+                    Tap to browse catalogue
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 pr-4 border-r border-border/50">
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                    {selectedBeer.name}
+                  </h3>
+                  {selectedBeer.brewery && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {selectedBeer.brewery}
+                    </p>
+                  )}
+                  <p className="text-xs font-black text-primary mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md tracking-wide">
+                    {selectedBeer.abv}% ABV
+                  </p>
+                </div>
+
+                <div className="bg-muted group-hover:bg-primary/15 px-3 py-2.5 rounded-xl transition-colors ml-4 shrink-0 flex items-center gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">
+                    Change
+                  </span>
+                  <ChevronRight
+                    className="size-3 text-muted-foreground group-hover:text-primary"
+                    strokeWidth={3}
+                  />
+                </div>
+              </>
+            )}
           </button>
         </div>
 
-        <div className="mb-5">
+        <div className="mb-2">
           <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide">
             What size?
           </p>
-          <DrinkSizeSelector
-            selectedSize={selectedSize}
-            onSelectSize={setSelectedSize}
-          />
+          <div
+            className={`transition-all rounded-2xl ${
+              shakeSize
+                ? "animate-shake ring-2 ring-orange-500 ring-offset-2 ring-offset-card"
+                : ""
+            }`}
+          >
+            <DrinkSizeSelector
+              selectedSize={selectedSize}
+              onSelectSize={(size) => setSelectedSize(size)}
+            />
+          </div>
+        </div>
+
+        <div className="h-6 mb-2 flex items-center justify-center">
+          {currentError && (
+            <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm animate-fade-in flex items-center gap-1.5">
+              <AlertTriangle className="size-4" />
+              {currentError}
+            </p>
+          )}
         </div>
 
         <Button
@@ -231,42 +308,15 @@ export function Home() {
         >
           {justAdded ? (
             <>
-              <CheckCircle2 className="size-6 mr-2" strokeWidth={3} /> Added!
+              <CheckCircle2 className="size-6 mr-2" strokeWidth={3} /> Logged!
             </>
           ) : (
             <>
-              <Plus className="size-6 mr-2" strokeWidth={3} /> Add Drink
+              <Plus className="size-6 mr-2" strokeWidth={3} /> Log Drink
             </>
           )}
         </Button>
       </Card>
-
-      {recentBeers.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-muted p-1.5 rounded-lg">
-              <Clock className="size-4 text-muted-foreground" />
-            </div>
-            <h3 className="font-bold text-sm">Recently Had</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {recentBeers.map((beer: Beer) => (
-              <Card
-                key={beer.id}
-                className={`p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-102 border-2 ${selectedBeer?.id === beer.id ? "border-primary bg-primary/10" : "border-transparent"}`}
-                onClick={() => setSelectedBeer(beer)}
-              >
-                <p className="font-semibold text-sm line-clamp-1">
-                  {beer.name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {beer.abv}% ABV
-                </p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
 
       {user && profile && drinks.length > 0 && (
         <Card className="p-6 shadow-xl">
@@ -296,13 +346,18 @@ export function Home() {
           </div>
         </Card>
       )}
-      <DrinkLog
-        drinks={drinks}
-        allBeers={allBeers}
-        onUndo={undoLast}
-        onRemoveDrink={removeDrink}
-        onClear={clearSession}
-      />
+
+      {drinks.length > 0 && (
+        <DrinkLog
+          drinks={drinks}
+          allBeers={allBeers}
+          onUndo={undoLast}
+          onRemoveDrink={removeDrink}
+          onClear={clearSession}
+          onRepeat={handleRepeatDrink}
+        />
+      )}
+
       {showBeerSelector && (
         <BeerSelector
           allBeers={allBeers}

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Shield } from "lucide-react";
 import { useState } from "react";
-import { CancelButton } from "./CancelButton";
+import { NotificationCard } from "./NotificationCard";
 
 const PRIVACY_DISMISSED_KEY = "beeroclock_privacy_dismissed";
 
@@ -28,18 +28,27 @@ export function PrivacyNotice() {
   if (!visible) return null;
 
   return (
-    <div className="flex items-center gap-2 bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-800 rounded-2xl px-4 py-2 mt-2 mb-4 shadow-sm animate-fade-in">
-      <Shield className="size-4 text-amber-600 dark:text-amber-200" />
-      <span className="text-xs text-amber-900 dark:text-amber-100">
-        We value your privacy.{" "}
-        <Link
-          to="/privacy"
-          className="underline hover:text-amber-700 dark:hover:text-amber-300 font-semibold"
-        >
-          Read our Privacy Policy
-        </Link>
-      </span>
-      <CancelButton onClick={handleDismiss} />
-    </div>
+    <NotificationCard
+      icon={
+        <div className="bg-amber-500 text-white p-2 rounded-xl">
+          <Shield className="size-5" />
+        </div>
+      }
+      title={"We value your privacy."}
+      description={
+        <>
+          Read our{" "}
+          <Link
+            to="/privacy"
+            className="underline hover:text-amber-700 dark:hover:text-amber-300 font-semibold"
+          >
+            Privacy Policy
+          </Link>{" "}
+          for details.
+        </>
+      }
+      onDismiss={handleDismiss}
+      colorClassName="bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 border-amber-300 dark:border-amber-800 mt-2 mb-4"
+    />
   );
 }

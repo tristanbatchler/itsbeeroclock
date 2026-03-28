@@ -4,7 +4,6 @@ import type { Beer, UserProfile } from '../types/drinks';
 const PROFILE_KEY = 'beeroclock_profile';
 const CUSTOM_BEERS_KEY = 'beeroclock_custom_beers';
 const FAVORITE_IDS_KEY = 'beeroclock_favorite_ids';
-const RECENT_IDS_KEY = 'beeroclock_recent_ids';
 
 const safeParse = <T>(key: string, defaultValue: T): T => {
   try {
@@ -54,13 +53,4 @@ export const toggleFavorite = (beerId: string) => {
     ? favorites.filter(id => id !== beerId)
     : [...favorites, beerId];
   localStorage.setItem(FAVORITE_IDS_KEY, JSON.stringify(newFavorites));
-};
-
-// Recents
-export const getRecentBeerIds = (): string[] => safeParse(RECENT_IDS_KEY, []);
-
-export const addRecentBeer = (beerId: string) => {
-  const recents = getRecentBeerIds();
-  const newRecents = [beerId, ...recents.filter(id => id !== beerId)].slice(0, 10);
-  localStorage.setItem(RECENT_IDS_KEY, JSON.stringify(newRecents));
 };

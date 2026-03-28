@@ -28,6 +28,8 @@ Everything about Beer O'clock is for Queenslanders who just want a no-BS way to 
 - BAC graph for the current session
 - Light/dark/system theme support
 - Searchable beer catalogue with recent list and favourites
+- Ping the server in the background and mention when you're offline
+- Update the times displayed throughout the app in semi-real-time (e.g. update every minute)
 
 ### v0.2.0
 - User-uploaded beers with optional photo
