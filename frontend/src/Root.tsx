@@ -1,12 +1,15 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { User, History as HistoryIcon, Home as HomeIcon } from 'lucide-react';
-import { AppMenu } from './components/AppMenu';
-import { useState, useRef, useEffect } from 'react';
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { User, History as HistoryIcon, Home as HomeIcon } from "lucide-react";
+import { AppMenu } from "./components/AppMenu";
+import { useState, useRef, useEffect, useReducer } from "react";
 
 export function Root() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const [bounceKey, triggerBounce] = useReducer((k) => k + 1, 0);
+  const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -15,14 +18,21 @@ export function Root() {
         setMenuOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (prevPathRef.current !== location.pathname) {
+      triggerBounce();
+      prevPathRef.current = location.pathname;
+    }
+  }, [location.pathname]);
+
   const navItems = [
-    { path: '/', icon: HomeIcon, label: 'Track' },
-    { path: '/history', icon: HistoryIcon, label: 'History' },
-    { path: '/profile', icon: User, label: 'Profile' },
+    { path: "/", icon: HomeIcon, label: "Track" },
+    { path: "/history", icon: HistoryIcon, label: "History" },
+    { path: "/profile", icon: User, label: "Profile" },
   ];
 
   return (
@@ -32,13 +42,23 @@ export function Root() {
         <div className="max-w-4xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-black/10 backdrop-blur-sm p-2 rounded-2xl">
-                <img src="/favicon.png" alt="Logo" className="w-8 h-8 rounded-xl" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Beer O'clock</h1>
-                <p className="text-zinc-800 dark:text-zinc-900 text-xs font-medium">Queensland's Drink Tracker</p>
-              </div>
+              <Link to="/" className="flex items-center gap-3">
+                <div className="bg-black/10 backdrop-blur-sm p-2 rounded-2xl">
+                  <img
+                    src="/favicon.png"
+                    alt="Logo"
+                    className="w-8 h-8 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Beer O'clock
+                  </h1>
+                  <p className="text-zinc-800 dark:text-zinc-900 text-xs font-medium">
+                    Queensland's Drink Tracker
+                  </p>
+                </div>
+              </Link>
             </div>
             <AppMenu />
           </div>
@@ -57,17 +77,21 @@ export function Root() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
+              const bounce = bounceKey > 0 && isActive;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={`flex flex-col items-center gap-1.5 py-3 px-6 transition-all rounded-2xl my-2 ${
                     isActive
-                      ? 'bg-primary text-primary-foreground shadow-lg scale-105'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  <Icon className={"size-6"} strokeWidth={2.5} />
+                  <Icon
+                    className={`size-6${bounce ? " animate-bounce-short" : ""}`}
+                    strokeWidth={2.5}
+                  />
                   <span className="text-xs font-semibold">{item.label}</span>
                 </Link>
               );

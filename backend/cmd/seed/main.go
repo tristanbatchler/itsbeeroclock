@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	beerAws "github.com/tristanbatchler/itsbeeroclock/backend/internal/aws"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
-	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
 type CatalogueItem struct {
@@ -18,6 +17,7 @@ type CatalogueItem struct {
 	SK      string  `dynamodbav:"SK"`     // BEER#{id}
 	GSI1PK  string  `dynamodbav:"GSI1PK"` // CATALOGUE
 	GSI1SK  string  `dynamodbav:"GSI1SK"` // {brewery}#{name}
+	BeerID  string  `dynamodbav:"BeerID"`
 	Name    string  `dynamodbav:"Name"`
 	Brewery string  `dynamodbav:"Brewery"`
 	ABV     float64 `dynamodbav:"ABV"`
@@ -29,7 +29,6 @@ func main() {
 		log.Fatal(err)
 	}
 	db := dynamodb.NewFromConfig(cfg)
-	tableName := utils.GetVar("TABLE_NAME")
 
 	beers := []models.Beer{
 		{ID: "xxxx-gold", Name: "XXXX Gold", Brewery: "XXXX", ABV: 3.5},
@@ -50,6 +49,7 @@ func main() {
 			SK:      fmt.Sprintf("BEER#%s", b.ID),
 			GSI1PK:  "CATALOGUE",
 			GSI1SK:  fmt.Sprintf("%s#%s", b.Brewery, b.Name),
+			BeerID:  b.ID,
 			Name:    b.Name,
 			Brewery: b.Brewery,
 			ABV:     b.ABV,
@@ -57,7 +57,7 @@ func main() {
 
 		av, _ := attributevalue.MarshalMap(item)
 		_, err := db.PutItem(context.Background(), &dynamodb.PutItemInput{
-			TableName: aws.String(tableName),
+			TableName: beerAws.TableName(),
 			Item:      av,
 		})
 		if err != nil {

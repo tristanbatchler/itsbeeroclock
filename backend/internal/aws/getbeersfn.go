@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
-	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,7 +18,7 @@ import (
 
 var GetBeersHandler ApiProxyGatewayHandler = func(ctx context.Context, apr events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	out, err := dbClient.Query(ctx, &dynamodb.QueryInput{
-		TableName:              aws.String(utils.GetVar("TABLE_NAME")),
+		TableName:              TableName(),
 		IndexName:              aws.String("GSI1"),
 		KeyConditionExpression: aws.String("GSI1PK = :pk"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -45,6 +45,9 @@ var GetBeersHandler ApiProxyGatewayHandler = func(ctx context.Context, apr event
 				Body:       `{"error": "failed to unmarshal beer item"}`,
 				Headers:    map[string]string{"Content-Type": "application/json"},
 			}, err
+		}
+		if skVal, ok := item["SK"].(*types.AttributeValueMemberS); ok {
+			beer.ID = strings.TrimPrefix(skVal.Value, "BEER#")
 		}
 		beers = append(beers, beer)
 	}

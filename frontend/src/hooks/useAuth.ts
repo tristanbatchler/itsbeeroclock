@@ -45,7 +45,7 @@ export function useAuth() {
   
   const signOut = async () => {
     await supabase.auth.signOut();
-    // The onAuthStateChange will handle setting user to null
+    localStorage.removeItem('beeroclock_profile');
   };
 
   return { user, loading, signInWithGoogle, signInWithApple, signInWithMagicLink, signOut };

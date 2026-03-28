@@ -14,7 +14,6 @@ import { useAuth } from "../hooks/useAuth";
 
 import {
   getCustomBeers,
-  getFavoriteIds,
   getRecentBeerIds,
   addRecentBeer,
   getUserProfile,
@@ -39,7 +38,6 @@ export function Home() {
   const { user } = useAuth();
 
   const profile = getUserProfile();
-  const favoriteIds = getFavoriteIds();
   const recentIds = getRecentBeerIds();
   const [allBeers, setAllBeers] = useState<Beer[]>([]);
 
@@ -72,39 +70,24 @@ export function Home() {
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
-  const derivedSelectedBeer =
-    selectedBeer ??
-    (() => {
-      if (allBeers.length === 0) return null;
-
-      const recent = recentIds
-        .map((id) => allBeers.find((b) => b.id === id))
-        .filter(Boolean)[0] as Beer | undefined;
-
-      const favorite = allBeers.find((b) => favoriteIds.includes(b.id));
-      const defaultBeer = allBeers[0];
-
-      return recent || favorite || defaultBeer || null;
-    })();
-
   const recentBeers = recentIds
     .map((id: string) => allBeers.find((b) => b.id === id))
     .filter(Boolean) as Beer[];
 
   const handleAddDrink = async () => {
-    if (!derivedSelectedBeer) return setShowBeerSelector(true);
+    if (!selectedBeer) return setShowBeerSelector(true);
 
     const drinkId = window.crypto.randomUUID();
     const timestamp = new Date().getTime();
 
     const drink: Drink = {
       id: drinkId,
-      beerId: derivedSelectedBeer.id,
+      beerId: selectedBeer.id,
       size: selectedSize,
       timestamp: timestamp,
     };
     addDrink(drink);
-    addRecentBeer(derivedSelectedBeer.id);
+    addRecentBeer(selectedBeer.id);
 
     setJustAdded(true);
 
@@ -112,7 +95,7 @@ export function Home() {
       try {
         await api.addDrink({
           id: drinkId,
-          beerId: derivedSelectedBeer.id,
+          beerId: selectedBeer.id,
           size: selectedSize,
           timestamp: timestamp,
         });
@@ -124,23 +107,21 @@ export function Home() {
     setTimeout(() => setJustAdded(false), 750);
   };
 
-  const {
-    totalStandardDrinks,
-    currentBAC,
-    canDrive,
-    hoursUntilSober,
-    soberTime,
-  } = useBAC(drinks, allBeers, profile);
+  const bacData = useBAC(drinks, allBeers, user ? profile : null);
 
   useEffect(() => {
-    if (!profile?.optInHistory && drinks.length > 0 && currentBAC === 0) {
+    if (
+      !profile?.optInHistory &&
+      drinks.length > 0 &&
+      bacData.currentBAC === 0
+    ) {
       try {
         localStorage.removeItem("beeroclock_session");
       } catch (error) {
         console.error("Failed to clear session from localStorage.", error);
       }
     }
-  }, [profile?.optInHistory, drinks.length, currentBAC]);
+  }, [profile?.optInHistory, drinks.length, bacData.currentBAC]);
 
   return (
     <div className="space-y-6">
@@ -170,13 +151,13 @@ export function Home() {
 
       {profile && drinks.length > 0 && (
         <Card
-          className={`p-5 border-2 shadow-xl ${canDrive ? "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700" : "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700"}`}
+          className={`p-5 border-2 shadow-xl ${bacData.canDrive ? "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700" : "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700"}`}
         >
           <div className="flex items-start gap-3">
             <div
-              className={`p-2.5 rounded-xl ${canDrive ? "bg-green-500" : "bg-red-500"}`}
+              className={`p-2.5 rounded-xl ${bacData.canDrive ? "bg-green-500" : "bg-red-500"}`}
             >
-              {canDrive ? (
+              {bacData.canDrive ? (
                 <CheckCircle2 className="size-6 text-white" strokeWidth={3} />
               ) : (
                 <AlertTriangle className="size-6 text-white" strokeWidth={3} />
@@ -184,16 +165,16 @@ export function Home() {
             </div>
             <div className="flex-1">
               <p
-                className={`font-bold text-lg ${canDrive ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100"}`}
+                className={`font-bold text-lg ${bacData.canDrive ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100"}`}
               >
-                {canDrive ? "✓ Safe to drive" : "⚠️ Do NOT drive"}
+                {bacData.canDrive ? "✓ Safe to drive" : "⚠️ Do NOT drive"}
               </p>
               <p
-                className={`text-sm mt-1 ${canDrive ? "text-green-700 dark:text-green-200" : "text-red-700 dark:text-red-200"}`}
+                className={`text-sm mt-1 ${bacData.canDrive ? "text-green-700 dark:text-green-200" : "text-red-700 dark:text-red-200"}`}
               >
-                {canDrive
-                  ? `Under limit (${currentBAC.toFixed(3)}% BAC)`
-                  : `Wait ${formatHours(hoursUntilSober)} until ${soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`}
+                {bacData.canDrive
+                  ? `Under limit (${bacData.currentBAC.toFixed(3)}% BAC)`
+                  : `Wait ${formatHours(bacData.hoursUntilSober)} until ${bacData.soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`}
               </p>
             </div>
           </div>
@@ -217,14 +198,14 @@ export function Home() {
             className="w-full p-4 bg-primary/10 hover:bg-primary/20 rounded-2xl flex items-center justify-between transition-all group border-2 border-transparent hover:border-primary/30"
           >
             <div className="text-left">
-              <p className="font-bold text-lg">{derivedSelectedBeer?.name}</p>
-              {derivedSelectedBeer?.brewery && (
+              <p className="font-bold text-lg">{selectedBeer?.name}</p>
+              {selectedBeer?.brewery && (
                 <p className="text-sm text-muted-foreground">
-                  {derivedSelectedBeer.brewery}
+                  {selectedBeer.brewery}
                 </p>
               )}
               <p className="text-sm font-semibold text-primary mt-1">
-                {derivedSelectedBeer?.abv}% ABV
+                {selectedBeer?.abv}% ABV
               </p>
             </div>
             <div className="bg-primary/20 group-hover:bg-primary/30 p-2 rounded-xl">
@@ -272,7 +253,7 @@ export function Home() {
             {recentBeers.map((beer: Beer) => (
               <Card
                 key={beer.id}
-                className={`p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-102 border-2 ${derivedSelectedBeer?.id === beer.id ? "border-primary bg-primary/10" : "border-transparent"}`}
+                className={`p-4 cursor-pointer transition-all hover:shadow-lg hover:scale-102 border-2 ${selectedBeer?.id === beer.id ? "border-primary bg-primary/10" : "border-transparent"}`}
                 onClick={() => setSelectedBeer(beer)}
               >
                 <p className="font-semibold text-sm line-clamp-1">
@@ -287,23 +268,29 @@ export function Home() {
         </div>
       )}
 
-      {profile && drinks.length > 0 && (
+      {user && profile && drinks.length > 0 && (
         <Card className="p-6 shadow-xl">
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-4 bg-muted/50 rounded-2xl">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Current BAC
               </p>
-              <p className="text-3xl font-bold text-primary">
-                {currentBAC.toFixed(3)}%
+              <p
+                key={bacData.currentBAC.toFixed(3)}
+                className="text-3xl font-bold text-primary animate-pop"
+              >
+                {bacData.currentBAC.toFixed(3)}%
               </p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-2xl">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-1">
                 Std Drinks
               </p>
-              <p className="text-3xl font-bold text-primary">
-                {totalStandardDrinks.toFixed(1)}
+              <p
+                key={bacData.totalStandardDrinks.toFixed(1)}
+                className="text-3xl font-bold text-primary animate-pop"
+              >
+                {bacData.totalStandardDrinks.toFixed(1)}
               </p>
             </div>
           </div>

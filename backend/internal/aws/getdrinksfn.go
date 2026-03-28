@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
-	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
 var GetDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
@@ -22,7 +21,7 @@ var GetDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 ) (events.APIGatewayProxyResponse, error) {
 
 	out, err := dbClient.Query(ctx, &dynamodb.QueryInput{
-		TableName:              aws.String(utils.GetVar("TABLE_NAME")),
+		TableName:              TableName(),
 		KeyConditionExpression: aws.String("PK = :pk AND begins_with(SK, :sk)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":pk": &types.AttributeValueMemberS{Value: fmt.Sprintf("USER#%s", authCtx.UserID)},

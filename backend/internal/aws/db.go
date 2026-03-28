@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
-	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
 var dbClient *dynamodb.Client
@@ -33,7 +31,7 @@ func SaveDrink(ctx context.Context, userID string, drinkRecord models.DrinkRecor
 	}
 
 	_, err = dbClient.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName: aws.String(utils.GetVar("TABLE_NAME")),
+		TableName: TableName(),
 		Item:      av,
 	})
 	return err

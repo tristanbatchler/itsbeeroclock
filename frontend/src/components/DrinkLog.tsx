@@ -1,11 +1,10 @@
-import type { Drink } from '../types/drinks';
-import { X } from 'lucide-react';
-import { getDrinkDisplay } from '../utils/calculations';
-import { formatRelativeTime } from '../utils/time';
-import { Card } from './Card';
-import { Button } from './Button';
-import { type Beer } from '../types/drinks';
-
+import type { Drink } from "../types/drinks";
+import { getDrinkDisplay } from "../utils/calculations";
+import { formatRelativeTime } from "../utils/time";
+import { Card } from "./Card";
+import { Button } from "./Button";
+import { type Beer } from "../types/drinks";
+import { CancelButton } from "./CancelButton";
 
 interface Props {
   drinks: Drink[];
@@ -15,14 +14,21 @@ interface Props {
   onClear: () => void;
 }
 
-export function DrinkLog({ drinks, allBeers, onUndo, onRemoveDrink, onClear }: Props) {
-
+export function DrinkLog({
+  drinks,
+  allBeers,
+  onUndo,
+  onRemoveDrink,
+  onClear,
+}: Props) {
   const sortedDrinks = [...drinks].sort((a, b) => b.timestamp - a.timestamp);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex justify-between items-center mb-4 border-b border-border pb-2">
-        <h2 className="text-primary font-bold text-xl uppercase tracking-tighter">History</h2>
+        <h2 className="text-primary font-bold text-xl uppercase tracking-tighter">
+          History
+        </h2>
         <div className="flex flex-row gap-2">
           <Button
             variant="ghost"
@@ -47,9 +53,14 @@ export function DrinkLog({ drinks, allBeers, onUndo, onRemoveDrink, onClear }: P
         {sortedDrinks.map((drink) => {
           const display = getDrinkDisplay(drink, allBeers);
           return (
-            <Card key={drink.id} className="p-4 flex justify-between items-center border-l-4 border-primary">
+            <Card
+              key={drink.id}
+              className="p-4 flex justify-between items-center border-l-4 border-primary animate-slide-in"
+            >
               <div>
-                <div className="font-bold text-foreground leading-tight">{display.name}</div>
+                <div className="font-bold text-foreground leading-tight">
+                  {display.name}
+                </div>
                 <div className="text-[10px] text-muted-foreground uppercase font-bold mt-1">
                   {display.size} · {formatRelativeTime(drink.timestamp)}
                 </div>
@@ -59,17 +70,19 @@ export function DrinkLog({ drinks, allBeers, onUndo, onRemoveDrink, onClear }: P
                   <div className="font-bold text-2xl text-primary">
                     {display.standardDrinks.toFixed(1)}
                   </div>
-                  <div className="text-[8px] text-muted-foreground uppercase font-black">Std Drinks</div>
+                  <div className="text-[8px] text-muted-foreground uppercase font-black">
+                    Std Drinks
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => onRemoveDrink(drink.id)} aria-label="Remove drink">
-                  <X className="size-4 text-muted-foreground hover:text-red-500" />
-                </Button>
+                <CancelButton onClick={() => onRemoveDrink(drink.id)} />
               </div>
             </Card>
           );
         })}
         {drinks.length === 0 && (
-          <div className="text-center py-10 text-muted-foreground text-xs italic">No drinks logged yet.</div>
+          <div className="text-center py-10 text-muted-foreground text-xs italic">
+            No drinks logged yet.
+          </div>
         )}
       </div>
     </div>
