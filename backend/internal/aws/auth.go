@@ -158,7 +158,13 @@ func VerifyJWT(tokenString string) (*AuthContext, error) {
 
 func WithAuth(handler AuthenticatedApiProxyGatewayHandler) ApiProxyGatewayHandler {
 	return func(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+
+		// Safely check for both uppercase and lowercase
 		authHeader := req.Headers["Authorization"]
+		if authHeader == "" {
+			authHeader = req.Headers["authorization"]
+		}
+
 		if authHeader == "" {
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusUnauthorized,
