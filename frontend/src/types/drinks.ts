@@ -1,8 +1,8 @@
-
 export interface UserProfile {
-  gender: 'male' | 'female';
   weight: number;
+  gender: 'male' | 'female';
   optInHistory: boolean;
+  favouriteBeerIds?: string[];
 }
 
 export const DRINK_SIZES = {

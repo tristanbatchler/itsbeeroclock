@@ -36,7 +36,7 @@ var GetDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 		}, err
 	}
 
-	var drinks []models.DrinkRecord
+	drinks := make([]models.DrinkRecord, 0)
 	for _, item := range out.Items {
 		var drink models.DrinkRecord
 		err := attributevalue.UnmarshalMap(item, &drink)

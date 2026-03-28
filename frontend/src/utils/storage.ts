@@ -1,5 +1,14 @@
 import type { Beer, UserProfile } from "../types/drinks";
 
+const BEERS_CACHE_KEY = "beeroclock_beers";
+
+
+export const saveBeers = (beers: Beer[]) => {
+  localStorage.setItem(BEERS_CACHE_KEY, JSON.stringify(beers));
+};
+
+export const getCachedBeers = (): Beer[] => safeParse(BEERS_CACHE_KEY, []);
+
 const PROFILE_KEY = "beeroclock_profile";
 const CUSTOM_BEERS_KEY = "beeroclock_custom_beers";
 const FAVORITE_IDS_KEY = "beeroclock_favourite_ids";

@@ -10,11 +10,14 @@ export function useBAC(drinks: Drink[], beers: Beer[], profile: UserProfile | nu
     return () => clearInterval(interval);
   }, []);
 
+  // Only count drinks with a matching beer
+  const validDrinks = drinks.filter(d => beers.some(b => b.id === d.beerId));
+
   const totalStandardDrinks = useMemo(() => 
-    drinks.reduce((sum, d) => {
+    validDrinks.reduce((sum, d) => {
       const beer = beers.find(b => b.id === d.beerId);
       return sum + (beer ? getStandardDrinks(d, beer) : 0);
-    }, 0), [drinks, beers]
+    }, 0), [validDrinks, beers]
   );
 
   const getGramsAlcohol = (d: Drink) => {
@@ -22,8 +25,10 @@ export function useBAC(drinks: Drink[], beers: Beer[], profile: UserProfile | nu
     return beer ? getStandardDrinks(d, beer) * 10 : 0;
   };
 
-  const currentBAC = calculateBAC(drinks, profile, currentTime, getGramsAlcohol);
-  const { canDrive, hoursUntilSober, soberTime } = calculateTimeUntilSober(drinks, profile, currentTime, getGramsAlcohol);
+  // If any drink is missing a beer, BAC is not valid
+  const hasValidData = drinks.every(d => beers.some(b => b.id === d.beerId));
+  const currentBAC = hasValidData ? calculateBAC(drinks, profile, currentTime, getGramsAlcohol) : null;
+  const soberData = hasValidData ? calculateTimeUntilSober(drinks, profile, currentTime, getGramsAlcohol) : { canDrive: false, hoursUntilSober: null, soberTime: null };
 
-  return { totalStandardDrinks, currentBAC, canDrive, hoursUntilSober, soberTime };
+  return { totalStandardDrinks, currentBAC, ...soberData, hasValidData };
 }

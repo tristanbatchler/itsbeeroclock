@@ -14,7 +14,7 @@ export function getDrinkDisplay(drink: Drink, beers: Beer[]) {
   return {
     size: drink.size in DRINK_LABELS ? DRINK_LABELS[drink.size] : drink.size,
     standardDrinks: beer ? getStandardDrinks(drink, beer) : 0,
-    name: beer ? beer.name : 'Unknown Beer',
+    name: beer?.name ?? 'Saved drink',
   };
 }
 

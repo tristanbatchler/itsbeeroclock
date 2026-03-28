@@ -2,14 +2,16 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { User, History as HistoryIcon, Home as HomeIcon } from "lucide-react";
 import { AppMenu } from "./components/AppMenu";
 import { useState, useRef, useEffect, useReducer } from "react";
+import { useOnlineStatus } from "./hooks/useOnlineStatus";
 
 export function Root() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
   const [bounceKey, triggerBounce] = useReducer((k) => k + 1, 0);
   const prevPathRef = useRef(location.pathname);
+
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -64,6 +66,13 @@ export function Root() {
           </div>
         </div>
       </header>
+
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="bg-orange-600 text-white text-center py-2 text-xs font-bold">
+          Offline: Changes will sync when reconnected
+        </div>
+      )}
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto px-4 py-6">

@@ -9,8 +9,14 @@ import {
 import { useSession } from "../hooks/useSession";
 import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
-import { getCustomBeers, getUserProfile } from "../utils/storage";
+import {
+  getCustomBeers,
+  getUserProfile,
+  saveBeers,
+  getCachedBeers,
+} from "../utils/storage";
 
 import { useBAC } from "../hooks/useBAC";
 import { Button } from "../components/Button";
@@ -32,6 +38,7 @@ export function Home() {
     undoLast,
     setAllDrinks,
   } = useSession();
+  const [isApiDown, setIsApiDown] = useState(false);
   const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -50,58 +57,82 @@ export function Home() {
     const fetchBeers = async () => {
       try {
         const beers = (await api.getBeers()) as Beer[];
-        setAllBeers([...beers, ...getCustomBeers()]);
+        const merged = [...beers, ...getCustomBeers()];
+        setAllBeers(merged);
+        saveBeers(merged);
+        setIsApiDown(false);
       } catch (err) {
         console.error("Failed to fetch beers:", err);
+        setIsApiDown(true);
+        // fallback to cached beers
+        const cached = getCachedBeers();
+        setAllBeers(cached);
       }
     };
-
     fetchBeers();
   }, []);
 
-  // Initial hydration logic - runs once on app load if user is authenticated and has opted into history
   const hasHydratedRef = useRef(false);
-  useEffect(() => {
-    if (!user || !activeProfile?.optInHistory || hasHydratedRef.current) return;
+  const isOnline = useOnlineStatus();
 
-    const hydrate = async () => {
+  useEffect(() => {
+    if (!isOnline) {
+      hasHydratedRef.current = false;
+      return;
+    }
+
+    // Only run if we are online, the API is up, and we haven't already hydrated this session
+    if (
+      !isOnline ||
+      !user ||
+      !activeProfile?.optInHistory ||
+      hasHydratedRef.current
+    )
+      return;
+
+    const hydrateAndFlush = async () => {
       hasHydratedRef.current = true;
 
       try {
-        const cloudDrinks = await api.getDrinks();
+        // 1. Flush any queued requests first
+        await api.processOfflineQueue();
 
-        const cloudIds = new Set(cloudDrinks.map((d) => d.id));
+        // 2. Fetch the latest from the server
+        const serverDrinks = (await api.getDrinks()) || [];
 
-        const localOnly = drinks.filter((d) => !cloudIds.has(d.id));
+        // 3. Find any local drinks that didn't make it to the server
+        const serverIds = new Set(serverDrinks.map((d: Drink) => d.id));
+        const localOnly = drinks.filter((d) => !serverIds.has(d.id));
 
-        if (localOnly.length > 0) {
-          await api.syncDrinks(localOnly);
-        }
-        const merged = [...cloudDrinks, ...localOnly].sort(
+        // 4. Merge them together and update the UI
+        const merged = [...serverDrinks, ...localOnly].sort(
           (a, b) => b.timestamp - a.timestamp,
         );
 
         setAllDrinks(merged);
+        setIsApiDown(false);
       } catch (err) {
         console.error("Hydration failed", err);
-        hasHydratedRef.current = false;
+        setIsApiDown(true);
+        hasHydratedRef.current = false; // Allow retry on next connection
       }
     };
 
-    hydrate();
+    hydrateAndFlush();
+    // We explicitly omit 'drinks' and 'setAllDrinks' to prevent infinite looping
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeProfile?.optInHistory]);
+  }, [isOnline, isApiDown, user, activeProfile?.optInHistory]);
 
-  // Periodic sync
   useEffect(() => {
+    if (!isOnline || isApiDown) return;
     if (!user || !activeProfile?.optInHistory || drinks.length === 0) return;
 
     const timeout = setTimeout(() => {
-      api.syncDrinks(drinks).catch(console.error);
-    }, 800);
+      api.syncDrinks(drinks).catch(() => setIsApiDown(true));
+    }, 300);
 
     return () => clearTimeout(timeout);
-  }, [drinks, user, activeProfile?.optInHistory]);
+  }, [drinks, isOnline, isApiDown, user, activeProfile?.optInHistory]);
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
@@ -221,37 +252,67 @@ export function Home() {
 
   const bacData = useBAC(drinks, allBeers, activeProfile);
 
+  // Show warning if no beers loaded
+  if (allBeers.length === 0) {
+    return (
+      <Card className="p-6 my-10 text-center">
+        <p className="font-bold text-lg mb-2">No beers available offline.</p>
+        <p className="text-muted-foreground mb-2">
+          Please connect to the internet once to load the beer catalogue.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Offline mode cannot show drink details or calculate BAC until beers
+          are loaded at least once.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PrivacyNotice />
+
       {!activeProfile && drinks.length > 0 && <UnauthenticatedNotice />}
 
       {activeProfile && drinks.length > 0 && (
         <Card
-          className={`p-5 border-2 shadow-xl ${bacData.canDrive ? "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700" : "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700"}`}
+          className={`p-5 border-2 shadow-xl ${bacData.hasValidData && bacData.canDrive ? "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700" : "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700"}`}
         >
           <div className="flex items-start gap-3">
             <div
-              className={`p-2.5 rounded-xl ${bacData.canDrive ? "bg-green-500" : "bg-red-500"}`}
+              className={`p-2.5 rounded-xl ${bacData.hasValidData && bacData.canDrive ? "bg-green-500" : "bg-red-500"}`}
             >
-              {bacData.canDrive ? (
-                <CheckCircle2 className="size-6 text-white" strokeWidth={3} />
+              {bacData.hasValidData ? (
+                bacData.canDrive ? (
+                  <CheckCircle2 className="size-6 text-white" strokeWidth={3} />
+                ) : (
+                  <AlertTriangle
+                    className="size-6 text-white"
+                    strokeWidth={3}
+                  />
+                )
               ) : (
                 <AlertTriangle className="size-6 text-white" strokeWidth={3} />
               )}
             </div>
             <div className="flex-1">
               <p
-                className={`font-bold text-lg ${bacData.canDrive ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100"}`}
+                className={`font-bold text-lg ${bacData.hasValidData && bacData.canDrive ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100"}`}
               >
-                {bacData.canDrive ? "✓ Safe to drive" : "⚠️ Do NOT drive"}
+                {bacData.hasValidData
+                  ? bacData.canDrive
+                    ? "✓ Safe to drive"
+                    : "⚠️ Do NOT drive"
+                  : "Cannot calculate BAC (missing drink data)"}
               </p>
               <p
-                className={`text-sm mt-1 ${bacData.canDrive ? "text-green-700 dark:text-green-200" : "text-red-700 dark:text-red-200"}`}
+                className={`text-sm mt-1 ${bacData.hasValidData && bacData.canDrive ? "text-green-700 dark:text-green-200" : "text-red-700 dark:text-red-200"}`}
               >
-                {bacData.canDrive
-                  ? `Under limit (${bacData.currentBAC.toFixed(3)}% BAC)`
-                  : `Wait ${formatHours(bacData.hoursUntilSober)} until ${bacData.soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`}
+                {bacData.hasValidData
+                  ? bacData.canDrive
+                    ? `Under limit (${(bacData.currentBAC ?? 0).toFixed(3)}% BAC)`
+                    : `Wait ${formatHours(bacData.hoursUntilSober ?? 0)} until ${bacData.soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Drink details are missing for some drinks. BAC cannot be shown."}
               </p>
             </div>
           </div>
@@ -382,10 +443,17 @@ export function Home() {
                 Current BAC
               </p>
               <p
-                key={bacData.currentBAC.toFixed(3)}
+                key={
+                  bacData.currentBAC !== null
+                    ? bacData.currentBAC.toFixed(3)
+                    : "0.000"
+                }
                 className="text-3xl font-bold text-primary animate-pop"
               >
-                {bacData.currentBAC.toFixed(3)}%
+                {bacData.currentBAC !== null
+                  ? bacData.currentBAC.toFixed(3)
+                  : "0.000"}
+                %
               </p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-2xl">

@@ -40,6 +40,12 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 		case req.Path == "/api/sync" && req.HTTPMethod == "POST":
 			log.Printf("Matched POST /api/sync route for userID: %s", authCtx.UserID)
 			return SyncDrinksHandler(ctx, authCtx, req)
+		case req.Path == "/api/profile" && req.HTTPMethod == "GET":
+			log.Printf("Matched GET /api/profile route for userID: %s", authCtx.UserID)
+			return GetProfileHandler(ctx, authCtx, req)
+		case req.Path == "/api/profile" && req.HTTPMethod == "PUT":
+			log.Printf("Matched PUT /api/profile route for userID: %s", authCtx.UserID)
+			return UpdateProfileHandler(ctx, authCtx, req)
 		default:
 			return events.APIGatewayProxyResponse{
 				StatusCode: 404,
