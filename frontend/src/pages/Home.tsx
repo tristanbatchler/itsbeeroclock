@@ -30,15 +30,14 @@ export function Home() {
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
-  // Derived error state
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-  // Targeted shake states
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
 
   const { user } = useAuth();
+  const rawProfile = getUserProfile();
+  const activeProfile = user ? rawProfile : null;
 
-  const profile = getUserProfile();
   const [allBeers, setAllBeers] = useState<Beer[]>([]);
 
   useEffect(() => {
@@ -56,7 +55,7 @@ export function Home() {
 
   useEffect(() => {
     const syncLocalDrinks = async () => {
-      if (user && drinks.length > 0 && profile?.optInHistory) {
+      if (activeProfile?.optInHistory && drinks.length > 0) {
         try {
           await api.syncDrinks(drinks);
           clearSession();
@@ -66,24 +65,22 @@ export function Home() {
       }
     };
     syncLocalDrinks();
-  }, [user, drinks, profile?.optInHistory, clearSession]);
+  }, [activeProfile?.optInHistory, drinks, clearSession]);
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
-  // Dynamically derive the error message
   let currentError = "";
   if (hasAttemptedSubmit) {
     if (!selectedBeer && !selectedSize) {
-      currentError = "Please select a beverage and size.";
+      currentError = "Please select a beer and size.";
     } else if (!selectedBeer) {
-      currentError = "Please select a beverage to log.";
+      currentError = "Please select a beer to log.";
     } else if (!selectedSize) {
       currentError = "Please select a drink size.";
     }
   }
 
   const handleAddDrink = async () => {
-    // Targeted Shaking Logic
     if (!selectedBeer || !selectedSize) {
       setHasAttemptedSubmit(true);
       if (!selectedBeer) {
@@ -97,7 +94,7 @@ export function Home() {
       return;
     }
 
-    setHasAttemptedSubmit(false); // Reset on successful validation
+    setHasAttemptedSubmit(false);
 
     const drinkId = window.crypto.randomUUID();
     const timestamp = new Date().getTime();
@@ -111,7 +108,7 @@ export function Home() {
     addDrink(drink);
     setJustAdded(true);
 
-    if (profile?.optInHistory) {
+    if (activeProfile?.optInHistory) {
       try {
         await api.addDrink({
           id: drinkId,
@@ -127,20 +124,28 @@ export function Home() {
     setTimeout(() => setJustAdded(false), 750);
   };
 
-  const handleRepeatDrink = async (drinkToCopy: Drink) => {
+  const handleRepeatDrink = async (drinkToCopy: Drink, newSize: DrinkSize) => {
+    setHasAttemptedSubmit(false);
+    setShakeBeer(false);
+    setShakeSize(false);
+
+    const beerToSelect = allBeers.find((b) => b.id === drinkToCopy.beerId);
+    if (beerToSelect) setSelectedBeer(beerToSelect);
+    setSelectedSize(newSize);
+
     const drinkId = window.crypto.randomUUID();
     const timestamp = new Date().getTime();
 
     const newDrink: Drink = {
       id: drinkId,
       beerId: drinkToCopy.beerId,
-      size: drinkToCopy.size,
+      size: newSize,
       timestamp: timestamp,
     };
 
     addDrink(newDrink);
 
-    if (profile?.optInHistory) {
+    if (activeProfile?.optInHistory) {
       try {
         await api.addDrink(newDrink);
       } catch (err) {
@@ -149,11 +154,11 @@ export function Home() {
     }
   };
 
-  const bacData = useBAC(drinks, allBeers, user ? profile : null);
+  const bacData = useBAC(drinks, allBeers, activeProfile);
 
   useEffect(() => {
     if (
-      !profile?.optInHistory &&
+      !activeProfile?.optInHistory &&
       drinks.length > 0 &&
       bacData.currentBAC === 0
     ) {
@@ -163,14 +168,14 @@ export function Home() {
         console.error("Failed to clear session from localStorage.", error);
       }
     }
-  }, [profile?.optInHistory, drinks.length, bacData.currentBAC]);
+  }, [activeProfile?.optInHistory, drinks.length, bacData.currentBAC]);
 
   return (
     <div className="space-y-6">
       <PrivacyNotice />
-      {!profile && drinks.length > 0 && <UnauthenticatedNotice />}
+      {!activeProfile && drinks.length > 0 && <UnauthenticatedNotice />}
 
-      {profile && drinks.length > 0 && (
+      {activeProfile && drinks.length > 0 && (
         <Card
           className={`p-5 border-2 shadow-xl ${bacData.canDrive ? "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 border-green-400 dark:border-green-700" : "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/50 dark:to-rose-950/50 border-red-400 dark:border-red-700"}`}
         >
@@ -237,7 +242,7 @@ export function Home() {
                         : "text-foreground"
                     }`}
                   >
-                    Select Beverage
+                    Choose your beer
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 font-medium">
                     Tap to browse catalogue
@@ -318,7 +323,7 @@ export function Home() {
         </Button>
       </Card>
 
-      {user && profile && drinks.length > 0 && (
+      {activeProfile && drinks.length > 0 && (
         <Card className="p-6 shadow-xl">
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-4 bg-muted/50 rounded-2xl">

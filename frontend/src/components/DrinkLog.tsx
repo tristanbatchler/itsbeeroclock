@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Drink, Beer } from "../types/drinks";
+import type { Drink, Beer, DrinkSize } from "../types/drinks";
 import { Repeat, Trash2 } from "lucide-react";
 import { getDrinkDisplay } from "../utils/calculations";
 import { formatRelativeTime } from "../utils/time";
@@ -7,6 +7,7 @@ import { Card } from "./Card";
 import { Button } from "./Button";
 import { CancelButton } from "./CancelButton";
 import { Modal } from "./Modal";
+import { DrinkSizeSelector } from "./DrinkSizeSelector";
 
 interface Props {
   drinks: Drink[];
@@ -14,7 +15,7 @@ interface Props {
   onUndo: () => void;
   onRemoveDrink: (id: string) => void;
   onClear: () => void;
-  onRepeat: (drink: Drink) => void;
+  onRepeat: (drink: Drink, newSize: DrinkSize) => void;
 }
 
 export function DrinkLog({
@@ -27,12 +28,18 @@ export function DrinkLog({
 }: Props) {
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [drinkToRepeat, setDrinkToRepeat] = useState<Drink | null>(null);
+  const [repeatSize, setRepeatSize] = useState<DrinkSize | null>(null);
 
   const sortedDrinks = [...drinks].sort((a, b) => b.timestamp - a.timestamp);
 
+  const handleOpenRepeat = (drink: Drink) => {
+    setDrinkToRepeat(drink);
+    setRepeatSize(drink.size);
+  };
+
   const confirmRepeat = () => {
-    if (drinkToRepeat) {
-      onRepeat(drinkToRepeat);
+    if (drinkToRepeat && repeatSize) {
+      onRepeat(drinkToRepeat, repeatSize);
       setDrinkToRepeat(null);
     }
   };
@@ -92,13 +99,17 @@ export function DrinkLog({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setDrinkToRepeat(drink)}
+                  onClick={() => handleOpenRepeat(drink)}
                   aria-label="Repeat drink"
+                  title="Repeat this drink"
                 >
                   <Repeat className="size-4 text-muted-foreground hover:text-primary hover:rotate-180 transition-all duration-300" />
                 </Button>
 
-                <CancelButton onClick={() => onRemoveDrink(drink.id)} />
+                <CancelButton
+                  title="Remove drink"
+                  onClick={() => onRemoveDrink(drink.id)}
+                />
               </div>
             </Card>
           );
@@ -165,13 +176,21 @@ export function DrinkLog({
             <Repeat className="size-8 text-primary" />
           </div>
           <p className="text-foreground font-medium mb-1">
-            Log another exact copy?
+            Log another round of
           </p>
-          <p className="text-lg font-bold text-primary mb-8">
-            {drinkToRepeat ? getDrinkDisplay(drinkToRepeat, allBeers).size : ""}{" "}
-            of{" "}
+          <p className="text-2xl font-black text-primary mb-6">
             {drinkToRepeat ? getDrinkDisplay(drinkToRepeat, allBeers).name : ""}
           </p>
+
+          <div className="mb-8 text-left">
+            <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide text-center">
+              Change size?
+            </p>
+            <DrinkSizeSelector
+              selectedSize={repeatSize}
+              onSelectSize={(size) => setRepeatSize(size)}
+            />
+          </div>
 
           <div className="flex gap-3">
             <Button
