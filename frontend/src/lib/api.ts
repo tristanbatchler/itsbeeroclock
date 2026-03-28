@@ -70,9 +70,14 @@ export const api = {
             body: JSON.stringify(drink),
         }),
     getBeers: () => fetch('/api/beers').then(res => res.json()),
+    getDrinks: () => fetchWithAuth<Drink[]>('/api/drinks'),
     syncDrinks: (drinks: Drink[]) => 
-        fetchWithAuth('/sync', {
+        fetchWithAuth('/api/sync', {
             method: 'POST',
             body: JSON.stringify(drinks),
+        }),
+    deleteDrink: (id: string, timestamp: number) =>
+        fetchWithAuth(`/api/drinks?id=${id}&ts=${timestamp}`, {
+            method: 'DELETE',
         }),
 };

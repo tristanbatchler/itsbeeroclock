@@ -1,12 +1,12 @@
-# Beer O'clock
+# Beer O'Clock
 
 [https://itsbeeroclock.au](https://itsbeeroclock.au)
 
-Beer O'clock lets Queenslanders confidently track their nights out by providing a stupid simple interface to log pots, pints, and schooners (or standard cans/bottles). If the drink can't be logged in under 5 seconds, it's too hard.
+Beer O'Clock lets Queenslanders confidently track their nights out by providing a stupid simple interface to log pots, pints, and schooners (or standard cans/bottles). If the drink can't be logged in under 5 seconds, it's too hard.
 
 So many alcohol trackers appeal to the global market, meaning it appeals to everybody and nobody at the same time. 
 
-Everything about Beer O'clock is for Queenslanders who just want a no-BS way to see what they've had to drink in a night.
+Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to see what they've had to drink in a night.
 
 
 ## Core principles

@@ -34,6 +34,9 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 		case req.Path == "/api/drinks" && req.HTTPMethod == "GET":
 			log.Printf("Matched GET /api/drinks route for userID: %s", authCtx.UserID)
 			return GetDrinksHandler(ctx, authCtx, req)
+		case req.Path == "/api/drinks" && req.HTTPMethod == "DELETE":
+			log.Printf("Matched DELETE /api/drinks route for userID: %s", authCtx.UserID)
+			return DeleteDrinkHandler(ctx, authCtx, req)
 		case req.Path == "/api/sync" && req.HTTPMethod == "POST":
 			log.Printf("Matched POST /api/sync route for userID: %s", authCtx.UserID)
 			return SyncDrinksHandler(ctx, authCtx, req)

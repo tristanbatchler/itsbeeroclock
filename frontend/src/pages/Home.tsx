@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   AlertTriangle,
@@ -24,8 +24,14 @@ import { type DrinkSize, type Beer, type Drink } from "../types/drinks";
 import { formatHours } from "../utils/time";
 
 export function Home() {
-  const { drinks, addDrink, removeDrink, clearSession, undoLast } =
-    useSession();
+  const {
+    drinks,
+    addDrink,
+    removeDrink,
+    clearSession,
+    undoLast,
+    setAllDrinks,
+  } = useSession();
   const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -53,11 +59,49 @@ export function Home() {
     fetchBeers();
   }, []);
 
+  // Initial hydration logic - runs once on app load if user is authenticated and has opted into history
+  const hasHydratedRef = useRef(false);
   useEffect(() => {
-    if (activeProfile?.optInHistory && drinks.length > 0) {
+    if (!user || !activeProfile?.optInHistory || hasHydratedRef.current) return;
+
+    const hydrate = async () => {
+      hasHydratedRef.current = true;
+
+      try {
+        const cloudDrinks = await api.getDrinks();
+
+        const cloudIds = new Set(cloudDrinks.map((d) => d.id));
+
+        const localOnly = drinks.filter((d) => !cloudIds.has(d.id));
+
+        if (localOnly.length > 0) {
+          await api.syncDrinks(localOnly);
+        }
+        const merged = [...cloudDrinks, ...localOnly].sort(
+          (a, b) => b.timestamp - a.timestamp,
+        );
+
+        setAllDrinks(merged);
+      } catch (err) {
+        console.error("Hydration failed", err);
+        hasHydratedRef.current = false;
+      }
+    };
+
+    hydrate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeProfile?.optInHistory]);
+
+  // Periodic sync
+  useEffect(() => {
+    if (!user || !activeProfile?.optInHistory || drinks.length === 0) return;
+
+    const timeout = setTimeout(() => {
       api.syncDrinks(drinks).catch(console.error);
-    }
-  }, [activeProfile?.optInHistory, drinks]);
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, [drinks, user, activeProfile?.optInHistory]);
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
@@ -114,6 +158,35 @@ export function Home() {
     }
 
     setTimeout(() => setJustAdded(false), 750);
+  };
+
+  const handleRemoveDrink = (id: string) => {
+    const drink = drinks.find((d) => d.id === id);
+    removeDrink(id);
+
+    if (activeProfile?.optInHistory && drink) {
+      api.deleteDrink(drink.id, drink.timestamp).catch(console.error);
+    }
+  };
+
+  const handleUndoLast = () => {
+    const last = [...drinks].sort((a, b) => b.timestamp - a.timestamp)[0];
+    undoLast();
+
+    if (activeProfile?.optInHistory && last) {
+      api.deleteDrink(last.id, last.timestamp).catch(console.error);
+    }
+  };
+
+  const handleClearSession = () => {
+    const all = [...drinks];
+    clearSession();
+
+    if (activeProfile?.optInHistory) {
+      Promise.all(all.map((d) => api.deleteDrink(d.id, d.timestamp))).catch(
+        console.error,
+      );
+    }
   };
 
   const handleRepeatDrink = async (drinkToCopy: Drink, newSize: DrinkSize) => {
@@ -334,9 +407,9 @@ export function Home() {
         <DrinkLog
           drinks={drinks}
           allBeers={allBeers}
-          onUndo={undoLast}
-          onRemoveDrink={removeDrink}
-          onClear={clearSession}
+          onUndo={handleUndoLast}
+          onRemoveDrink={handleRemoveDrink}
+          onClear={handleClearSession}
           onRepeat={handleRepeatDrink}
         />
       )}

@@ -40,5 +40,9 @@ export function useSession() {
     setDrinks([]);
   };
 
-  return { drinks, addDrink, removeDrink, undoLast, clearSession };
+  const setAllDrinks = (newDrinks: Drink[]) => {
+    setDrinks(newDrinks);
+  };
+
+  return { drinks, addDrink, removeDrink, undoLast, clearSession, setAllDrinks };
 }

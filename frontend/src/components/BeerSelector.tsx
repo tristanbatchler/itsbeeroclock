@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Star, Plus, Beer as BeerIcon } from "lucide-react";
 import type { Beer } from "../types/drinks";
-import { getFavoriteIds, toggleFavorite } from "../utils/storage";
+import { getFavouriteIds, toggleFavourite } from "../utils/storage";
 import { Input } from "./Input";
 import { Button } from "./Button";
 import { Card } from "./Card";
@@ -23,13 +23,13 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(getFavoriteIds());
-  const [activeTab, setActiveTab] = useState<"all" | "favorites">("all");
+  const [favouriteIds, setFavouriteIds] = useState<string[]>(getFavouriteIds());
+  const [activeTab, setActiveTab] = useState<"all" | "favourites">("all");
 
   const filteredBeers = useMemo(() => {
     let beers = allBeers;
-    if (activeTab === "favorites")
-      beers = beers.filter((b) => favoriteIds.includes(b.id));
+    if (activeTab === "favourites")
+      beers = beers.filter((b) => favouriteIds.includes(b.id));
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       beers = beers.filter(
@@ -39,12 +39,12 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
       );
     }
     return beers;
-  }, [allBeers, favoriteIds, activeTab, searchQuery]);
+  }, [allBeers, favouriteIds, activeTab, searchQuery]);
 
-  const handleToggleFavorite = (beerId: string, e: React.MouseEvent) => {
+  const handleToggleFavourite = (beerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleFavorite(beerId);
-    setFavoriteIds(getFavoriteIds());
+    toggleFavourite(beerId);
+    setFavouriteIds(getFavouriteIds());
   };
 
   return (
@@ -86,17 +86,17 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
             All Beers
           </Button>
           <Button
-            variant={activeTab === "favorites" ? "default" : "outline"}
-            onClick={() => setActiveTab("favorites")}
+            variant={activeTab === "favourites" ? "default" : "outline"}
+            onClick={() => setActiveTab("favourites")}
             className="flex-1"
           >
-            <Star className="size-4 mr-2" /> Favorites ({favoriteIds.length})
+            <Star className="size-4 mr-2" /> Favourites ({favouriteIds.length})
           </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {filteredBeers.map((beer) => {
-            const isFav = favoriteIds.includes(beer.id);
+            const isFav = favouriteIds.includes(beer.id);
             return (
               <Card
                 key={beer.id}
@@ -125,7 +125,7 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={(e) => handleToggleFavorite(beer.id, e)}
+                    onClick={(e) => handleToggleFavourite(beer.id, e)}
                   >
                     <Star
                       className={`size-6 transition-all ${isFav ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
