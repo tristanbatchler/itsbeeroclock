@@ -2,7 +2,11 @@ import { api } from "../lib/api";
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { getUserProfile, saveUserProfile } from "../utils/storage";
+import {
+  getUserProfile,
+  saveUserProfile,
+  getFavouriteIds,
+} from "../utils/storage";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -23,7 +27,13 @@ export function Profile() {
   const handleSave = async () => {
     const weightNum = parseFloat(weight);
     if (isNaN(weightNum) || weightNum <= 0) return;
-    const profile = { gender, weight: weightNum, optInHistory };
+
+    const profile = {
+      gender,
+      weight: weightNum,
+      optInHistory,
+      favouriteBeerIds: getFavouriteIds(),
+    };
     saveUserProfile(profile);
     if (user) {
       try {

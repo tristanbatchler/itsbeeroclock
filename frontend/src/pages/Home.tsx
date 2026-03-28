@@ -16,6 +16,7 @@ import {
   getUserProfile,
   saveBeers,
   getCachedBeers,
+  saveUserProfile,
 } from "../utils/storage";
 
 import { useBAC } from "../hooks/useBAC";
@@ -26,7 +27,12 @@ import { DrinkSizeSelector } from "../components/DrinkSizeSelector";
 import { BeerSelector } from "../components/BeerSelector";
 import { PrivacyNotice } from "../components/PrivacyNotice";
 import { UnauthenticatedNotice } from "../components/UnauthenticatedNotice";
-import { type DrinkSize, type Beer, type Drink } from "../types/drinks";
+import {
+  type DrinkSize,
+  type Beer,
+  type Drink,
+  type UserProfile,
+} from "../types/drinks";
 import { formatHours } from "../utils/time";
 
 export function Home() {
@@ -46,10 +52,6 @@ export function Home() {
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
-
-  const { user } = useAuth();
-  const rawProfile = getUserProfile();
-  const activeProfile = user ? rawProfile : null;
 
   const [allBeers, setAllBeers] = useState<Beer[]>([]);
 
@@ -74,6 +76,34 @@ export function Home() {
 
   const hasHydratedRef = useRef(false);
   const isOnline = useOnlineStatus();
+
+  const { user } = useAuth();
+
+  const [activeProfile, setActiveProfile] = useState<UserProfile | null>(() =>
+    user ? getUserProfile() : null,
+  );
+
+  useEffect(() => {
+    if (!user || !isOnline) return;
+
+    api
+      .getProfile()
+      .then((cloudProfile) => {
+        if (cloudProfile) {
+          saveUserProfile(cloudProfile);
+          setActiveProfile(cloudProfile);
+
+          // Sync favorites down to this device
+          if (cloudProfile.favouriteBeerIds) {
+            localStorage.setItem(
+              "beeroclock_favourite_ids",
+              JSON.stringify(cloudProfile.favouriteBeerIds),
+            );
+          }
+        }
+      })
+      .catch(console.error);
+  }, [user, isOnline]);
 
   useEffect(() => {
     if (!isOnline) {
