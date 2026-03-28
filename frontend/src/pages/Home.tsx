@@ -54,18 +54,10 @@ export function Home() {
   }, []);
 
   useEffect(() => {
-    const syncLocalDrinks = async () => {
-      if (activeProfile?.optInHistory && drinks.length > 0) {
-        try {
-          await api.syncDrinks(drinks);
-          clearSession();
-        } catch (err) {
-          console.error("Failed to sync drinks:", err);
-        }
-      }
-    };
-    syncLocalDrinks();
-  }, [activeProfile?.optInHistory, drinks, clearSession]);
+    if (activeProfile?.optInHistory && drinks.length > 0) {
+      api.syncDrinks(drinks).catch(console.error);
+    }
+  }, [activeProfile?.optInHistory, drinks]);
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
@@ -155,20 +147,6 @@ export function Home() {
   };
 
   const bacData = useBAC(drinks, allBeers, activeProfile);
-
-  useEffect(() => {
-    if (
-      !activeProfile?.optInHistory &&
-      drinks.length > 0 &&
-      bacData.currentBAC === 0
-    ) {
-      try {
-        localStorage.removeItem("beeroclock_session");
-      } catch (error) {
-        console.error("Failed to clear session from localStorage.", error);
-      }
-    }
-  }, [activeProfile?.optInHistory, drinks.length, bacData.currentBAC]);
 
   return (
     <div className="space-y-6">
