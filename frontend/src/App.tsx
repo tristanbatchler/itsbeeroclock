@@ -12,7 +12,7 @@ import { SignIn } from './pages/SignIn';
 
 export default function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} storageKey="vite-ui-theme">
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Root />}>
