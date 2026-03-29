@@ -4,20 +4,20 @@
 
 Beer O'Clock lets Queenslanders confidently track their nights out by providing a stupid simple interface to log pots, pints, and schooners (or standard cans/bottles). If the drink can't be logged in under 5 seconds, it's too hard.
 
-So many alcohol trackers appeal to the global market, meaning it appeals to everybody and nobody at the same time. 
+So many alcohol trackers appeal to the global market, meaning it appeals to everybody and nobody at the same time.
 
 Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to see what they've had to drink in a night.
 
-
 ## Core principles
 
-- Log the first drink in under 5 seconds.  
-- Can be easily used even if intoxicated. 
+- Log the first drink in under 5 seconds.
+- Can be easily used even if intoxicated.
 - Everything is opt-in by default.
 
 ## Roadmap
 
 ### v0.1.0
+
 - Anonymous session by default
 - Quick-add buttons for standard Queensland drink sizes
 - Pre-loaded catalogue of popular Queensland beers
@@ -32,34 +32,41 @@ Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to 
 - Update the times displayed throughout the app in semi-real-time (e.g. update every minute)
 
 ### v0.2.0
+
 - User-uploaded beers with optional photo
 - Drinking history dashboard (average consumption, favourite beers, stats)
 
 ### v1.0.0
+
 - One lightweight AI-generated tip per session (optional).
-- Polish UI/UX based on user feedback and testing.  
+- Polish UI/UX based on user feedback and testing.
 
 ## Technology stack
 
 ### Frontend
+
 - React, TypeScript, Vite, Tailwind CSS
 - IndexedDB, localStorage
 - AWS Amplify for authentication UI flows
 
 ### Backend
+
 - Go Lambda functions
 - API Gateway with Supabase JWT authoriser
 
 ### Database
+
 - DynamoDB single-table design (for authenticated users)
 
 ### Authentication
+
 - Supabase to handle authentication
 - Google and Apple SSO
-- Magic link (SES)  
-- Anonymous sessions supported until explicit opt-in  
+- Magic link (SES)
+- Anonymous sessions supported until explicit opt-in
 
 ### Infrastructure
+
 - AWS CDK for all resources
 - S3 & CloudFront for static hosting
 - SES for email sending
@@ -68,9 +75,11 @@ Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to 
 The whole stack should be able to be deployed and redeployed with a single command.
 
 ## Quickstart for my dev environment
+
 This is for my reference, but if you happen to be in a similar environment and want to get the project running, here are the I follow:
 
 ### For local dev
+
 ```bash
 # 1. Install mise-en-place (version manager for Go, Node, etc.)
 paru -S mise
@@ -106,10 +115,10 @@ cp .env.example .env
 code . # and fill in the required environment variables in the .env file
 ```
 
-
 ### For deployment
+
 ```bash
-paru -S aws-cli-v2
+paru -S aws-cli-v2 zip
 cd infra
 npm install
 aws login

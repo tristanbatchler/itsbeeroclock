@@ -21,7 +21,6 @@ const sizeIcons: Record<DrinkSize, React.ElementType> = {
   pint: PintIcon,
   jug: PintIcon,
   tinnie: CanIcon,
-  can440: CanIcon,
   bottle330: BottleIcon,
   bottle375: BottleIcon,
   longneck: BottleIcon,

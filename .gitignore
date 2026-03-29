@@ -2,7 +2,6 @@
 *.exe
 *.test
 /tmp
-bin/
 *.zip
 
 # Node
@@ -24,3 +23,5 @@ Thumbs.db
 
 # Logs
 backend/cmd/local/__debug_*
+
+ProjectSummary.md
