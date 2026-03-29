@@ -61,7 +61,7 @@ export function Root() {
                     Beer O'Clock
                   </h1>
                   <p className="text-zinc-800 dark:text-zinc-900 text-xs font-medium">
-                    Queensland's Drink Tracker
+                    Queensland's Simple Drink Tracker
                   </p>
                 </div>
               </Link>

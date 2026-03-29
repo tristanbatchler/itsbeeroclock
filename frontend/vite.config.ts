@@ -1,31 +1,68 @@
-import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import path from 'path';
+import { defineConfig, loadEnv } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
+import path from "path";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(__dirname, '..'), '');
-  
+  const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
+
   return {
     plugins: [
       react(),
-      tailwindcss()
+      tailwindcss(),
+      VitePWA({
+        registerType: "autoUpdate",
+        manifest: {
+          name: "Beer O'Clock",
+          short_name: "Beer O'Clock",
+          description: "Queensland's simple drink tracker",
+          theme_color: "#f59e0b",
+          background_color: "#ffffff",
+          display: "standalone",
+          orientation: "portrait",
+          icons: [
+            {
+              src: "/favicon.png",
+              sizes: "192x192",
+              type: "image/png",
+            },
+            {
+              src: "/favicon.png",
+              sizes: "512x512",
+              type: "image/png",
+            },
+          ],
+        },
+        workbox: {
+          globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|ico)$/,
+              handler: "CacheFirst",
+            },
+          ],
+        },
+      }),
     ],
     server: {
       proxy: {
-        '/api': {
-          target: 'http://localhost:8080',
+        "/api": {
+          target: "http://localhost:8080",
           changeOrigin: true,
-        }
-      }
+        },
+      },
     },
     define: {
-      'import.meta.env.SUPABASE_URL': JSON.stringify(env.SUPABASE_URL),
-      'import.meta.env.SUPABASE_PUBLISHABLE_KEY': JSON.stringify(env.SUPABASE_PUBLISHABLE_KEY),
-      'import.meta.env.SUPABASE_SECRET_KEY': JSON.stringify(env.SUPABASE_SECRET_KEY),
-      'import.meta.env.APP_DOMAIN_NAME': JSON.stringify(env.APP_DOMAIN_NAME),
-      'import.meta.env.APP_SUPPORT_EMAIL': JSON.stringify(env.APP_SUPPORT_EMAIL),
-      'import.meta.env.TABLE_NAME': JSON.stringify(env.TABLE_NAME),
-    }
+      "import.meta.env.SUPABASE_URL": JSON.stringify(env.SUPABASE_URL),
+      "import.meta.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        env.SUPABASE_PUBLISHABLE_KEY,
+      ),
+      "import.meta.env.APP_DOMAIN_NAME": JSON.stringify(env.APP_DOMAIN_NAME),
+      "import.meta.env.APP_SUPPORT_EMAIL": JSON.stringify(
+        env.APP_SUPPORT_EMAIL,
+      ),
+      "import.meta.env.TABLE_NAME": JSON.stringify(env.TABLE_NAME),
+    },
   };
 });
