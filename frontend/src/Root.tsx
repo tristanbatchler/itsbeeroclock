@@ -3,6 +3,8 @@ import { User, History as HistoryIcon, Home as HomeIcon } from "lucide-react";
 import { AppMenu } from "./components/AppMenu";
 import { useState, useRef, useEffect, useReducer } from "react";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
+import { InitialLoading } from "./components/InitialLoading";
+import { useInitialLoad } from "./hooks/useInitialLoad";
 
 export function Root() {
   const location = useLocation();
@@ -12,6 +14,8 @@ export function Root() {
   const prevPathRef = useRef(location.pathname);
 
   const isOnline = useOnlineStatus();
+  const { isLoading: isInitialLoading, initialLoadFailed } = useInitialLoad();
+  const showOfflineBanner = initialLoadFailed || !isOnline;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -68,7 +72,7 @@ export function Root() {
       </header>
 
       {/* Offline banner */}
-      {!isOnline && (
+      {!isInitialLoading && showOfflineBanner && (
         <div className="bg-orange-600 text-white text-center py-2 text-xs font-bold">
           Offline: Changes will sync when reconnected
         </div>
@@ -76,10 +80,15 @@ export function Root() {
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
-        <Outlet />
+        {isInitialLoading ? (
+          <InitialLoading />
+        ) : (
+          <Outlet />
+        )}
       </main>
 
       {/* Bottom navigation */}
+      {!isInitialLoading && (
       <nav className="fixed bottom-0 left-0 right-0 bg-card/80 border-t border-border shadow-2xl backdrop-blur-xl z-40">
         <div className="max-w-4xl mx-auto px-2">
           <div className="flex justify-around">
@@ -108,6 +117,7 @@ export function Root() {
           </div>
         </div>
       </nav>
+      )}
     </div>
   );
 }
