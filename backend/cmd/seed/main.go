@@ -21,6 +21,7 @@ type CatalogueItem struct {
 	Name    string  `dynamodbav:"Name"`
 	Brewery string  `dynamodbav:"Brewery"`
 	ABV     float64 `dynamodbav:"ABV"`
+	Image   string  `dynamodbav:"Image"`
 }
 
 func main() {
@@ -531,6 +532,7 @@ func main() {
 			Name:    b.Name,
 			Brewery: b.Brewery,
 			ABV:     b.ABV,
+			Image:   b.Image,
 		}
 
 		av, _ := attributevalue.MarshalMap(item)
