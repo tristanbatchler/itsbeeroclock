@@ -1,6 +1,6 @@
 export interface UserProfile {
   weight: number;
-  gender: 'male' | 'female';
+  gender: "male" | "female";
   optInHistory: boolean;
   favouriteBeerIds?: string[];
 }
@@ -11,7 +11,6 @@ export const DRINK_SIZES = {
   pint: 570,
   jug: 1140,
   tinnie: 375,
-  can440: 440,
   bottle330: 330,
   bottle375: 375,
   longneck: 750,
@@ -20,18 +19,15 @@ export const DRINK_SIZES = {
 export type DrinkSize = keyof typeof DRINK_SIZES;
 
 export const DRINK_LABELS: Record<DrinkSize, string> = {
-  pot: 'Pot',
-  schooner: 'Schooner',
-  pint: 'Pint',
-  jug: 'Jug',
-  tinnie: 'Tinnie',
-  can440: 'Can 440ml',
-  bottle330: '330ml Bottle',
-  bottle375: '375ml Stubby',
-  longneck: 'Longneck',
+  pot: "Pot",
+  schooner: "Schooner",
+  pint: "Pint",
+  jug: "Jug",
+  tinnie: "Tinnie",
+  bottle330: "330ml Bottle",
+  bottle375: "375ml Stubby",
+  longneck: "Longneck",
 };
-
-
 
 export interface Beer {
   id: string;
