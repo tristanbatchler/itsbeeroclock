@@ -72,31 +72,38 @@ This is for my reference, but if you happen to be in a similar environment and w
 
 ### For local dev
 ```bash
-# 1. Install asdf (Arch Linux)
-paru -S asdf-vm
-# Note: Ensure 'source /opt/asdf-vm/asdf.fish' is in your ~/.config/fish/config.fish
+# 1. Install mise-en-place (version manager for Go, Node, etc.)
+paru -S mise
+echo 'eval "$(mise activate bash)"' >> ~/.bashrc
 
 # 2. Clone and enter the project root
 git clone https://github.com/tristanbatchler/itsbeeroclock.git
 cd itsbeeroclock
 
 # 3. Add plugins and install tools
-asdf plugin add golang
-asdf plugin add nodejs
-asdf install golang 1.25.8
-asdf install nodejs 24.14.1
+mise use node@24.14.1
+mise use golang@1.25.8
+mise install
 
-# 4. Set project-wide versions in the root
-asdf set golang 1.25.8
-asdf set nodejs 24.14.1
-
-# 5. Install Frontend dependencies
+# 4. Install Frontend dependencies
 cd frontend
 npm install
 
-# 6. Setup Backend
-cd ../backend/lambdas
+# 5. Setup Backend
+cd ../backend
 go mod tidy
+
+# 6. Recommended extensions
+code --install-extension golang.go
+code --install-extension esbenp.prettier-vscode
+code --install-extension dbaeumer.vscode-eslint
+code --install-extension bradlc.vscode-tailwindcss
+code --install-extension amazonwebservices.aws-toolkit-vscode
+
+# 7. Create the required .env file
+cd ..
+cp .env.example .env
+code . # and fill in the required environment variables in the .env file
 ```
 
 

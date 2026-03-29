@@ -1,8 +1,19 @@
 {
-    "files.associations": {
-        "*.css": "tailwindcss"
-    },
-    "editor.quickSuggestions": {
-        "strings": "on"
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "editor.formatOnSave": true,
+
+  "[go]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
     }
+  },
+
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
