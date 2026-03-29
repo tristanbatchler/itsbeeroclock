@@ -46,7 +46,7 @@ export function DrinkSizeSelector({ selectedSize, onSelectSize }: Props) {
             }`}
           >
             <Icon
-              className={`size-6 mb-1 transition-colors ${isActive ? "text-primary" : "text-muted-foreground/50"}`}
+              className={`size-6 mb-1 transition-colors ${isActive ? "text-primary-foreground" : "text-muted-foreground/50"}`}
             />
             <span className="font-bold text-sm leading-none">{label}</span>
             <span

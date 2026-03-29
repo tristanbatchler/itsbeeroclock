@@ -46,6 +46,9 @@ var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGate
 		case req.Path == "/api/profile" && req.HTTPMethod == "PUT":
 			log.Printf("Matched PUT /api/profile route for userID: %s", authCtx.UserID)
 			return UpdateProfileHandler(ctx, authCtx, req)
+		case req.Path == "/api/clear" && req.HTTPMethod == "DELETE":
+			log.Printf("Matched DELETE /api/clear route for userID: %s", authCtx.UserID)
+			return ClearUserDataHandler(ctx, authCtx, req)
 		default:
 			return events.APIGatewayProxyResponse{
 				StatusCode: 404,

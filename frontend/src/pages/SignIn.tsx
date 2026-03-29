@@ -23,10 +23,10 @@ export function SignIn() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <Card className="p-8 max-w-md text-center">
-          <Mail className="size-12 mx-auto mb-4 text-primary" />
-          <h2 className="text-2xl font-bold mb-2">Check your email</h2>
+          <Mail className="size-12 mx-auto mb-4 text-primary-foreground" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
           <p className="text-muted-foreground">
-            We sent a magic link to <span className="font-medium">{email}</span>
+            We sent a magic link to <span className="font-medium text-foreground">{email}</span>
           </p>
           <Button
             onClick={() => {
@@ -46,7 +46,7 @@ export function SignIn() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
       <Card className="p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-8">
+        <h1 className="text-3xl font-bold text-foreground text-center mb-8">
           Sign in to Beer O'Clock
         </h1>
 

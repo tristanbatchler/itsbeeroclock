@@ -44,12 +44,12 @@ export function Root() {
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <header className="bg-linear-to-br from-yellow-400 via-amber-400 to-yellow-500 dark:from-yellow-500 dark:via-yellow-400 dark:to-amber-500 text-zinc-900 shadow-xl sticky top-0 z-40">
+      <header className="bg-primary bg-linear-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground-foreground shadow-xl sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link to="/" className="flex items-center gap-3">
-                <div className="bg-black/10 backdrop-blur-sm p-2 rounded-2xl">
+                <div className="bg-primary/10 backdrop-blur-sm p-2 rounded-2xl">
                   <img
                     src="/favicon.png"
                     alt="Logo"
@@ -60,7 +60,7 @@ export function Root() {
                   <h1 className="text-2xl font-bold tracking-tight">
                     Beer O'Clock
                   </h1>
-                  <p className="text-zinc-800 dark:text-zinc-900 text-xs font-medium">
+                  <p className="text-muted-foreground text-xs font-medium">
                     Queensland's Simple Drink Tracker
                   </p>
                 </div>
@@ -73,7 +73,7 @@ export function Root() {
 
       {/* Offline banner */}
       {!isInitialLoading && showOfflineBanner && (
-        <div className="bg-orange-600 text-white text-center py-2 text-xs font-bold">
+        <div className="bg-destructive text-destructive-foreground text-center py-2 text-xs font-bold">
           Offline: Changes will sync when reconnected
         </div>
       )}
@@ -102,7 +102,7 @@ export function Root() {
                   to={item.path}
                   className={`flex flex-col items-center gap-1.5 py-3 px-6 transition-all rounded-2xl my-2 ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-lg scale-105"
+                      ? "bg-primary/20 text-primary-foreground shadow-lg scale-105"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >

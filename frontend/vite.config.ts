@@ -36,10 +36,18 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+          globIgnores: ["**/beer_images/**"],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|ico)$/,
               handler: "CacheFirst",
+              options: {
+                cacheName: "beer-images-cache",
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 Days
+                },
+              },
             },
           ],
         },

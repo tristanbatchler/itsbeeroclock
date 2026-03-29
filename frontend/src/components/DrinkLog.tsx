@@ -47,14 +47,14 @@ export function DrinkLog({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex justify-between items-center mb-4 border-b border-border pb-2">
-        <h2 className="text-primary font-bold text-xl uppercase tracking-tighter">
+        <h2 className="text-primary-foreground font-bold text-xl uppercase tracking-tighter">
           History
         </h2>
         <div className="flex flex-row gap-2">
           <Button
             variant="ghost"
             onClick={onUndo}
-            className="text-[10px] font-black text-muted-foreground hover:text-primary uppercase tracking-widest"
+            className="text-[10px] font-black text-muted-foreground hover:text-primary-foreground uppercase tracking-widest"
             disabled={drinks.length === 0}
           >
             [ Undo Last ]
@@ -62,7 +62,7 @@ export function DrinkLog({
           <Button
             variant="destructive"
             onClick={() => setClearModalOpen(true)}
-            className="text-[10px] font-black text-muted-foreground hover:text-primary uppercase tracking-widest"
+            className="text-[10px] font-black text-destructive-foreground hover:text-destructive uppercase tracking-widest"
             disabled={drinks.length === 0}
           >
             [ Clear All ]
@@ -88,7 +88,7 @@ export function DrinkLog({
               </div>
               <div className="flex items-center gap-1 sm:gap-2">
                 <div className="text-right mr-2">
-                  <div className="font-bold text-2xl text-primary leading-none">
+                  <div className="font-bold text-2xl text-primary-foreground leading-none">
                     {display.standardDrinks.toFixed(1)}
                   </div>
                   <div className="text-[8px] text-muted-foreground uppercase font-black">
@@ -103,7 +103,7 @@ export function DrinkLog({
                   aria-label="Repeat drink"
                   title="Repeat this drink"
                 >
-                  <Repeat className="size-4 text-muted-foreground hover:text-primary hover:rotate-180 transition-all duration-300" />
+                  <Repeat className="size-4 text-muted-foreground hover:text-primary-foreground hover:rotate-180 transition-all duration-300" />
                 </Button>
 
                 <CancelButton
@@ -127,9 +127,9 @@ export function DrinkLog({
         title="Clear Session?"
       >
         <div className="text-center">
-          <div className="bg-red-100 dark:bg-red-900/30 p-5 rounded-full inline-flex items-center justify-center mb-5 border-4 border-red-50 dark:border-red-900/50">
+          <div className="bg-destructive/10 p-5 rounded-full inline-flex items-center justify-center mb-5 border-4 border-destructive/20">
             <Trash2
-              className="size-10 text-red-600 dark:text-red-400"
+              className="size-10 text-destructive"
               strokeWidth={2.5}
             />
           </div>
@@ -140,7 +140,7 @@ export function DrinkLog({
           <p className="text-sm text-muted-foreground mb-8">
             This will permanently delete all drinks currently logged for
             tonight. <br />
-            <strong className="text-red-500 dark:text-red-400 font-semibold mt-1 inline-block">
+            <strong className="text-destructive font-semibold mt-1 inline-block">
               This cannot be undone.
             </strong>
           </p>
@@ -154,7 +154,8 @@ export function DrinkLog({
               Cancel
             </Button>
             <Button
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30 border-0"
+              variant="destructive"
+              className="flex-1 shadow-lg shadow-destructive/30 border-0"
               onClick={() => {
                 onClear();
                 setClearModalOpen(false);
@@ -173,12 +174,12 @@ export function DrinkLog({
       >
         <div className="text-center">
           <div className="bg-primary/10 p-4 rounded-full inline-block mb-4">
-            <Repeat className="size-8 text-primary" />
+            <Repeat className="size-8 text-primary-foreground" />
           </div>
           <p className="text-foreground font-medium mb-1">
             Log another round of
           </p>
-          <p className="text-2xl font-black text-primary mb-6">
+          <p className="text-2xl font-black text-primary-foreground mb-6">
             {drinkToRepeat ? getDrinkDisplay(drinkToRepeat, allBeers).name : ""}
           </p>
 

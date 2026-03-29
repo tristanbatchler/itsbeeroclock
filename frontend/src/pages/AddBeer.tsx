@@ -28,11 +28,11 @@ export function AddBeer() {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <h2 className="text-xl font-bold mb-4">Add Custom Beer</h2>
+        <h2 className="text-xl font-bold text-foreground mb-4">Add Custom Beer</h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Beer Name</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Beer Name</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -41,7 +41,7 @@ export function AddBeer() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Brewery (optional)</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Brewery (optional)</label>
             <Input
               value={brewery}
               onChange={(e) => setBrewery(e.target.value)}
@@ -50,7 +50,7 @@ export function AddBeer() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">ABV (%)</label>
+            <label className="block text-sm font-medium text-foreground mb-2">ABV (%)</label>
             <Input
               type="number"
               step="0.1"

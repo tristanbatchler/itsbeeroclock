@@ -3,26 +3,95 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
+  /* ── LIGHT MODE – bright, sunny Queensland beer vibes ── */
+  --background: #fffbeb; /* super sunny cream – pure good vibes */
+  --foreground: #1c160f; /* deep warm brown – perfect contrast */
   --card: #ffffff;
-  --primary: #eab308;
-  --primary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
+  --card-foreground: #1c160f;
+  --popover: #ffffff;
+  --popover-foreground: #1c160f;
+
+  --primary: #facc15; /* ← BRIGHT SUNSHINE BEER GOLD (same in both modes) */
+  --primary-foreground: #b49209; /* dark text on bright gold = perfect contrast */
+
+  --secondary: #fefce8;
+  --secondary-foreground: #1c160f;
+  --muted: #fefce8;
+  --muted-foreground: #6b5e4f; /* warm, highly readable */
+  --accent: #facc15;
+  --accent-foreground: #1c160f;
+
+  --destructive: #c71d1d;
+  --destructive-foreground: #ffffff;
+
+  --border: #fde047;
+  --input: #fde047;
+  --input-background: #ffffff;
+  --switch-background: #fde047;
+  --ring: #facc15;
+
+  --chart-1: #facc15;
+  --chart-2: #f59e0b;
+  --chart-3: #d97706;
+  --chart-4: #b45309;
+  --chart-5: #78350f;
+
+  --sidebar: #fffbeb;
+  --sidebar-foreground: #1c160f;
+  --sidebar-primary: #facc15;
+  --sidebar-primary-foreground: #1c160f;
+  --sidebar-accent: #fefce8;
+  --sidebar-accent-foreground: #1c160f;
+  --sidebar-border: #fde047;
+  --sidebar-ring: #facc15;
+
   --radius: 1rem;
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #18181b;
-  --primary: #eab308;
-  --primary-foreground: #18181b;
-  --muted: #18181b;
-  --muted-foreground: #71717a;
-  --border: #27272a;
+  /* ── DARK MODE – rich, warm, inviting pub night ── */
+  --background: #18131a; /* deeper, richer dark plum */
+  --foreground: #f9eec7; /* warm pale gold */
+  --card: #2d1e2f; /* deep plum-brown */
+  --card-foreground: #ffe9b3; /* soft gold */
+  --popover: #23171e; /* dark plum */
+  --popover-foreground: #ffe9b3;
+
+  --primary: #facc15; /* beer gold */
+  --primary-foreground: #b49209;
+
+  --secondary: #3a2536; /* muted plum */
+  --secondary-foreground: #ffe9b3;
+  --muted: #2a232b; /* subtle dark brown */
+  --muted-foreground: #bfae99; /* warm beige */
+  --accent: #f59e0b; /* amber orange */
+  --accent-foreground: #1c160f;
+
+  --destructive: #e62727;
+  --destructive-foreground: #fff8e1;
+
+  --border: #4b3a2f; /* brownish border */
+  --input: #4b3a2f;
+  --input-background: #23171e;
+  --switch-background: #4b3a2f;
+  --ring: #facc15;
+
+  --chart-1: #facc15;
+  --chart-2: #f59e0b;
+  --chart-3: #d97706;
+  --chart-4: #b45309;
+  --chart-5: #78350f;
+
+  --sidebar: #241a13; /* rich brown */
+  --sidebar-foreground: #ffe9b3;
+  --sidebar-primary: #f59e0b; /* amber */
+  --sidebar-primary-foreground: #1c160f;
+  --sidebar-accent: #3a2536; /* muted plum */
+  --sidebar-accent-foreground: #ffe9b3;
+  --sidebar-border: #4b3a2f;
+  --sidebar-ring: #facc15;
+
+  --radius: 1rem;
 }
 
 @theme inline {

@@ -30,11 +30,11 @@ export function NotificationCard({
     >
       <div className="shrink-0">{icon}</div>
       <div className="flex-1">
-        <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+        <p className="font-semibold text-foreground mb-1">
           {title}
         </p>
         {description && (
-          <div className="text-sm text-amber-800 dark:text-amber-200 mb-1">
+          <div className="text-sm text-muted-foreground mb-1">
             {description}
           </div>
         )}

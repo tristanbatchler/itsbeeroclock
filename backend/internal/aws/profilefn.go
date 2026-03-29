@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -70,4 +71,30 @@ func UpdateProfileHandler(ctx context.Context, authCtx *AuthContext, req events.
 		return events.APIGatewayProxyResponse{StatusCode: 500, Body: `{"error": "Failed to save profile"}`}, nil
 	}
 	return events.APIGatewayProxyResponse{StatusCode: 200, Body: `{"success": true}`}, nil
+}
+
+var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
+	ctx context.Context,
+	authCtx *AuthContext,
+	req events.APIGatewayProxyRequest,
+) (events.APIGatewayProxyResponse, error) {
+
+	pk := "USER#" + authCtx.UserID
+
+	// Delete profile
+	_, _ = dbClient.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName: TableName(),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: pk},
+			"SK": &types.AttributeValueMemberS{Value: "PROFILE"},
+		},
+	})
+
+	// TODO: Delete all drinks for this user...
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Body:       `{"success": true}`,
+		Headers:    map[string]string{"Content-Type": "application/json"},
+	}, nil
 }
