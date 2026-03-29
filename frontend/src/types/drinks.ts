@@ -34,7 +34,7 @@ export interface Beer {
   name: string;
   brewery?: string;
   abv: number; // percent
-  imageUrl?: string;
+  image?: string;
   isCustom?: boolean;
 }
 
