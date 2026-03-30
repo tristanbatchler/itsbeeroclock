@@ -86,8 +86,8 @@ export function Home() {
 
   const { user } = useAuth();
 
-  const [activeProfile, setActiveProfile] = useState<UserProfile | null>(() =>
-    user ? getUserProfile() : null,
+  const [activeProfile, setActiveProfile] = useState<UserProfile | null>(
+    getUserProfile()
   );
 
   useEffect(() => {
@@ -170,6 +170,10 @@ export function Home() {
 
     return () => clearTimeout(timeout);
   }, [drinks, isOnline, isApiDown, user, activeProfile?.optInHistory]);
+
+  useEffect(() => {
+    if (!user) setActiveProfile(null);
+  }, [user]);
 
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
 
@@ -311,7 +315,7 @@ export function Home() {
     <div className="space-y-6">
       <PrivacyNotice />
 
-      {!activeProfile && drinks.length > 0 && <UnauthenticatedNotice />}
+      {!user && drinks.length > 0 && <UnauthenticatedNotice />}
 
       {activeProfile && drinks.length > 0 && (
         <Card
