@@ -162,6 +162,8 @@ export class BeerOClockStack extends cdk.Stack {
       prune: false,
       memoryLimit: 1024,
       ephemeralStorageSize: cdk.Size.mebibytes(1024),
+      distribution,
+      distributionPaths: ["/*"],
     });
 
     new cdk.CfnOutput(this, "CloudFrontUrl", {
