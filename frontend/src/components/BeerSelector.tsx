@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Search, Star, Plus, Beer as BeerIcon } from "lucide-react";
 import type { Beer } from "../types/drinks";
-import { getFavouriteIds, toggleFavourite } from "../utils/storage";
+import { getFavouriteIds, toggleFavourite, getCachedBeers, getCustomBeers } from "../utils/storage";
 import { Input } from "./Input";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { CancelButton } from "./CancelButton";
+import { BeerPlaceholder } from "./BeerPlaceholder";
+
 
 interface Props {
   onSelect: (beer: Beer) => void;
@@ -73,6 +75,12 @@ export function BeerSelector({ onSelect, onClose }: Props) {
         setHasMore(data.hasMore ?? false);
       } catch (err) {
         console.error("Failed to load beers:", err);
+        if (reset) {
+          const cached = [...getCachedBeers(), ...getCustomBeers()];
+          setBeers(cached);
+          hasMoreRef.current = false;
+          setHasMore(false);
+        }
       } finally {
         isFetchingRef.current = false;
         setLoading(false);
@@ -170,6 +178,17 @@ export function BeerSelector({ onSelect, onClose }: Props) {
                 onClick={() => onSelect(beer)}
               >
                 <div className="flex items-start justify-between gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden">
+                    {beer.image
+                      ? <img
+                          src={`/${beer.image}`}
+                          alt={beer.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => (e.currentTarget.style.display = "none")}
+                        />
+                      : <BeerPlaceholder beer={beer} />
+                    }
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <p className="font-bold text-base text-foreground truncate max-w-56">
