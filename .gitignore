@@ -25,3 +25,5 @@ Thumbs.db
 backend/cmd/local/__debug_*
 
 ProjectSummary.md
+
+frontend/public/beer_images/thumbs/*.webp

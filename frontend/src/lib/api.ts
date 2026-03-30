@@ -157,7 +157,24 @@ export const api = {
       body: JSON.stringify(drink),
     });
   },
-  getBeers: () => fetch("/api/beers").then((res) => res.json()),
+  /**
+   * Get beers with optional pagination and search params
+   * @param params { limit?: number, lastKey?: string, search?: string }
+   */
+  getBeers: (params?: {
+    limit?: number;
+    lastKey?: string | null;
+    search?: string;
+  }) => {
+    let url = "/api/beers";
+    const q: string[] = [];
+    if (params?.limit) q.push(`limit=${params.limit}`);
+    if (params?.lastKey)
+      q.push(`lastKey=${encodeURIComponent(params.lastKey)}`);
+    if (params?.search) q.push(`search=${encodeURIComponent(params.search)}`);
+    if (q.length) url += `?${q.join("&")}`;
+    return fetch(url).then((res) => res.json());
+  },
   syncDrinks: (drinks: Drink[]) => {
     return fetchWithAuth("/api/sync", {
       method: "POST",

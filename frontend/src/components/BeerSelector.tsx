@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Search, Star, Plus, Beer as BeerIcon } from "lucide-react";
 import type { Beer } from "../types/drinks";
 import { getFavouriteIds, toggleFavourite, getCachedBeers, getCustomBeers } from "../utils/storage";
+import { api } from "../lib/api";
 import { Input } from "./Input";
 import { Button } from "./Button";
 import { Card } from "./Card";
@@ -22,6 +23,12 @@ function useDebounce<T>(value: T, delay: number): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
+}
+
+function thumbUrl(image: string): string {
+  const filename = image.split("/").pop()!;
+  const base = filename.replace(/\.[^.]+$/, "");
+  return `/beer_images/thumbs/${base}.webp`;
 }
 
 export function BeerSelector({ onSelect, onClose }: Props) {
@@ -55,17 +62,12 @@ export function BeerSelector({ onSelect, onClose }: Props) {
       isFetchingRef.current = true;
       setLoading(true);
 
-      let url = `/api/beers?limit=30`;
-      if (!reset && lastKeyRef.current) {
-        url += `&lastKey=${encodeURIComponent(lastKeyRef.current)}`;
-      }
-      if (debouncedSearch) {
-        url += `&search=${encodeURIComponent(debouncedSearch)}`;
-      }
-
       try {
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await api.getBeers({
+          limit: 30,
+          lastKey: !reset ? lastKeyRef.current : undefined,
+          search: debouncedSearch || undefined,
+        });
         const newBeers: Beer[] = data.beers ?? [];
 
         setBeers((prev) => reset ? newBeers : [...prev, ...newBeers]);
@@ -181,7 +183,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
                   <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden">
                     {beer.image
                       ? <img
-                          src={`/${beer.image}`}
+                          src={thumbUrl(beer.image)}
                           alt={beer.name}
                           className="w-full h-full object-cover"
                           onError={(e) => (e.currentTarget.style.display = "none")}
