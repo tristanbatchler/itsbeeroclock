@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Search, Star, Plus, Beer as BeerIcon } from "lucide-react";
 import type { Beer } from "../types/drinks";
@@ -9,12 +9,34 @@ import { Card } from "./Card";
 import { CancelButton } from "./CancelButton";
 
 interface Props {
-  allBeers: Beer[];
   onSelect: (beer: Beer) => void;
   onClose: () => void;
 }
 
-export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+export function BeerSelector({ onSelect, onClose }: Props) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [beers, setBeers] = useState<Beer[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [favouriteIds, setFavouriteIds] = useState<string[]>(getFavouriteIds());
+  const [activeTab, setActiveTab] = useState<"all" | "favourites">("all");
+
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  const lastKeyRef = useRef<string | null>(null);
+  const hasMoreRef = useRef(true);
+  const isFetchingRef = useRef(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -22,24 +44,63 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [favouriteIds, setFavouriteIds] = useState<string[]>(getFavouriteIds());
-  const [activeTab, setActiveTab] = useState<"all" | "favourites">("all");
 
-  const filteredBeers = useMemo(() => {
-    let beers = allBeers;
-    if (activeTab === "favourites")
-      beers = beers.filter((b) => favouriteIds.includes(b.id));
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      beers = beers.filter(
-        (b) =>
-          b.name.toLowerCase().includes(query) ||
-          b.brewery?.toLowerCase().includes(query),
-      );
-    }
-    return beers;
-  }, [allBeers, favouriteIds, activeTab, searchQuery]);
+  const loadMore = useCallback(
+    async (reset: boolean) => {
+      if (isFetchingRef.current) return;
+      if (!reset && !hasMoreRef.current) return;
+
+      isFetchingRef.current = true;
+      setLoading(true);
+
+      let url = `/api/beers?limit=30`;
+      if (!reset && lastKeyRef.current) {
+        url += `&lastKey=${encodeURIComponent(lastKeyRef.current)}`;
+      }
+      if (debouncedSearch) {
+        url += `&search=${encodeURIComponent(debouncedSearch)}`;
+      }
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const newBeers: Beer[] = data.beers ?? [];
+
+        setBeers((prev) => reset ? newBeers : [...prev, ...newBeers]);
+
+        lastKeyRef.current = data.lastKey ?? null;
+        hasMoreRef.current = data.hasMore ?? false;
+        setHasMore(data.hasMore ?? false);
+      } catch (err) {
+        console.error("Failed to load beers:", err);
+      } finally {
+        isFetchingRef.current = false;
+        setLoading(false);
+      }
+    },
+    [debouncedSearch]
+  );
+
+  useEffect(() => {
+    // Reset all pagination state when search changes, then load fresh
+    lastKeyRef.current = null;
+    hasMoreRef.current = true;
+    isFetchingRef.current = false;
+    loadMore(true);
+  }, [debouncedSearch, loadMore]);
+  // Note: loadMore is stable when debouncedSearch hasn't changed (useCallback with
+  // [debouncedSearch] deps), so including it here does not cause extra fetches.
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore(false);
+      },
+      { rootMargin: "100px" }
+    );
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   const handleToggleFavourite = (beerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,12 +108,14 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
     setFavouriteIds(getFavouriteIds());
   };
 
+  const displayedBeers = beers.filter((b) =>
+    activeTab === "favourites" ? favouriteIds.includes(b.id) : true
+  );
+
   return (
     <div
       className="fixed inset-0 bg-background/80 dark:bg-background/90 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-card w-full sm:max-w-2xl sm:mx-4 rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col shadow-2xl border-2 border-border animate-slide-in">
         {/* Header */}
@@ -97,8 +160,8 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
         </div>
 
         {/* Beer List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[320px] transition-[min-height] duration-300 ease-in-out">
-          {filteredBeers.map((beer) => {
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-80">
+          {displayedBeers.map((beer) => {
             const isFav = favouriteIds.includes(beer.id);
             return (
               <Card
@@ -109,7 +172,9 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-bold text-base text-foreground truncate max-w-[14rem]">{beer.name}</p>
+                      <p className="font-bold text-base text-foreground truncate max-w-56">
+                        {beer.name}
+                      </p>
                       {beer.isCustom && (
                         <span className="text-xs bg-primary/20 text-primary-foreground px-2 py-0.5 rounded-lg font-semibold">
                           Custom
@@ -117,7 +182,7 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
                       )}
                     </div>
                     {beer.brewery && (
-                      <p className="text-xs text-muted-foreground mb-0.5 truncate max-w-[12rem]">
+                      <p className="text-xs text-muted-foreground mb-0.5 truncate max-w-48">
                         {beer.brewery}
                       </p>
                     )}
@@ -140,7 +205,16 @@ export function BeerSelector({ allBeers, onSelect, onClose }: Props) {
             );
           })}
 
-          {filteredBeers.length === 0 && (
+          {/* Sentinel element — when this scrolls into view, the next page loads */}
+          {hasMore && <div ref={observerTarget} className="h-1" />}
+
+          {loading && (
+            <p className="text-center text-sm text-muted-foreground py-2">
+              Loading more beers...
+            </p>
+          )}
+
+          {displayedBeers.length === 0 && !loading && (
             <div className="text-center py-12 text-muted-foreground">
               <BeerIcon className="size-12 mx-auto mb-3 opacity-50" />
               <p className="font-semibold mb-1">No beers found</p>

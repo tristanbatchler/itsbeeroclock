@@ -62,7 +62,7 @@ export function Home() {
       setBeersLoading(true); // ADD THIS
 
       try {
-        const beers = (await api.getBeers()) as Beer[];
+        const { beers } = (await api.getBeers()) as { beers: Beer[]; hasMore: boolean; lastKey?: string };
         const merged = [...beers, ...getCustomBeers()];
         setAllBeers(merged);
         saveBeers(merged);
@@ -292,7 +292,7 @@ export function Home() {
   const bacData = useBAC(drinks, allBeers, activeProfile);
 
   // Show warning if no beers loaded
-  if (!beersLoading && allBeers.length === 0) {
+  if (!beersLoading && allBeers.length === 0 && (isApiDown || !isOnline)) {
     return (
       <Card className="p-6 my-10 text-center">
         <p className="font-bold text-lg mb-2">No beers available offline.</p>
@@ -523,7 +523,6 @@ export function Home() {
 
       {showBeerSelector && (
         <BeerSelector
-          allBeers={allBeers}
           onSelect={(beer: Beer) => {
             setSelectedBeer(beer);
             setShowBeerSelector(false);
