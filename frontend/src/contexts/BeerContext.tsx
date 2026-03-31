@@ -13,30 +13,53 @@ interface BeerContextType {
 const BeerContext = createContext<BeerContextType | undefined>(undefined);
 
 export function BeerProvider({ children }: { children: ReactNode }) {
-  const [allBeers, setAllBeers] = useState<Beer[]>(() => [...getCachedBeers(), ...getCustomBeers()]);
+  const [allBeers, setAllBeers] = useState<Beer[]>(() => [
+    ...getCachedBeers(),
+    ...getCustomBeers(),
+  ]);
   const [beersLoading, setBeersLoading] = useState(true);
 
-  useEffect(() => {
-    api.getBeers()
-      .then((data) => {
-        const merged = [...(data.beers || []), ...getCustomBeers()];
-        setAllBeers(merged);
-        saveBeers(merged);
-      })
-      .catch(console.error)
-      .finally(() => setBeersLoading(false));
-  }, []);
-
-  // Helper to allow BeerSelector to append new pages to the global store
+  // Used by BeerSelector to append paginated results without losing existing state.
+  // Wrapped in useCallback with empty deps — see "useCallback infinite loop trap" in README.
   const addBeersToStore = useCallback((newBeers: Beer[]) => {
-    setAllBeers(prev => {
-      const existingIds = new Set(prev.map(b => b.id));
-      const uniqueNew = newBeers.filter(b => !existingIds.has(b.id));
+    setAllBeers((prev) => {
+      const existingIds = new Set(prev.map((b) => b.id));
+      const uniqueNew = newBeers.filter((b) => !existingIds.has(b.id));
       const updated = [...prev, ...uniqueNew];
-      saveBeers(updated);
+      // Only persist catalogue beers — custom beers live in their own storage key.
+      saveBeers(updated.filter((b) => !b.isCustom));
       return updated;
     });
   }, []);
+
+  // On mount, paginate through the full catalogue so every beer referenced in the
+  // session drink log is resolvable immediately, regardless of which catalogue page it's on.
+  useEffect(() => {
+    const fetchAllBeers = async () => {
+      try {
+        let fetched: Beer[] = [];
+        let lastKey: string | undefined;
+        let hasMore = true;
+
+        while (hasMore) {
+          const data = await api.getBeers({ limit: 50, lastKey });
+          fetched = [...fetched, ...(data.beers ?? [])];
+          hasMore = data.hasMore ?? false;
+          lastKey = data.lastKey ?? undefined;
+        }
+
+        // addBeersToStore merges with existing cache and custom beers — nothing is lost.
+        addBeersToStore(fetched);
+      } catch (err) {
+        console.error("Failed to load beer catalogue, using local cache:", err);
+        // Fallback is already in state from the useState initializer — nothing to do.
+      } finally {
+        setBeersLoading(false);
+      }
+    };
+
+    fetchAllBeers();
+  }, [addBeersToStore]);
 
   return (
     <BeerContext.Provider value={{ allBeers, setAllBeers, beersLoading, addBeersToStore }}>
