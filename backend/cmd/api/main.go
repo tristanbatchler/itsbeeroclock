@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/tristanbatchler/itsbeeroclock/backend/internal/aws"
+	"github.com/tristanbatchler/itsbeeroclock/backend/internal/api"
 )
 
 func main() {
-	lambda.Start(aws.Router)
+	lambda.Start(api.Router)
 }

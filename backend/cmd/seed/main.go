@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	beerAws "github.com/tristanbatchler/itsbeeroclock/backend/internal/aws"
+	beerAws "github.com/tristanbatchler/itsbeeroclock/backend/internal/api"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
 )
 

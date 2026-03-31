@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/tristanbatchler/itsbeeroclock/backend/internal/aws"
+	"github.com/tristanbatchler/itsbeeroclock/backend/internal/api"
 )
 
-func adaptHandler(fn aws.ApiProxyGatewayHandler) http.HandlerFunc {
+func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("🔵 adaptHandler called for path: %s", r.URL.Path)
 		req := events.APIGatewayProxyRequest{
@@ -69,7 +69,7 @@ func adaptHandler(fn aws.ApiProxyGatewayHandler) http.HandlerFunc {
 func main() {
 	mux := http.NewServeMux()
 	// Route all /api/* requests through the production router
-	mux.HandleFunc("/api/", adaptHandler(aws.Router))
+	mux.HandleFunc("/api/", adaptHandler(api.Router))
 
 	server := &http.Server{
 		Addr:    ":8080",
