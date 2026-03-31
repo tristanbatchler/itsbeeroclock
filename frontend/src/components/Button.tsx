@@ -25,8 +25,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const base =
       "inline-flex items-center justify-center rounded-2xl text-sm font-bold transition-all focus-visible:outline-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 cursor-pointer";
     const variants = {
-      default: "bg-primary text-primary-foreground-foreground hover:bg-primary/90",
-      primary: "bg-primary text-primary-foreground-foreground hover:bg-primary/90",
+      default: "bg-primary text-primary-foreground hover:bg-primary/90",
+      primary: "bg-primary text-primary-foreground hover:bg-primary/90",
       secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       destructive:
         "bg-destructive text-destructive-foreground hover:bg-destructive/90",

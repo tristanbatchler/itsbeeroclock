@@ -1,4 +1,8 @@
-const QUEUE_KEY = "beeroclock_offline_queue";
+import type { Drink, UserProfile } from "../types/drinks";
+import { STORAGE_KEYS } from "./constants";
+import { supabase } from "./supabase";
+
+const QUEUE_KEY = STORAGE_KEYS.OFFLINE_QUEUE;
 
 export interface QueuedRequest {
   id: string;
@@ -12,6 +16,28 @@ export function queueRequest(endpoint: string, options: RequestInit) {
     const queue: QueuedRequest[] = JSON.parse(
       localStorage.getItem(QUEUE_KEY) || "[]",
     );
+
+    // If this is a DELETE, check if there's a pending POST for the same item.
+    // If so, they cancel each other out. Just remove the POST and don't queue the DELETE.
+    if (options.method === "DELETE") {
+      const urlParams = new URLSearchParams(endpoint.split("?")[1]);
+      const targetId = urlParams.get("id");
+
+      const pendingPostIndex = queue.findIndex(
+        (req) =>
+          req.method === "POST" &&
+          req.body &&
+          JSON.parse(req.body).id === targetId,
+      );
+
+      if (pendingPostIndex !== -1) {
+        queue.splice(pendingPostIndex, 1);
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+        return; // They cancel out!
+      }
+    }
+
+    // Otherwise, queue normally
     let body: string | undefined;
     if (options.body !== undefined) {
       body =
@@ -19,6 +45,7 @@ export function queueRequest(endpoint: string, options: RequestInit) {
           ? options.body
           : JSON.stringify(options.body);
     }
+
     queue.push({
       id: crypto.randomUUID(),
       endpoint,
@@ -37,29 +64,27 @@ export async function processOfflineQueue() {
   );
   if (queue.length === 0) return;
 
-  console.log("[OfflineQueue] Flushing", queue.length, "requests:", queue);
   const remaining: QueuedRequest[] = [];
   for (const req of queue) {
     try {
-      await fetchWithAuth(req.endpoint, { method: req.method, body: req.body });
-      console.log("[OfflineQueue] Sent", req.method, req.endpoint);
+      // Pass TRUE to skipQueue
+      await fetchWithAuth(
+        req.endpoint,
+        { method: req.method, body: req.body },
+        true,
+      );
     } catch (err) {
-      if (err instanceof Error && err.message === "NETWORK_ERROR_QUEUED") {
-        remaining.push(req); // still offline, keep it
+      // If it's a TypeError, we're likely still offline. Keep it in the queue.
+      if (err instanceof TypeError) {
+        remaining.push(req);
       } else {
+        // It's a 4xx error (e.g., bad request). Drop it so it doesn't block the queue forever.
         console.error("Queued request failed permanently, dropping:", req);
       }
     }
   }
   localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
-  if (remaining.length === 0) {
-    console.log("[OfflineQueue] All requests flushed.");
-  } else {
-    console.warn("[OfflineQueue] Some requests could not be sent:", remaining);
-  }
 }
-import type { Drink, UserProfile } from "../types/drinks";
-import { supabase } from "./supabase";
 
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -100,6 +125,7 @@ async function getAuthToken(): Promise<string | null> {
 async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
+  skipQueue: boolean = false,
 ): Promise<T> {
   const token = await getAuthToken();
   const headers: Record<string, string> = {
@@ -120,15 +146,15 @@ async function fetchWithAuth<T>(
   try {
     response = await fetch(endpoint, { ...options, headers });
   } catch (err) {
-    if (isMutation && err instanceof TypeError) {
+    if (isMutation && err instanceof TypeError && !skipQueue) {
       queueRequest(endpoint, { ...options, headers });
       throw new Error("NETWORK_ERROR_QUEUED");
     }
-    throw err;
+    throw err; // If skipQueue is true, let the caller handle the standard fetch failure
   }
 
   if (!response.ok) {
-    if (isMutation && response.status >= 500) {
+    if (isMutation && response.status >= 500 && !skipQueue) {
       queueRequest(endpoint, { ...options, headers });
       throw new Error("NETWORK_ERROR_QUEUED");
     }

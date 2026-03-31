@@ -2,13 +2,13 @@ import { Link } from "react-router-dom";
 import { Shield } from "lucide-react";
 import { useState } from "react";
 import { NotificationCard } from "./NotificationCard";
+import { STORAGE_KEYS } from "../lib/constants";
 
-const PRIVACY_DISMISSED_KEY = "beeroclock_privacy_dismissed";
 
 export function PrivacyNotice() {
   const [visible, setVisible] = useState(() => {
     try {
-      const dismissed = window.localStorage.getItem(PRIVACY_DISMISSED_KEY);
+      const dismissed = window.localStorage.getItem(STORAGE_KEYS.PRIVACY_DISMISSED);
       return !dismissed;
     } catch {
       // If localStorage is unavailable (e.g. private mode), always show
@@ -18,7 +18,7 @@ export function PrivacyNotice() {
 
   const handleDismiss = () => {
     try {
-      window.localStorage.setItem(PRIVACY_DISMISSED_KEY, "1");
+      window.localStorage.setItem(STORAGE_KEYS.PRIVACY_DISMISSED, "1");
     } catch {
       // ignore
     }
@@ -30,7 +30,7 @@ export function PrivacyNotice() {
   return (
     <NotificationCard
       icon={
-        <div className="bg-primary text-primary-foreground-foreground p-2 rounded-xl">
+        <div className="bg-primary text-primary-foreground p-2 rounded-xl">
           <Shield className="size-5" />
         </div>
       }

@@ -1,17 +1,12 @@
+import { STORAGE_KEYS } from "../lib/constants";
 import type { Beer, UserProfile } from "../types/drinks";
 
-const BEERS_CACHE_KEY = "beeroclock_beers";
-
-
 export const saveBeers = (beers: Beer[]) => {
-  localStorage.setItem(BEERS_CACHE_KEY, JSON.stringify(beers));
+  localStorage.setItem(STORAGE_KEYS.BEERS_CACHE, JSON.stringify(beers));
 };
 
-export const getCachedBeers = (): Beer[] => safeParse(BEERS_CACHE_KEY, []);
-
-const PROFILE_KEY = "beeroclock_profile";
-const CUSTOM_BEERS_KEY = "beeroclock_custom_beers";
-const FAVORITE_IDS_KEY = "beeroclock_favourite_ids";
+export const getCachedBeers = (): Beer[] =>
+  safeParse(STORAGE_KEYS.BEERS_CACHE, []);
 
 const safeParse = <T>(key: string, defaultValue: T): T => {
   try {
@@ -25,7 +20,7 @@ const safeParse = <T>(key: string, defaultValue: T): T => {
 // Profile
 export const getUserProfile = (): UserProfile | null => {
   try {
-    const data = localStorage.getItem(PROFILE_KEY);
+    const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
     if (data) {
       const parsed = JSON.parse(data);
       if (
@@ -46,24 +41,29 @@ export const getUserProfile = (): UserProfile | null => {
 };
 
 export const saveUserProfile = (profile: UserProfile) => {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
 };
 
 // Custom Beers
-export const getCustomBeers = (): Beer[] => safeParse(CUSTOM_BEERS_KEY, []);
+export const getCustomBeers = (): Beer[] =>
+  safeParse(STORAGE_KEYS.CUSTOM_BEERS, []);
 
 export const saveCustomBeer = (beer: Beer) => {
   const beers = getCustomBeers();
-  localStorage.setItem(CUSTOM_BEERS_KEY, JSON.stringify([...beers, beer]));
+  localStorage.setItem(
+    STORAGE_KEYS.CUSTOM_BEERS,
+    JSON.stringify([...beers, beer]),
+  );
 };
 
 // Favourites
-export const getFavouriteIds = (): string[] => safeParse(FAVORITE_IDS_KEY, []);
+export const getFavouriteIds = (): string[] =>
+  safeParse(STORAGE_KEYS.FAVOURITES, []);
 
 export const toggleFavourite = (beerId: string) => {
   const favourites = getFavouriteIds();
   const newFavourites = favourites.includes(beerId)
     ? favourites.filter((id) => id !== beerId)
     : [...favourites, beerId];
-  localStorage.setItem(FAVORITE_IDS_KEY, JSON.stringify(newFavourites));
+  localStorage.setItem(STORAGE_KEYS.FAVOURITES, JSON.stringify(newFavourites));
 };

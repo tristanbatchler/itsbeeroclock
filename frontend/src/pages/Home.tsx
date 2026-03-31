@@ -11,13 +11,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
-import {
-  getCustomBeers,
-  getUserProfile,
-  saveBeers,
-  getCachedBeers,
-  saveUserProfile,
-} from "../utils/storage";
+import { getUserProfile, saveUserProfile } from "../utils/storage";
 
 import { useBAC } from "../hooks/useBAC";
 import { Button } from "../components/Button";
@@ -34,6 +28,9 @@ import {
   type UserProfile,
 } from "../types/drinks";
 import { formatHours } from "../utils/time";
+import { useBeers } from "../contexts/BeerContext";
+import { STORAGE_KEYS } from "../lib/constants";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 export function Home() {
   const {
@@ -45,7 +42,7 @@ export function Home() {
     setAllDrinks,
   } = useSession();
 
-  const [beersLoading, setBeersLoading] = useState(true);
+  // beersLoading now comes from useBeers context
   const [isApiDown, setIsApiDown] = useState(false);
   const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
   const [showBeerSelector, setShowBeerSelector] = useState(false);
@@ -55,31 +52,7 @@ export function Home() {
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
 
-  const [allBeers, setAllBeers] = useState<Beer[]>([]);
-
-  useEffect(() => {
-    const fetchBeers = async () => {
-      setBeersLoading(true); // ADD THIS
-
-      try {
-        const { beers } = (await api.getBeers()) as { beers: Beer[]; hasMore: boolean; lastKey?: string };
-        const merged = [...beers, ...getCustomBeers()];
-        setAllBeers(merged);
-        saveBeers(merged);
-        setIsApiDown(false);
-      } catch (err) {
-        console.error("Failed to fetch beers:", err);
-        setIsApiDown(true);
-
-        const cached = getCachedBeers();
-        setAllBeers(cached);
-      } finally {
-        setBeersLoading(false); // ADD THIS
-      }
-    };
-
-    fetchBeers();
-  }, []);
+  const { allBeers, beersLoading } = useBeers();
 
   const hasHydratedRef = useRef(false);
   const isOnline = useOnlineStatus();
@@ -103,7 +76,7 @@ export function Home() {
           // Sync favorites down to this device
           if (cloudProfile.favouriteBeerIds) {
             localStorage.setItem(
-              "beeroclock_favourite_ids",
+              STORAGE_KEYS.FAVOURITES,
               JSON.stringify(cloudProfile.favouriteBeerIds),
             );
           }
@@ -318,48 +291,50 @@ export function Home() {
       {!user && drinks.length > 0 && <UnauthenticatedNotice />}
 
       {activeProfile && drinks.length > 0 && (
-        <Card
-          className={`p-5 border-2 shadow-xl ${bacData.hasValidData && bacData.canDrive ? "bg-primary/10 border-primary" : "bg-destructive/10 border-destructive"}`}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className={`p-2.5 rounded-xl ${bacData.hasValidData && bacData.canDrive ? "bg-primary" : "bg-destructive"}`}
-            >
-              {bacData.hasValidData ? (
-                bacData.canDrive ? (
-                  <CheckCircle2 className="size-6 text-primary-foreground-foreground" strokeWidth={3} />
+        <ErrorBoundary>
+          <Card
+            className={`p-5 border-2 shadow-xl ${bacData.hasValidData && bacData.canDrive ? "bg-primary/10 border-primary" : "bg-destructive/10 border-destructive"}`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`p-2.5 rounded-xl ${bacData.hasValidData && bacData.canDrive ? "bg-primary" : "bg-destructive"}`}
+              >
+                {bacData.hasValidData ? (
+                  bacData.canDrive ? (
+                    <CheckCircle2 className="size-6 text-primary-foreground" strokeWidth={3} />
+                  ) : (
+                    <AlertTriangle
+                      className="size-6 text-primary-foreground"
+                      strokeWidth={3}
+                    />
+                  )
                 ) : (
-                  <AlertTriangle
-                    className="size-6 text-primary-foreground-foreground"
-                    strokeWidth={3}
-                  />
-                )
-              ) : (
-                <AlertTriangle className="size-6 text-primary-foreground-foreground" strokeWidth={3} />
-              )}
+                  <AlertTriangle className="size-6 text-primary-foreground" strokeWidth={3} />
+                )}
+              </div>
+              <div className="flex-1">
+                <p
+                  className={`font-bold text-lg ${bacData.hasValidData && bacData.canDrive ? "text-primary-foreground" : "text-destructive"}`}
+                >
+                  {bacData.hasValidData
+                    ? bacData.canDrive
+                      ? "✓ Safe to drive"
+                      : "⚠️ Do NOT drive"
+                    : "Cannot calculate BAC (missing drink data)"}
+                </p>
+                <p
+                  className={`text-sm mt-1 ${bacData.hasValidData && bacData.canDrive ? "text-primary-foreground" : "text-destructive"}`}
+                >
+                  {bacData.hasValidData
+                    ? bacData.canDrive
+                      ? `Under limit (${(bacData.currentBAC ?? 0).toFixed(3)}% BAC)`
+                      : `Wait ${formatHours(bacData.hoursUntilSober ?? 0)} until ${bacData.soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`
+                    : "Drink details are missing for some drinks. BAC cannot be shown."}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p
-                className={`font-bold text-lg ${bacData.hasValidData && bacData.canDrive ? "text-primary-foreground" : "text-destructive"}`}
-              >
-                {bacData.hasValidData
-                  ? bacData.canDrive
-                    ? "✓ Safe to drive"
-                    : "⚠️ Do NOT drive"
-                  : "Cannot calculate BAC (missing drink data)"}
-              </p>
-              <p
-                className={`text-sm mt-1 ${bacData.hasValidData && bacData.canDrive ? "text-primary-foreground" : "text-destructive"}`}
-              >
-                {bacData.hasValidData
-                  ? bacData.canDrive
-                    ? `Under limit (${(bacData.currentBAC ?? 0).toFixed(3)}% BAC)`
-                    : `Wait ${formatHours(bacData.hoursUntilSober ?? 0)} until ${bacData.soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`
-                  : "Drink details are missing for some drinks. BAC cannot be shown."}
-              </p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </ErrorBoundary>
       )}
 
       <Card className="p-6 bg-card shadow-xl border-2">
@@ -384,7 +359,7 @@ export function Home() {
                   className={`p-3 rounded-xl shadow-sm transition-colors ${
                     shakeBeer
                       ? "bg-destructive text-destructive-foreground"
-                      : "bg-primary text-primary-foreground-foreground"
+                      : "bg-primary text-primary-foreground"
                   }`}
                 >
                   <Search className="size-6" strokeWidth={2.5} />
@@ -515,14 +490,16 @@ export function Home() {
       )}
 
       {drinks.length > 0 && (
-        <DrinkLog
-          drinks={drinks}
-          allBeers={allBeers}
-          onUndo={handleUndoLast}
-          onRemoveDrink={handleRemoveDrink}
-          onClear={handleClearSession}
-          onRepeat={handleRepeatDrink}
-        />
+        <ErrorBoundary>
+          <DrinkLog
+            drinks={drinks}
+            allBeers={allBeers}
+            onUndo={handleUndoLast}
+            onRemoveDrink={handleRemoveDrink}
+            onClear={handleClearSession}
+            onRepeat={handleRepeatDrink}
+          />
+        </ErrorBoundary>
       )}
 
       {showBeerSelector && (

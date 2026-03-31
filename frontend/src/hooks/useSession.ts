@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import { type Drink } from '../types/drinks';
-
-const SESSION_KEY = 'beeroclock_session';
+import { useState, useEffect } from "react";
+import { type Drink } from "../types/drinks";
+import { STORAGE_KEYS } from "../lib/constants";
 
 function loadSession(): Drink[] {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -14,7 +13,7 @@ function loadSession(): Drink[] {
 }
 
 function saveSession(drinks: Drink[]) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(drinks));
+  localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(drinks));
 }
 
 export function useSession() {
@@ -25,15 +24,15 @@ export function useSession() {
   }, [drinks]);
 
   const addDrink = (drink: Drink) => {
-    setDrinks(prev => [...prev, drink]);
+    setDrinks((prev) => [...prev, drink]);
   };
 
   const undoLast = () => {
-    setDrinks(prev => prev.slice(0, -1));
+    setDrinks((prev) => prev.slice(0, -1));
   };
 
   const removeDrink = (id: string) => {
-    setDrinks(prev => prev.filter(d => d.id !== id));
+    setDrinks((prev) => prev.filter((d) => d.id !== id));
   };
 
   const clearSession = () => {
@@ -44,5 +43,12 @@ export function useSession() {
     setDrinks(newDrinks);
   };
 
-  return { drinks, addDrink, removeDrink, undoLast, clearSession, setAllDrinks };
+  return {
+    drinks,
+    addDrink,
+    removeDrink,
+    undoLast,
+    clearSession,
+    setAllDrinks,
+  };
 }

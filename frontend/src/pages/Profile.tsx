@@ -12,6 +12,7 @@ import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
 import { SignIn } from "./SignIn";
+import { STORAGE_KEYS } from "../lib/constants";
 
 export function Profile() {
   const navigate = useNavigate();
@@ -68,19 +69,8 @@ export function Profile() {
       }
     }
 
-    // Clear only app-specific storage
-    const keys = [
-      "beeroclock_session",
-      "beeroclock_profile",
-      "beeroclock_custom_beers",
-      "beeroclock_favourite_ids",
-      "beeroclock_beers",
-      "beeroclock_privacy_dismissed",
-      "beeroclock_unauth_notice_dismissed",
-      "beeroclock_offline_queue",
-    ];
 
-    keys.forEach((key) => localStorage.removeItem(key));
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
 
     // Hard reset app
     window.location.href = "/";
@@ -96,7 +86,7 @@ export function Profile() {
           setGender(cloud.gender as "male" | "female");
           setWeight(cloud.weight.toString());
           setOptInHistory(cloud.optInHistory);
-          saveUserProfile(cloud); // ✅ keep local in sync (bug fix)
+          saveUserProfile(cloud);
         }
       })
       .catch(() => {});

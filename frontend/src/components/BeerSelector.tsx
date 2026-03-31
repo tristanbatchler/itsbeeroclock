@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { Link } from "react-router-dom";
 import { Search, Star, Plus, Beer as BeerIcon } from "lucide-react";
 import type { Beer } from "../types/drinks";
-import { getFavouriteIds, toggleFavourite, getCachedBeers, getCustomBeers } from "../utils/storage";
+import { getFavouriteIds, toggleFavourite, getCachedBeers, getCustomBeers, getUserProfile } from "../utils/storage";
 import { api } from "../lib/api";
 import { Input } from "./Input";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { CancelButton } from "./CancelButton";
 import { BeerPlaceholder } from "./BeerPlaceholder";
+import { useBeers } from "../contexts/BeerContext";
 
 
 interface Props {
@@ -33,6 +35,7 @@ function thumbUrl(image: string): string {
 
 export function BeerSelector({ onSelect, onClose }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { addBeersToStore } = useBeers();
   const [beers, setBeers] = useState<Beer[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -46,13 +49,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
   const isFetchingRef = useRef(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  useEscapeKey(onClose, true);
 
   const loadMore = useCallback(
     async (reset: boolean) => {
@@ -71,6 +68,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
         const newBeers: Beer[] = data.beers ?? [];
 
         setBeers((prev) => reset ? newBeers : [...prev, ...newBeers]);
+        addBeersToStore(newBeers); // Push newly loaded pages to the global context!
 
         lastKeyRef.current = data.lastKey ?? null;
         hasMoreRef.current = data.hasMore ?? false;
@@ -88,7 +86,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
         setLoading(false);
       }
     },
-    [debouncedSearch]
+    [debouncedSearch, addBeersToStore]
   );
 
   useEffect(() => {
@@ -112,10 +110,21 @@ export function BeerSelector({ onSelect, onClose }: Props) {
     return () => observer.disconnect();
   }, [loadMore]);
 
-  const handleToggleFavourite = (beerId: string, e: React.MouseEvent) => {
+  const handleToggleFavourite = async (beerId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     toggleFavourite(beerId);
-    setFavouriteIds(getFavouriteIds());
+    const newFavs = getFavouriteIds();
+    setFavouriteIds(newFavs);
+
+    // Sync to cloud if user is logged in
+    const profile = getUserProfile();
+    if (profile) {
+      try {
+        await api.updateProfile({ ...profile, favouriteBeerIds: newFavs });
+      } catch (err) {
+        console.error("Failed to sync favourites", err);
+      }
+    }
   };
 
   const displayedBeers = beers.filter((b) =>

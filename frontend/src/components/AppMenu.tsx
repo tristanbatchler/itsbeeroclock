@@ -8,23 +8,17 @@ import {
   Text,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 
 export function AppMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
 
-  useEffect(() => {
-    if (!open) return;
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+  useClickOutside(menuRef, () => setOpen(false), open);
+  useEscapeKey(() => setOpen(false), open);
 
   return (
     <div className="relative">

@@ -1,32 +1,19 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { User, History as HistoryIcon, Home as HomeIcon } from "lucide-react";
 import { AppMenu } from "./components/AppMenu";
-import { useState, useRef, useEffect, useReducer } from "react";
+import { useRef, useEffect, useReducer } from "react";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { InitialLoading } from "./components/InitialLoading";
 import { useInitialLoad } from "./hooks/useInitialLoad";
 
 export function Root() {
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [bounceKey, triggerBounce] = useReducer((k) => k + 1, 0);
   const prevPathRef = useRef(location.pathname);
 
   const isOnline = useOnlineStatus();
   const { isLoading: isInitialLoading, initialLoadFailed } = useInitialLoad();
   const showOfflineBanner = initialLoadFailed || !isOnline;
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [menuOpen]);
 
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
@@ -44,7 +31,7 @@ export function Root() {
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <header className="bg-primary bg-linear-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground-foreground shadow-xl sticky top-0 z-40">
+      <header className="bg-primary bg-linear-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground shadow-xl sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

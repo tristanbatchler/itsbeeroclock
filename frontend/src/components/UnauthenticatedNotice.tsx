@@ -3,14 +3,14 @@ import { Sparkles } from "lucide-react";
 import { useState } from "react";
 import { NotificationCard } from "./NotificationCard";
 import { Button } from "./Button";
+import { STORAGE_KEYS } from "../lib/constants";
 
-const UNAUTH_NOTICE_DISMISSED_KEY = "beeroclock_unauth_notice_dismissed";
 
 export function UnauthenticatedNotice() {
   const [visible, setVisible] = useState(() => {
     try {
       const dismissed = window.localStorage.getItem(
-        UNAUTH_NOTICE_DISMISSED_KEY,
+        STORAGE_KEYS.UNAUTH_DISMISSED,
       );
       return !dismissed;
     } catch {
@@ -21,7 +21,7 @@ export function UnauthenticatedNotice() {
 
   const handleDismiss = () => {
     try {
-      window.localStorage.setItem(UNAUTH_NOTICE_DISMISSED_KEY, "1");
+      window.localStorage.setItem(STORAGE_KEYS.UNAUTH_DISMISSED, "1");
     } catch {
       // ignore
     }
@@ -33,7 +33,7 @@ export function UnauthenticatedNotice() {
   return (
     <NotificationCard
       icon={
-        <div className="bg-primary text-primary-foreground-foreground p-2 rounded-xl">
+        <div className="bg-primary text-primary-foreground p-2 rounded-xl">
           <Sparkles className="size-5" />
         </div>
       }
