@@ -2,8 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -21,24 +19,16 @@ var DeleteDrinkHandler AuthenticatedApiProxyGatewayHandler = func(
 	tsStr := req.QueryStringParameters["ts"]
 
 	if drinkID == "" || tsStr == "" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       `{"error":"missing id or ts parameter"}`,
-			Headers:    map[string]string{"Content-Type": "application/json"},
-		}, nil
+		return ErrorResponse(400, "missing id or ts parameter")
 	}
 
 	timestamp, err := strconv.ParseInt(tsStr, 10, 64)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       `{"error":"invalid timestamp"}`,
-			Headers:    map[string]string{"Content-Type": "application/json"},
-		}, nil
+		return ErrorResponse(400, "invalid timestamp")
 	}
 
-	pk := fmt.Sprintf("USER#%s", authCtx.UserID)
-	sk := fmt.Sprintf("DRINK#%d#%s", timestamp, drinkID)
+	pk := UserPK(authCtx.UserID)
+	sk := DrinkSK(timestamp, drinkID)
 
 	_, err = dbClient.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: TableName(),
@@ -49,16 +39,8 @@ var DeleteDrinkHandler AuthenticatedApiProxyGatewayHandler = func(
 	})
 
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Body:       `{"error":"failed to delete drink"}`,
-			Headers:    map[string]string{"Content-Type": "application/json"},
-		}, err
+		return ErrorResponse(500, "failed to delete drink")
 	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Body:       `{"message":"drink deleted"}`,
-		Headers:    map[string]string{"Content-Type": "application/json"},
-	}, nil
+	return JSONResponse(200, map[string]string{"message": "drink deleted"})
 }

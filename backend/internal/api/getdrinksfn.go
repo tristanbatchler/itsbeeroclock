@@ -2,9 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -24,16 +21,12 @@ var GetDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 		TableName:              TableName(),
 		KeyConditionExpression: aws.String("PK = :pk AND begins_with(SK, :sk)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":pk": &types.AttributeValueMemberS{Value: fmt.Sprintf("USER#%s", authCtx.UserID)},
-			":sk": &types.AttributeValueMemberS{Value: "DRINK#"},
+			":pk": &types.AttributeValueMemberS{Value: UserPK(authCtx.UserID)},
+			":sk": &types.AttributeValueMemberS{Value: PrefixDrink},
 		},
 	})
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Body:       `{"error": "failed to query drinks"}`,
-			Headers:    map[string]string{"Content-Type": "application/json"},
-		}, err
+		return ErrorResponse(500, "failed to query drinks")
 	}
 
 	drinks := make([]models.DrinkRecord, 0)
@@ -41,19 +34,10 @@ var GetDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 		var drink models.DrinkRecord
 		err := attributevalue.UnmarshalMap(item, &drink)
 		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "failed to unmarshal drink item"}`,
-				Headers:    map[string]string{"Content-Type": "application/json"},
-			}, err
+			return ErrorResponse(500, "failed to unmarshal drink item")
 		}
 		drinks = append(drinks, drink)
 	}
 
-	body, _ := json.Marshal(drinks)
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Body:       string(body),
-		Headers:    map[string]string{"Content-Type": "application/json"},
-	}, nil
+	return JSONResponse(200, drinks)
 }

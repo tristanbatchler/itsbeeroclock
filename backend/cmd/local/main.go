@@ -52,9 +52,14 @@ func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 			w.Header().Set(k, v)
 		}
 
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		corsOrigin := os.Getenv("CORS_ORIGIN")
+		if corsOrigin == "" {
+			corsOrigin = "http://localhost:5173"
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") // Ensure Auth is allowed!
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)

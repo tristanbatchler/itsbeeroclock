@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -46,7 +45,7 @@ var GetBeersHandler ApiProxyGatewayHandler = func(ctx context.Context, apr event
 			IndexName:              aws.String("GSI1"),
 			KeyConditionExpression: aws.String("GSI1PK = :pk"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":pk": &types.AttributeValueMemberS{Value: "CATALOGUE"},
+				":pk": &types.AttributeValueMemberS{Value: KeyCatalog},
 			},
 			Limit:             aws.Int32(50),
 			ExclusiveStartKey: lastKey,
@@ -55,11 +54,7 @@ var GetBeersHandler ApiProxyGatewayHandler = func(ctx context.Context, apr event
 		out, err := dbClient.Query(ctx, input)
 		if err != nil {
 			log.Printf("Error querying beers: %v", err)
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusInternalServerError,
-				Body:       `{"error": "failed to query beers"}`,
-				Headers:    map[string]string{"Content-Type": "application/json"},
-			}, err
+			return ErrorResponse(500, "failed to query beers")
 		}
 
 		for _, item := range out.Items {
@@ -101,19 +96,5 @@ var GetBeersHandler ApiProxyGatewayHandler = func(ctx context.Context, apr event
 		}
 	}
 
-	body, err := json.Marshal(response)
-	if err != nil {
-		log.Printf("Error marshaling beers: %v", err)
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusInternalServerError,
-			Body:       `{"error": "failed to marshal beers"}`,
-			Headers:    map[string]string{"Content-Type": "application/json"},
-		}, err
-	}
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Body:       string(body),
-		Headers:    map[string]string{"Content-Type": "application/json"},
-	}, nil
+	return JSONResponse(200, response)
 }

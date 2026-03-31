@@ -3,10 +3,10 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -14,9 +14,13 @@ import (
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
 )
 
-func GetProfileHandler(ctx context.Context, authCtx *AuthContext, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	pk := "USER#" + authCtx.UserID
-	sk := "PROFILE"
+var GetProfileHandler AuthenticatedApiProxyGatewayHandler = func(
+	ctx context.Context,
+	authCtx *AuthContext,
+	req events.APIGatewayProxyRequest,
+) (events.APIGatewayProxyResponse, error) {
+	pk := UserPK(authCtx.UserID)
+	sk := KeyProfile
 	out, err := dbClient.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: TableName(),
 		Key: map[string]types.AttributeValue{
@@ -32,24 +36,26 @@ func GetProfileHandler(ctx context.Context, authCtx *AuthContext, req events.API
 			OptInHistory:     true,
 			FavouriteBeerIDs: []string{},
 		}
-		body, _ := json.Marshal(profile)
-		return events.APIGatewayProxyResponse{StatusCode: 200, Body: string(body)}, nil
+		return JSONResponse(200, profile)
 	}
 	var profile models.UserProfile
 	err = attributevalue.UnmarshalMap(out.Item, &profile)
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 500, Body: `{"error": "Failed to unmarshal profile"}`}, nil
+		return ErrorResponse(500, "Failed to unmarshal profile")
 	}
-	body, _ := json.Marshal(profile)
-	return events.APIGatewayProxyResponse{StatusCode: 200, Body: string(body)}, nil
+	return JSONResponse(200, profile)
 }
 
-func UpdateProfileHandler(ctx context.Context, authCtx *AuthContext, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	pk := "USER#" + authCtx.UserID
-	sk := "PROFILE"
+var UpdateProfileHandler AuthenticatedApiProxyGatewayHandler = func(
+	ctx context.Context,
+	authCtx *AuthContext,
+	req events.APIGatewayProxyRequest,
+) (events.APIGatewayProxyResponse, error) {
+	pk := UserPK(authCtx.UserID)
+	sk := KeyProfile
 	var profile models.UserProfile
 	if err := json.Unmarshal([]byte(req.Body), &profile); err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 400, Body: `{"error": "Invalid profile data"}`}, nil
+		return ErrorResponse(400, "Invalid profile data")
 	}
 	item, err := attributevalue.MarshalMap(struct {
 		PK string
@@ -61,16 +67,16 @@ func UpdateProfileHandler(ctx context.Context, authCtx *AuthContext, req events.
 		UserProfile: profile,
 	})
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 500, Body: `{"error": "Failed to marshal profile"}`}, nil
+		return ErrorResponse(500, "Failed to marshal profile")
 	}
 	_, err = dbClient.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: TableName(),
 		Item:      item,
 	})
 	if err != nil {
-		return events.APIGatewayProxyResponse{StatusCode: 500, Body: `{"error": "Failed to save profile"}`}, nil
+		return ErrorResponse(500, "Failed to save profile")
 	}
-	return events.APIGatewayProxyResponse{StatusCode: 200, Body: `{"success": true}`}, nil
+	return JSONResponse(200, map[string]bool{"success": true})
 }
 
 var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
@@ -78,23 +84,60 @@ var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
 	authCtx *AuthContext,
 	req events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
+	pk := UserPK(authCtx.UserID)
 
-	pk := "USER#" + authCtx.UserID
+	// 1. Query ALL items for this user (Profile + Drinks)
+	var allItems []map[string]types.AttributeValue
+	var lastKey map[string]types.AttributeValue
 
-	// Delete profile
-	_, _ = dbClient.DeleteItem(ctx, &dynamodb.DeleteItemInput{
-		TableName: TableName(),
-		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: pk},
-			"SK": &types.AttributeValueMemberS{Value: "PROFILE"},
-		},
-	})
+	for {
+		out, err := dbClient.Query(ctx, &dynamodb.QueryInput{
+			TableName:              TableName(),
+			KeyConditionExpression: aws.String("PK = :pk"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":pk": &types.AttributeValueMemberS{Value: pk},
+			},
+			ExclusiveStartKey: lastKey,
+		})
+		if err != nil {
+			return ErrorResponse(500, "Failed to query user data for deletion")
+		}
+		allItems = append(allItems, out.Items...)
+		lastKey = out.LastEvaluatedKey
+		if len(lastKey) == 0 {
+			break
+		}
+	}
 
-	// TODO: Delete all drinks for this user...
+	// 2. Batch Delete in chunks of 25 (DynamoDB limit)
+	tableName := *TableName()
+	for i := 0; i < len(allItems); i += 25 {
+		end := i + 25
+		if end > len(allItems) {
+			end = len(allItems)
+		}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Body:       `{"success": true}`,
-		Headers:    map[string]string{"Content-Type": "application/json"},
-	}, nil
+		var writeRequests []types.WriteRequest
+		for _, item := range allItems[i:end] {
+			writeRequests = append(writeRequests, types.WriteRequest{
+				DeleteRequest: &types.DeleteRequest{
+					Key: map[string]types.AttributeValue{
+						"PK": item["PK"],
+						"SK": item["SK"],
+					},
+				},
+			})
+		}
+
+		_, err := dbClient.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				tableName: writeRequests,
+			},
+		})
+		if err != nil {
+			return ErrorResponse(500, "Failed to complete batch deletion")
+		}
+	}
+
+	return SuccessResponse(map[string]bool{"success": true})
 }

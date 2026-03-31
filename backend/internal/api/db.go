@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -21,9 +20,9 @@ func init() {
 }
 
 func SaveDrink(ctx context.Context, userID string, drinkRecord models.DrinkRecord) error {
-	drinkRecord.PK = fmt.Sprintf("USER#%s", userID)
+	drinkRecord.PK = UserPK(userID)
 	// Use the ID from frontend to prevent duplicates
-	drinkRecord.SK = fmt.Sprintf("DRINK#%d#%s", drinkRecord.Timestamp, drinkRecord.ID)
+	drinkRecord.SK = DrinkSK(drinkRecord.Timestamp, drinkRecord.ID)
 
 	av, err := attributevalue.MarshalMap(drinkRecord)
 	if err != nil {

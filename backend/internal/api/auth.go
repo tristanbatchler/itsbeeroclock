@@ -62,7 +62,8 @@ func getJWKS() (*JWKS, error) {
 		return nil, fmt.Errorf("SUPABASE_URL not set")
 	}
 
-	resp, err := http.Get(supabaseURL + "/auth/v1/.well-known/jwks.json")
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(supabaseURL + "/auth/v1/.well-known/jwks.json")
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +140,20 @@ func VerifyJWT(tokenString string) (*AuthContext, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		// 1. Verify Audience
+		aud, _ := claims["aud"].(string)
+		if aud != "authenticated" {
+			return nil, fmt.Errorf("invalid audience: %s", aud)
+		}
+
+		// 2. Verify Issuer
+		iss, _ := claims["iss"].(string)
+		supabaseURL := utils.GetVar("SUPABASE_URL")
+		expectedIss := supabaseURL + "/auth/v1"
+		if iss != expectedIss {
+			return nil, fmt.Errorf("invalid issuer")
+		}
+
 		userID, ok := claims["sub"].(string)
 		if !ok {
 			return nil, fmt.Errorf("no sub claim")
@@ -166,18 +181,12 @@ func WithAuth(handler AuthenticatedApiProxyGatewayHandler) ApiProxyGatewayHandle
 		}
 
 		if authHeader == "" {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusUnauthorized,
-				Body:       `{"error": "missing Authorization header"}`,
-			}, nil
+			return ErrorResponse(http.StatusUnauthorized, "missing Authorization header")
 		}
 
 		authCtx, err := VerifyJWT(authHeader)
 		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: http.StatusUnauthorized,
-				Body:       fmt.Sprintf(`{"error": "invalid token: %s"}`, err.Error()),
-			}, nil
+			return ErrorResponse(http.StatusUnauthorized, "invalid token: "+err.Error())
 		}
 
 		return handler(ctx, authCtx, req)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
@@ -21,11 +20,7 @@ var SyncDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 
 	var drinks []models.DrinkRecord
 	if err := json.Unmarshal([]byte(req.Body), &drinks); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       `{"error": "invalid request body"}`,
-			Headers:    map[string]string{"Content-Type": "application/json"},
-		}, err
+		return ErrorResponse(400, "invalid request body")
 	}
 
 	var failed int
@@ -40,10 +35,5 @@ var SyncDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 	if failed > 0 {
 		resp.Message = "Some drinks failed to sync"
 	}
-	respBody, _ := json.Marshal(resp)
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Body:       string(respBody),
-		Headers:    map[string]string{"Content-Type": "application/json"},
-	}, nil
+	return JSONResponse(200, resp)
 }
