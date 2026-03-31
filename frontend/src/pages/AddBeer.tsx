@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useBeers } from "../contexts/BeerContext";
+import { useBeerStore } from "../store/beerStore";
 import { saveCustomBeer } from "../utils/storage";
 import { api } from "../lib/api";
 import { createThumbnail } from "../utils/image";
@@ -14,7 +14,7 @@ import type { Beer } from "../types/drinks";
 export function AddBeer() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { addBeersToStore } = useBeers();
+  const addBeersToStore = useBeerStore((s) => s.addBeersToStore);
 
   const [name, setName] = useState("");
   const [brewery, setBrewery] = useState("");

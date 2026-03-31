@@ -38,10 +38,11 @@ var routes = []Route{
 	{"/api/custom-beers", http.MethodGet, wrapAuth(GetCustomBeersHandler), true},
 }
 
-var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGatewayProxyRequest) (resp events.APIGatewayProxyResponse, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Panic recovered: %v\nStack trace:\n%s", r, debug.Stack())
+			resp, err = ErrorResponse(http.StatusInternalServerError, "internal server error")
 		}
 	}()
 

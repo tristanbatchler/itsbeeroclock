@@ -25,6 +25,11 @@ var SyncDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 
 	var failed int
 	for _, drink := range drinks {
+		if drink.ID == "" || drink.BeerID == "" || drink.Size == "" || drink.Timestamp == 0 {
+			log.Printf("SyncDrinks: skipping invalid drink record for user %s: %+v", authCtx.UserID, drink)
+			failed++
+			continue
+		}
 		if err := SaveDrink(ctx, authCtx.UserID, drink); err != nil {
 			log.Printf("Failed to save drink: %+v, err: %v", drink, err)
 			failed++

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,14 +27,15 @@ var GetDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 		},
 	})
 	if err != nil {
+		log.Printf("GetDrinksHandler: failed to query drinks for user %s: %v", authCtx.UserID, err)
 		return ErrorResponse(500, "failed to query drinks")
 	}
 
 	drinks := make([]models.DrinkRecord, 0)
 	for _, item := range out.Items {
 		var drink models.DrinkRecord
-		err := attributevalue.UnmarshalMap(item, &drink)
-		if err != nil {
+		if err := attributevalue.UnmarshalMap(item, &drink); err != nil {
+			log.Printf("GetDrinksHandler: failed to unmarshal drink item for user %s: %v", authCtx.UserID, err)
 			return ErrorResponse(500, "failed to unmarshal drink item")
 		}
 		drinks = append(drinks, drink)

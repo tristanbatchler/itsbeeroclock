@@ -25,6 +25,10 @@ var AddDrinkHandler AuthenticatedApiProxyGatewayHandler = func(
 		return ErrorResponse(400, "invalid request body")
 	}
 
+	if drinkRecord.ID == "" || drinkRecord.BeerID == "" || drinkRecord.Size == "" || drinkRecord.Timestamp == 0 {
+		return ErrorResponse(400, "id, beerId, size, and timestamp are required")
+	}
+
 	// Save to DynamoDB
 	if err := SaveDrink(ctx, authCtx.UserID, drinkRecord); err != nil {
 		log.Printf("Error saving drink: %v", err)

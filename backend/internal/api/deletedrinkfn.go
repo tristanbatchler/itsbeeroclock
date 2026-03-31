@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"log"
 	"strconv"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -39,6 +40,7 @@ var DeleteDrinkHandler AuthenticatedApiProxyGatewayHandler = func(
 	})
 
 	if err != nil {
+		log.Printf("DeleteDrinkHandler: failed to delete drink %s for user %s: %v", drinkID, authCtx.UserID, err)
 		return ErrorResponse(500, "failed to delete drink")
 	}
 

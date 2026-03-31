@@ -10,7 +10,7 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { CancelButton } from "./CancelButton";
 import { BeerPlaceholder } from "./BeerPlaceholder";
-import { useBeers } from "../contexts/BeerContext";
+import { useBeerStore } from "../store/beerStore";
 
 
 interface Props {
@@ -40,7 +40,7 @@ function thumbUrl(image: string): string {
 
 export function BeerSelector({ onSelect, onClose }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { addBeersToStore } = useBeers();
+  const addBeersToStore = useBeerStore((s) => s.addBeersToStore);
   const [beers, setBeers] = useState<Beer[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);

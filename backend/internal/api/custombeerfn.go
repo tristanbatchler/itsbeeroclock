@@ -60,6 +60,7 @@ var AddCustomBeerHandler AuthenticatedApiProxyGatewayHandler = func(
 
 	item, err := attributevalue.MarshalMap(beer)
 	if err != nil {
+		log.Printf("AddCustomBeerHandler: failed to marshal custom beer %s: %v", beer.ID, err)
 		return ErrorResponse(500, "failed to marshal custom beer")
 	}
 
@@ -93,6 +94,7 @@ var GetCustomBeersHandler AuthenticatedApiProxyGatewayHandler = func(
 		},
 	})
 	if err != nil {
+		log.Printf("GetCustomBeersHandler: failed to query custom beers for user %s: %v", authCtx.UserID, err)
 		return ErrorResponse(500, "failed to query custom beers")
 	}
 
@@ -100,6 +102,7 @@ var GetCustomBeersHandler AuthenticatedApiProxyGatewayHandler = func(
 	for _, item := range out.Items {
 		var beer models.Beer
 		if err := attributevalue.UnmarshalMap(item, &beer); err != nil {
+			log.Printf("GetCustomBeersHandler: failed to unmarshal custom beer for user %s: %v", authCtx.UserID, err)
 			continue
 		}
 		beer.IsCustom = true

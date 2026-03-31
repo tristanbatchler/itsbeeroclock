@@ -2,11 +2,8 @@ import { api } from "../lib/api";
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import {
-  getUserProfile,
-  saveUserProfile,
-  getFavouriteIds,
-} from "../utils/storage";
+import { saveUserProfile, getFavouriteIds } from "../utils/storage";
+import { useBeerStore } from "../store/beerStore";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
@@ -17,36 +14,46 @@ import { STORAGE_KEYS } from "../lib/constants";
 export function Profile() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const existing = getUserProfile();
+  const profile = useBeerStore((s) => s.profile);
+  const setProfile = useBeerStore((s) => s.setProfile);
 
   const [gender, setGender] = useState<"male" | "female">(
-    existing?.gender || "male",
+    profile?.gender ?? "male",
   );
-  const [weight, setWeight] = useState(existing?.weight?.toString() || "80");
+  const [weight, setWeight] = useState(profile?.weight?.toString() ?? "80");
   const [optInHistory, setOptInHistory] = useState(
-    existing?.optInHistory ?? true,
+    profile?.optInHistory ?? true,
   );
-
   const [showPurgeModal, setShowPurgeModal] = useState(false);
+
+  // Keep form fields in sync when the cloud profile loads (via useProfileInit in Root)
+  useEffect(() => {
+    if (!profile) return;
+    setGender(profile.gender);
+    setWeight(profile.weight.toString());
+    setOptInHistory(profile.optInHistory);
+  }, [profile]);
 
   const handleSave = async () => {
     const weightNum = parseFloat(weight);
     if (isNaN(weightNum) || weightNum <= 0) return;
 
-    const profile = {
+    const updated = {
       gender,
       weight: weightNum,
       optInHistory,
       favouriteBeerIds: getFavouriteIds(),
     };
 
-    saveUserProfile(profile);
+    // Update store first so BAC on Home reflects the new values immediately
+    setProfile(updated);
+    saveUserProfile(updated);
 
     if (user) {
       try {
-        await api.updateProfile(profile);
+        await api.updateProfile(updated);
       } catch {
-        // silently fail
+        // silently fail — local state is already updated
       }
     }
 
@@ -54,14 +61,12 @@ export function Profile() {
   };
 
   const handlePurge = async () => {
-    // Backend wipe (if logged in)
     if (user) {
       try {
         await api.clearUserData();
       } catch (err) {
         console.error("Failed to purge backend data", err);
       }
-
       try {
         await signOut();
       } catch (err) {
@@ -69,28 +74,9 @@ export function Profile() {
       }
     }
 
-
     Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
-
-    // Hard reset app
     window.location.href = "/";
   };
-
-  useEffect(() => {
-    if (!user) return;
-
-    api
-      .getProfile()
-      .then((cloud) => {
-        if (cloud) {
-          setGender(cloud.gender as "male" | "female");
-          setWeight(cloud.weight.toString());
-          setOptInHistory(cloud.optInHistory);
-          saveUserProfile(cloud);
-        }
-      })
-      .catch(() => {});
-  }, [user]);
 
   if (loading) {
     return (
@@ -107,9 +93,7 @@ export function Profile() {
       ) : (
         <Card className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-foreground">
-              Your Details
-            </h2>
+            <h2 className="text-xl font-bold text-foreground">Your Details</h2>
             <Button variant="ghost" size="sm" onClick={signOut}>
               Sign Out
             </Button>
@@ -131,7 +115,7 @@ export function Profile() {
                     onClick={() => setGender(g)}
                     className={`px-6 py-2 rounded-xl font-medium transition-all ${
                       gender === g
-                        ? "bg-primary text-primary-foreground" // ✅ fixed typo
+                        ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     }`}
                   >
@@ -172,17 +156,12 @@ export function Profile() {
         </Card>
       )}
 
-      {/* ✅ ALWAYS VISIBLE PURGE SECTION */}
       <Card className="p-6 border-destructive/30 bg-destructive/5">
-        <h3 className="text-lg font-bold text-destructive mb-2">
-          Danger Zone
-        </h3>
-
+        <h3 className="text-lg font-bold text-destructive mb-2">Danger Zone</h3>
         <p className="text-sm text-muted-foreground mb-4">
           Permanently delete all your data from this device
           {user && " and the cloud"}.
         </p>
-
         <Button
           variant="destructive"
           className="w-full"
@@ -192,7 +171,6 @@ export function Profile() {
         </Button>
       </Card>
 
-      {/* Modal */}
       <Modal
         isOpen={showPurgeModal}
         onClose={() => setShowPurgeModal(false)}
@@ -202,18 +180,13 @@ export function Profile() {
           <p className="text-destructive font-bold mb-4">
             This will permanently delete:
           </p>
-
           <ul className="text-left text-sm space-y-1 mb-6">
             <li>• All drinks</li>
             <li>• Profile settings</li>
             <li>• Custom beers & favourites</li>
             <li>• All local app data</li>
           </ul>
-
-          <p className="text-destructive text-xs mb-6">
-            This cannot be undone.
-          </p>
-
+          <p className="text-destructive text-xs mb-6">This cannot be undone.</p>
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -222,12 +195,7 @@ export function Profile() {
             >
               Cancel
             </Button>
-
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={handlePurge}
-            >
+            <Button variant="destructive" className="flex-1" onClick={handlePurge}>
               Yes, purge everything
             </Button>
           </div>

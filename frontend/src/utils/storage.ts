@@ -50,9 +50,10 @@ export const getCustomBeers = (): Beer[] =>
 
 export const saveCustomBeer = (beer: Beer) => {
   const beers = getCustomBeers();
+  const filtered = beers.filter((b) => b.id !== beer.id);
   localStorage.setItem(
     STORAGE_KEYS.CUSTOM_BEERS,
-    JSON.stringify([...beers, beer]),
+    JSON.stringify([...filtered, beer]),
   );
 };
 

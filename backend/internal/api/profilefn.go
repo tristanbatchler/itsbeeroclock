@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -28,7 +29,11 @@ var GetProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 			"SK": &types.AttributeValueMemberS{Value: sk},
 		},
 	})
-	if err != nil || out.Item == nil {
+	if err != nil {
+		log.Printf("GetProfileHandler: failed to get profile for user %s: %v", authCtx.UserID, err)
+		return ErrorResponse(500, "Failed to get profile")
+	}
+	if out.Item == nil {
 		// Return sensible default if not found
 		profile := models.UserProfile{
 			Weight:           80,
@@ -41,6 +46,7 @@ var GetProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 	var profile models.UserProfile
 	err = attributevalue.UnmarshalMap(out.Item, &profile)
 	if err != nil {
+		log.Printf("GetProfileHandler: failed to unmarshal profile for user %s: %v", authCtx.UserID, err)
 		return ErrorResponse(500, "Failed to unmarshal profile")
 	}
 	return JSONResponse(200, profile)
@@ -67,6 +73,7 @@ var UpdateProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 		UserProfile: profile,
 	})
 	if err != nil {
+		log.Printf("UpdateProfileHandler: failed to marshal profile for user %s: %v", authCtx.UserID, err)
 		return ErrorResponse(500, "Failed to marshal profile")
 	}
 	_, err = dbClient.PutItem(ctx, &dynamodb.PutItemInput{
@@ -74,6 +81,7 @@ var UpdateProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 		Item:      item,
 	})
 	if err != nil {
+		log.Printf("UpdateProfileHandler: failed to save profile for user %s: %v", authCtx.UserID, err)
 		return ErrorResponse(500, "Failed to save profile")
 	}
 	return JSONResponse(200, map[string]bool{"success": true})
@@ -100,6 +108,7 @@ var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
 			ExclusiveStartKey: lastKey,
 		})
 		if err != nil {
+			log.Printf("ClearUserDataHandler: failed to query items for user %s: %v", authCtx.UserID, err)
 			return ErrorResponse(500, "Failed to query user data for deletion")
 		}
 		allItems = append(allItems, out.Items...)
@@ -129,13 +138,18 @@ var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
 			})
 		}
 
-		_, err := dbClient.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
+		batchOut, err := dbClient.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]types.WriteRequest{
 				tableName: writeRequests,
 			},
 		})
 		if err != nil {
+			log.Printf("ClearUserDataHandler: batch delete failed for user %s: %v", authCtx.UserID, err)
 			return ErrorResponse(500, "Failed to complete batch deletion")
+		}
+		if len(batchOut.UnprocessedItems) > 0 {
+			log.Printf("ClearUserDataHandler: %d unprocessed items for user %s", len(batchOut.UnprocessedItems[tableName]), authCtx.UserID)
+			return ErrorResponse(500, "Failed to delete all user data")
 		}
 	}
 

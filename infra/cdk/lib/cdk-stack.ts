@@ -59,6 +59,16 @@ export class BeerOClockStack extends cdk.Stack {
       sortKey: { name: "GSI1SK", type: dynamodb.AttributeType.STRING },
     });
 
+    // GSI2: supports time-range queries on a user's drinks.
+    // PK (partition) = USER#{userId}, Timestamp (sort) = epoch ms integer.
+    // Use QueryDrinksByTimeRange() in keys.go to build the KeyConditionExpression.
+    table.addGlobalSecondaryIndex({
+      indexName: "GSI2",
+      partitionKey: { name: "PK", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "Timestamp", type: dynamodb.AttributeType.NUMBER },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     table.grantReadWriteData(apiFn);
     apiFn.addEnvironment("TABLE_NAME", table.tableName);
 

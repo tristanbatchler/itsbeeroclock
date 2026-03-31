@@ -5,6 +5,9 @@ import { useRef, useEffect, useReducer } from "react";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { InitialLoading } from "./components/InitialLoading";
 import { useInitialLoad } from "./hooks/useInitialLoad";
+import { useBeerInit } from "./hooks/useBeerInit";
+import { useProfileInit } from "./hooks/useProfile";
+import { useAuth } from "./hooks/useAuth";
 
 export function Root() {
   const location = useLocation();
@@ -14,6 +17,10 @@ export function Root() {
   const isOnline = useOnlineStatus();
   const { isLoading: isInitialLoading, initialLoadFailed } = useInitialLoad();
   const showOfflineBanner = initialLoadFailed || !isOnline;
+  const { user } = useAuth();
+
+  useBeerInit();
+  useProfileInit(user, isOnline);
 
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
