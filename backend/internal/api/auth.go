@@ -132,7 +132,7 @@ func VerifyJWT(tokenString string) (*AuthContext, error) {
 			}
 		}
 		return nil, fmt.Errorf("no matching key found for kid: %s", kid)
-	})
+	}, jwt.WithLeeway(5*time.Minute))
 
 	if err != nil {
 		log.Printf("Error parsing JWT: %s", err.Error())
