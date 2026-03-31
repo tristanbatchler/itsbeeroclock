@@ -11,7 +11,12 @@ import { api } from "../lib/api";
 import { useAuth } from "../hooks/useAuth";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
-import { getUserProfile, saveUserProfile } from "../utils/storage";
+import {
+  getUserProfile,
+  saveUserProfile,
+  getCustomBeers,
+  saveCustomBeer,
+} from "../utils/storage";
 
 import { useBAC } from "../hooks/useBAC";
 import { Button } from "../components/Button";
@@ -52,7 +57,7 @@ export function Home() {
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
 
-  const { allBeers, beersLoading } = useBeers();
+  const { allBeers, beersLoading, addBeersToStore } = useBeers();
 
   const hasHydratedRef = useRef(false);
   const isOnline = useOnlineStatus();
@@ -104,17 +109,29 @@ export function Home() {
       hasHydratedRef.current = true;
 
       try {
-        // 1. Flush any queued requests first
+        // Flush any queued requests first
         await api.processOfflineQueue();
 
-        // 2. Fetch the latest from the server
+        // Fetch the latest from the server
         const serverDrinks = (await api.getDrinks()) || [];
 
-        // 3. Find any local drinks that didn't make it to the server
+        // Find any local drinks that didn't make it to the server
         const serverIds = new Set(serverDrinks.map((d: Drink) => d.id));
         const localOnly = drinks.filter((d) => !serverIds.has(d.id));
+        
+        // Fetch custom beers and sync them locally
+        const serverCustomBeers = (await api.getCustomBeers()) || [];
+        const localCustomIds = new Set(getCustomBeers().map((b) => b.id));
+        serverCustomBeers.forEach((beer) => {
+          if (!localCustomIds.has(beer.id)) {
+            saveCustomBeer(beer);
+          }
+        });
+        if (serverCustomBeers.length > 0) {
+          addBeersToStore(serverCustomBeers);
+        }
 
-        // 4. Merge them together and update the UI
+        // Merge them together and update the UI
         const merged = [...serverDrinks, ...localOnly].sort(
           (a, b) => b.timestamp - a.timestamp,
         );

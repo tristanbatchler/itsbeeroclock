@@ -28,6 +28,11 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function thumbUrl(image: string): string {
+  // If it's an S3 URL or a Base64 string, just use it directly!
+  if (image.startsWith("http") || image.startsWith("data:")) {
+    return image;
+  }
+  // Otherwise, process it as a local catalogue image
   const filename = image.split("/").pop()!;
   const base = filename.replace(/\.[^.]+$/, "");
   return `/beer_images/thumbs/${base}.webp`;
@@ -67,8 +72,13 @@ export function BeerSelector({ onSelect, onClose }: Props) {
         });
         const newBeers: Beer[] = data.beers ?? [];
 
-        setBeers((prev) => reset ? newBeers : [...prev, ...newBeers]);
-        addBeersToStore(newBeers); // Push newly loaded pages to the global context!
+        const custom = reset ? getCustomBeers().filter((b) =>
+          !debouncedSearch || 
+          b.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          b.brewery?.toLowerCase().includes(debouncedSearch.toLowerCase())
+        ) : [];
+        setBeers((prev) => reset ? [...custom, ...newBeers] : [...prev, ...newBeers]);
+        addBeersToStore(newBeers);
 
         lastKeyRef.current = data.lastKey ?? null;
         hasMoreRef.current = data.hasMore ?? false;

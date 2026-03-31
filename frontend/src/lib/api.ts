@@ -1,4 +1,4 @@
-import type { Drink, UserProfile } from "../types/drinks";
+import type { Beer, Drink, UserProfile } from "../types/drinks";
 import { STORAGE_KEYS } from "./constants";
 import { supabase } from "./supabase";
 
@@ -220,4 +220,10 @@ export const api = {
     }),
   processOfflineQueue,
   clearUserData: () => fetchWithAuth("/api/clear", { method: "DELETE" }),
+  getCustomBeers: () => fetchWithAuth<Beer[]>("/api/custom-beers"),
+  addCustomBeer: (beer: Beer): Promise<Beer> =>
+    fetchWithAuth<Beer>("/api/custom-beers", {
+      method: "POST",
+      body: JSON.stringify(beer),
+    }),
 };

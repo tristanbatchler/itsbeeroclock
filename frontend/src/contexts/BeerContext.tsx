@@ -19,46 +19,33 @@ export function BeerProvider({ children }: { children: ReactNode }) {
   ]);
   const [beersLoading, setBeersLoading] = useState(true);
 
-  // Used by BeerSelector to append paginated results without losing existing state.
-  // Wrapped in useCallback with empty deps — see "useCallback infinite loop trap" in README.
   const addBeersToStore = useCallback((newBeers: Beer[]) => {
     setAllBeers((prev) => {
-      const existingIds = new Set(prev.map((b) => b.id));
-      const uniqueNew = newBeers.filter((b) => !existingIds.has(b.id));
-      const updated = [...prev, ...uniqueNew];
-      // Only persist catalogue beers — custom beers live in their own storage key.
+      const beerMap = new Map(prev.map((b) => [b.id, b]));
+      newBeers.forEach((newBeer) => {
+        beerMap.set(newBeer.id, { ...beerMap.get(newBeer.id), ...newBeer });
+      });
+      const updated = Array.from(beerMap.values());
       saveBeers(updated.filter((b) => !b.isCustom));
       return updated;
     });
   }, []);
 
-  // On mount, paginate through the full catalogue so every beer referenced in the
-  // session drink log is resolvable immediately, regardless of which catalogue page it's on.
+
   useEffect(() => {
-    const fetchAllBeers = async () => {
+    const fetchInitialBeers = async () => {
       try {
-        let fetched: Beer[] = [];
-        let lastKey: string | undefined;
-        let hasMore = true;
-
-        while (hasMore) {
-          const data = await api.getBeers({ limit: 50, lastKey });
-          fetched = [...fetched, ...(data.beers ?? [])];
-          hasMore = data.hasMore ?? false;
-          lastKey = data.lastKey ?? undefined;
+        const data = await api.getBeers({ limit: 30 });
+        if (data.beers) {
+          addBeersToStore(data.beers);
         }
-
-        // addBeersToStore merges with existing cache and custom beers — nothing is lost.
-        addBeersToStore(fetched);
       } catch (err) {
         console.error("Failed to load beer catalogue, using local cache:", err);
-        // Fallback is already in state from the useState initializer — nothing to do.
       } finally {
         setBeersLoading(false);
       }
     };
-
-    fetchAllBeers();
+    fetchInitialBeers();
   }, [addBeersToStore]);
 
   return (
