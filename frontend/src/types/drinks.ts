@@ -1,6 +1,8 @@
 export interface UserProfile {
-  weight: number;
-  gender: "male" | "female";
+  weight: number; // kg
+  height: number; // cm
+  age: number; // years
+  sex: "male" | "female";
   optInHistory: boolean;
   favouriteBeerIds?: string[];
 }
@@ -45,6 +47,11 @@ export interface Drink {
   timestamp: number;
 }
 
+export interface BACSnapshot {
+  timestamp: number;
+  bac: number;
+}
+
 export interface SessionArchive {
   startTimestamp: number; // epoch ms — first drink timestamp
   endTimestamp: number; // epoch ms — last drink timestamp + 7_200_000
@@ -52,4 +59,5 @@ export interface SessionArchive {
   totalStandardDrinks: number;
   peakBAC: number;
   drinks: Drink[];
+  bacCurve?: BACSnapshot[];
 }

@@ -1,7 +1,9 @@
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, HelpCircle } from "lucide-react";
 import { Card } from "./Card";
 import { formatHours } from "../utils/time";
 import type { BACResult } from "../hooks/useBAC";
+import { useState, useRef, useCallback } from "react";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 interface Props {
   bacData: BACResult;
@@ -12,6 +14,10 @@ interface Props {
  */
 export function BACCard({ bacData }: Props) {
   const safe = bacData.hasValidData && bacData.canDrive;
+  const [showInfo, setShowInfo] = useState(false);
+  const infoRef = useRef<HTMLDivElement>(null);
+  const closeInfo = useCallback(() => setShowInfo(false), []);
+  useClickOutside(infoRef, closeInfo, showInfo);
 
   return (
     <Card
@@ -26,13 +32,41 @@ export function BACCard({ bacData }: Props) {
           )}
         </div>
         <div className="flex-1">
-          <p className={`font-bold text-lg ${safe ? "text-primary-foreground" : "text-destructive"}`}>
-            {bacData.hasValidData
-              ? bacData.canDrive
-                ? "✓ Safe to drive"
-                : "⚠️ Do NOT drive"
-              : "Cannot calculate BAC (missing drink data)"}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className={`font-bold text-lg ${safe ? "text-primary-foreground" : "text-destructive"}`}>
+              {bacData.hasValidData
+                ? bacData.canDrive
+                  ? "Safe to drive"
+                  : "Do NOT drive"
+                : "Cannot calculate BAC (missing drink data)"}
+            </p>
+            {safe && (
+              <div className="relative" ref={infoRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowInfo((v) => !v)}
+                  className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+                  aria-label="More information about this estimate"
+                >
+                  <HelpCircle className="size-4" />
+                </button>
+                {showInfo && (
+                  <div className="absolute left-0 top-6 z-10 w-72 rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
+                    <div className="absolute -top-1.5 left-2 size-3 rotate-45 border-l border-t border-border bg-card" />
+                    <p>
+                      Based on what you've logged, your estimated BAC is below the legal limit.
+                      However, this is a <strong className="text-foreground">mathematical estimate</strong>.
+                      Real BAC varies with food, hydration, and individual metabolism.
+                    </p>
+                    <p className="mt-1.5">
+                      We strongly recommend confirming with a <strong className="text-foreground">breathalyser</strong> before
+                      getting behind the wheel. When in doubt, don't drive.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <p className={`text-sm mt-1 ${safe ? "text-primary-foreground" : "text-destructive"}`}>
             {bacData.hasValidData
               ? bacData.canDrive

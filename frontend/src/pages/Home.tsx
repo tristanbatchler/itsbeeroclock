@@ -12,9 +12,11 @@ import { DrinkLog } from "../components/DrinkLog";
 import { DrinkLogger } from "../components/DrinkLogger";
 import { BACCard } from "../components/BACCard";
 import { BACStats } from "../components/BACStats";
+import { BACGraph } from "../components/BACGraph";
 import { PrivacyNotice } from "../components/PrivacyNotice";
 import { UnauthenticatedNotice } from "../components/UnauthenticatedNotice";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { useBACGraph } from "../hooks/useBACGraph";
 
 export function Home() {
   const { drinks, addDrink, removeDrink, undoLast, clearSession, setAllDrinks } = useSession();
@@ -31,6 +33,7 @@ export function Home() {
   useSessionChecker({ drinks, allBeers, profile, clearSession });
 
   const bacData = useBAC(drinks, allBeers, profile);
+  const { snapshots, startTime, endTime } = useBACGraph(drinks, allBeers, profile);
 
   if (!beersLoading && allBeers.length === 0 && (isApiDown || !isOnline)) {
     return (
@@ -75,6 +78,12 @@ export function Home() {
             onClear={handleClearSession}
             onRepeat={handleRepeatDrink}
           />
+        </ErrorBoundary>
+      )}
+
+      {profile && drinks.length > 0 && (
+        <ErrorBoundary>
+          <BACGraph snapshots={snapshots} startTime={startTime} endTime={endTime} />
         </ErrorBoundary>
       )}
     </div>

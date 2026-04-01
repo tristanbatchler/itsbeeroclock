@@ -34,10 +34,12 @@ var GetProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 		return ErrorResponse(500, "Failed to get profile")
 	}
 	if out.Item == nil {
-		// Return sensible default if not found
+		// Return sensible defaults (ABS average Australian male)
 		profile := models.UserProfile{
 			Weight:           80,
-			Gender:           "male",
+			Height:           175,
+			Age:              35,
+			Sex:              "male",
 			OptInHistory:     true,
 			FavouriteBeerIDs: []string{},
 		}

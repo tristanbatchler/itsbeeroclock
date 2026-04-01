@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+/// <reference types="vitest" />
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
@@ -60,6 +61,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
       },
+    },
+    test: {
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./src/test-setup.ts"],
     },
     define: {
       "import.meta.env.SUPABASE_URL": JSON.stringify(env.SUPABASE_URL),

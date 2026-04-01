@@ -1,8 +1,9 @@
 import { api } from "../lib/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { saveUserProfile, getFavouriteIds } from "../utils/storage";
+import { Latex } from "../components/Latex";
 import { useBeerStore } from "../store/beerStore";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -10,6 +11,8 @@ import { Input } from "../components/Input";
 import { Modal } from "../components/Modal";
 import { SignIn } from "./SignIn";
 import { STORAGE_KEYS } from "../lib/constants";
+import { HelpCircle } from "lucide-react";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 export function Profile() {
   const navigate = useNavigate();
@@ -17,30 +20,44 @@ export function Profile() {
   const profile = useBeerStore((s) => s.profile);
   const setProfile = useBeerStore((s) => s.setProfile);
 
-  const [gender, setGender] = useState<"male" | "female">(
-    profile?.gender ?? "male",
+  const [sex, setGender] = useState<"male" | "female">(
+    profile?.sex ?? "male",
   );
   const [weight, setWeight] = useState(profile?.weight?.toString() ?? "80");
+  const [height, setHeight] = useState(profile?.height?.toString() ?? "175");
+  const [age, setAge] = useState(profile?.age?.toString() ?? "35");
   const [optInHistory, setOptInHistory] = useState(
     profile?.optInHistory ?? true,
   );
   const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [showSexInfo, setShowSexInfo] = useState(false);
+  const sexInfoRef = useRef<HTMLDivElement>(null);
+  const closeSexInfo = useCallback(() => setShowSexInfo(false), []);
+  useClickOutside(sexInfoRef, closeSexInfo, showSexInfo);
 
   // Keep form fields in sync when the cloud profile loads (via useProfileInit in Root)
   useEffect(() => {
     if (!profile) return;
-    setGender(profile.gender);
+    setGender(profile.sex);
     setWeight(profile.weight.toString());
+    setHeight(profile.height.toString());
+    setAge(profile.age.toString());
     setOptInHistory(profile.optInHistory);
   }, [profile]);
 
   const handleSave = async () => {
     const weightNum = parseFloat(weight);
+    const heightNum = parseFloat(height);
+    const ageNum = parseInt(age, 10);
     if (isNaN(weightNum) || weightNum <= 0) return;
+    if (isNaN(heightNum) || heightNum <= 0) return;
+    if (isNaN(ageNum) || ageNum <= 0) return;
 
     const updated = {
-      gender,
+      sex,
       weight: weightNum,
+      height: heightNum,
+      age: ageNum,
       optInHistory,
       favouriteBeerIds: getFavouriteIds(),
     };
@@ -105,16 +122,45 @@ export function Profile() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Gender
-              </label>
+              <div className="flex items-center gap-1.5 mb-2">
+                <label className="text-sm font-medium text-foreground">
+                  Sex
+                </label>
+                <div className="relative" ref={sexInfoRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSexInfo((v) => !v)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Why do we ask for sex?"
+                  >
+                    <HelpCircle className="size-3.5" />
+                  </button>
+                  {showSexInfo && (
+                    <div className="absolute left-0 top-6 z-10 w-72 rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
+                      {/* speech bubble tail */}
+                      <div className="absolute -top-1.5 left-2 size-3 rotate-45 border-l border-t border-border bg-card" />
+                      <p>
+                        If you identify as a sex different from the one you were assigned at
+                        birth, choose the one that reflects your <strong className="text-foreground">current
+                        physiology</strong>. This gives us the most accurate BAC estimate.
+                      </p>
+                      <p className="mt-1.5">
+                        On <strong className="text-foreground">HRT?</strong> Select the option
+                        that aligns with your current hormonal profile. HRT shifts body
+                        composition over time, but please try and place yourself to one side 
+                        for the purpose of the limited model. Thank you for understanding.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex gap-4">
                 {(["male", "female"] as const).map((g) => (
                   <button
                     key={g}
                     onClick={() => setGender(g)}
                     className={`px-6 py-2 rounded-xl font-medium transition-all ${
-                      gender === g
+                      sex === g
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     }`}
@@ -123,6 +169,11 @@ export function Profile() {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Used to calculate your body water percentage. If you are on hormone replacement
+                therapy (HRT), select the option that best aligns with your current hormonal
+                profile.
+              </p>
             </div>
 
             <div>
@@ -134,6 +185,30 @@ export function Profile() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="80"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Height (cm)
+              </label>
+              <Input
+                type="number"
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+                placeholder="175"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Age (years)
+              </label>
+              <Input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="35"
               />
             </div>
 
@@ -155,6 +230,103 @@ export function Profile() {
           </div>
         </Card>
       )}
+
+
+
+      <Card className="p-6">
+        <h3 className="text-lg font-bold text-foreground mb-3">How BAC is calculated</h3>
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            We use <strong className="text-foreground">Watson's formula</strong> because it tends
+            to be more accurate than other blood alcohol content estimation models, though it does
+            require more detailed user information: sex, weight, height, and age. This
+            allows us to personally tailor your BAC estimate to your unique body composition,
+            rather than relying on flat averages.
+          </p>
+          <p className="text-foreground font-medium">The calculation happens in three steps:</p>
+
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">1. Total body water (TBW)</p>
+            <p>
+              TBW is a measure of how much water is actually in your body, which differs based on
+              your sex, age, height, and weight. Because alcohol dissolves in water and
+              not fat, it's not enough to simply look at your weight; we need these other factors
+              to map out your water content and get a solid baseline.
+            </p>
+            <p>
+              The formulas for men and women use different statistical weights, calculated
+              empirically by Dr. P.E. Watson in his original 1980 research:
+            </p>
+            <div className="overflow-x-auto py-1">
+              <Latex display>
+                {String.raw`\text{TBW} = a + (b \times \text{Age}) + (c \times \text{Height}) + (d \times \text{Weight})`}
+              </Latex>
+            </div>
+            <p>Where, for people identifying as female have:</p>
+            <div className="overflow-x-auto py-1">
+              <Latex display>
+                {String.raw`a = -2.097,\quad b = 0,\quad c = 0.1069,\quad d = 0.2466`}
+              </Latex>
+            </div>
+            <p>And all others have:</p>
+            <div className="overflow-x-auto py-1">
+              <Latex display>
+                {String.raw`a = 2.447,\quad b = -0.09516,\quad c = 0.1074,\quad d = 0.3362`}
+              </Latex>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">2. The alcohol jump</p>
+            <p>
+              The alcohol jump is the exact spike in your blood alcohol as you consume a drink. In
+              Australia, one standard drink is defined as exactly 10 grams of ethanol.
+            </p>
+            <p>
+              Because alcohol distributes itself evenly through all the water in your body, we
+              calculate its concentration based on your TBW. But since we are looking for{" "}
+              <em>Blood</em> Alcohol Content, we also have to account for the fact that human
+              blood is about 80.6% water. When we run the math to convert those grams and litres
+              into a standard BAC percentage, it gives us this clean formula:
+            </p>
+            <div className="overflow-x-auto py-1">
+              <Latex display>
+                {String.raw`\text{BAC}_{\text{Jump}} = \frac{0.806 \times \text{std. drinks}}{\text{TBW}}`}
+              </Latex>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-medium text-foreground">3. Metabolism</p>
+            <p>
+              Metabolism is where the liver processes the alcohol in your bloodstream. Unlike a
+              lot of things your body processes, alcohol burns off at a fairly consistent, flat
+              rate regardless of how much you've had. We use the commonly accepted average
+              metabolic rate of 0.015% BAC per hour.
+            </p>
+            <p>
+              Your BAC at any given moment is just the sum of all the spikes from the drinks
+              you've logged, minus the steady amount your liver has cleared since your first drink:
+            </p>
+            <div className="overflow-x-auto py-1">
+              <Latex display>
+                {String.raw`\text{BAC}_{\text{Now}} = \sum(\text{BAC}_{\text{Jump}}) - (0.015 \times \text{hours since first drink})`}
+              </Latex>
+            </div>
+          </div>
+
+          <hr className="border-border" />
+
+          <p className="text-xs italic">
+            <strong className="not-italic text-foreground">Disclaimer:</strong> While Watson's
+            formula is a highly regarded mathematical model, everybody is different. Factors like
+            food intake, genetics, and general liver health play a massive role in real-world
+            alcohol metabolism. This calculation is a guide to help you track your night, and
+            should <strong>never</strong> be used as a definitive test of whether you are legally
+            or safely able to drive.
+          </p>
+        </div>
+      </Card>
 
       <Card className="p-6 border-destructive/30 bg-destructive/5">
         <h3 className="text-lg font-bold text-destructive mb-2">Danger Zone</h3>

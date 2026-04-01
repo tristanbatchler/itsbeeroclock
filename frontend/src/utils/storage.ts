@@ -25,7 +25,7 @@ export const getUserProfile = (): UserProfile | null => {
       const parsed = JSON.parse(data);
       if (
         parsed &&
-        (parsed.gender === "male" || parsed.gender === "female") &&
+        (parsed.sex === "male" || parsed.sex === "female") &&
         typeof parsed.weight === "number"
       ) {
         return parsed;

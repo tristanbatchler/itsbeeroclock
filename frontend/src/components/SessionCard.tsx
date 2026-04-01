@@ -3,6 +3,8 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import type { SessionArchive, Beer } from "../types/drinks";
 import { getDrinkDisplay } from "../utils/calculations";
 import { Card } from "./Card";
+import { BACGraph } from "./BACGraph";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface SessionCardProps {
   archive: SessionArchive;
@@ -107,6 +109,16 @@ export function SessionCard({ archive, allBeers = [] }: SessionCardProps) {
             <div className="text-xs text-muted-foreground italic text-center py-2">
               No drinks recorded.
             </div>
+          )}
+
+          {archive.bacCurve?.some((s) => s.bac > 0) && (
+            <ErrorBoundary>
+              <BACGraph
+                snapshots={archive.bacCurve!}
+                startTime={archive.startTimestamp}
+                endTime={archive.endTimestamp}
+              />
+            </ErrorBoundary>
           )}
         </div>
       )}

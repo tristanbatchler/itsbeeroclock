@@ -1,4 +1,8 @@
-import { calculateBAC, getStandardDrinks } from "../utils/calculations";
+import {
+  calculateBAC,
+  getStandardDrinks,
+  computeBACCurve,
+} from "../utils/calculations";
 import type { Drink, Beer, UserProfile, SessionArchive } from "../types/drinks";
 import { STORAGE_KEYS } from "../lib/constants";
 
@@ -61,6 +65,13 @@ export function archiveSession(
   }, 0);
 
   const peakBAC = computePeakBAC(drinks, allBeers, profile);
+  const bacCurve = computeBACCurve(
+    drinks,
+    allBeers,
+    profile,
+    startTimestamp,
+    endTimestamp,
+  );
 
   return {
     startTimestamp,
@@ -69,6 +80,7 @@ export function archiveSession(
     totalStandardDrinks,
     peakBAC,
     drinks,
+    bacCurve,
   };
 }
 
