@@ -114,7 +114,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
       (entries) => {
         if (entries[0].isIntersecting) loadMore(false);
       },
-      { rootMargin: "100px" }
+      { rootMargin: "300px" }
     );
     if (observerTarget.current) observer.observe(observerTarget.current);
     return () => observer.disconnect();

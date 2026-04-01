@@ -18,8 +18,10 @@ interface UseCloudSyncOptions {
  *
  * 1. On sign-in (or reconnect), flushes the offline queue then merges
  *    server drinks with any local-only drinks.
- * 2. Syncs custom beers from the server into the local store.
- * 3. Debounces a full sync of the current session to the server whenever
+ * 2. Batch-fetches any catalogue beers referenced in the drink log that
+ *    aren't already in the store (avoids paginating the full catalogue).
+ * 3. Syncs custom beers from the server into the local store.
+ * 4. Debounces a full sync of the current session to the server whenever
  *    the drinks array changes.
  *
  * Returns `isApiDown` so callers can surface an offline warning.
@@ -81,6 +83,22 @@ export function useCloudSync({
           (a, b) => b.timestamp - a.timestamp,
         );
         setAllDrinksRef.current(merged);
+
+        // Batch-fetch any catalogue beers referenced in the merged drink log
+        // that aren't already in the store. This ensures BAC calculations work
+        // without paginating the full catalogue on startup.
+        const knownBeerIds = new Set(
+          useBeerStore.getState().allBeers.map((b) => b.id),
+        );
+        const missingIds = [...new Set(merged.map((d) => d.beerId))].filter(
+          (id) => !knownBeerIds.has(id),
+        );
+
+        if (missingIds.length > 0) {
+          const fetched = await api.getBeersByIds(missingIds);
+          if (fetched.length > 0) addBeersToStore(fetched);
+        }
+
         setIsApiDown(false);
       } catch (err) {
         console.error("Hydration failed", err);

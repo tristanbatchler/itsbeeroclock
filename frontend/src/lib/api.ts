@@ -183,10 +183,6 @@ export const api = {
       body: JSON.stringify(drink),
     });
   },
-  /**
-   * Get beers with optional pagination and search params
-   * @param params { limit?: number, lastKey?: string, search?: string }
-   */
   getBeers: (params?: {
     limit?: number;
     lastKey?: string | null;
@@ -199,6 +195,13 @@ export const api = {
       q.push(`lastKey=${encodeURIComponent(params.lastKey)}`);
     if (params?.search) q.push(`search=${encodeURIComponent(params.search)}`);
     if (q.length) url += `?${q.join("&")}`;
+    return fetch(url).then((res) => res.json());
+  },
+  /** Fetch specific catalogue beers by ID. Used to resolve beers in a drink log
+   *  without paginating the full catalogue. Max 100 IDs per call. */
+  getBeersByIds: (ids: string[]): Promise<Beer[]> => {
+    if (ids.length === 0) return Promise.resolve([]);
+    const url = `/api/beers/batch?ids=${ids.map(encodeURIComponent).join(",")}`;
     return fetch(url).then((res) => res.json());
   },
   syncDrinks: (drinks: Drink[]) => {
