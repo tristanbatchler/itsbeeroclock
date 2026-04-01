@@ -58,8 +58,8 @@ export function Home() {
 
       <DrinkLogger onAdd={handleAddDrink} />
 
-      {profile && drinks.length > 0 && (
-        <BACStats bacData={bacData} />
+      {drinks.length > 0 && (
+        <BACStats bacData={bacData} showBAC={!!profile} />
       )}
 
       {drinks.length > 0 && (

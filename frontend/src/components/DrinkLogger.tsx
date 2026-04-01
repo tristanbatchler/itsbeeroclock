@@ -5,6 +5,7 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { DrinkSizeSelector } from "./DrinkSizeSelector";
 import { BeerSelector } from "./BeerSelector";
+import { BeerPlaceholder, beerThumbUrl } from "./BeerPlaceholder";
 
 interface Props {
   onAdd: (drink: Drink) => void;
@@ -99,7 +100,18 @@ export function DrinkLogger({ onAdd }: Props) {
               </div>
             ) : (
               <>
-                <div className="flex-1 pr-4 border-r border-border/50">
+                <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden">
+                  {selectedBeer.image
+                    ? <img
+                        src={beerThumbUrl(selectedBeer.image)}
+                        alt={selectedBeer.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.currentTarget.style.display = "none")}
+                      />
+                    : <BeerPlaceholder beer={selectedBeer} />
+                  }
+                </div>
+                <div className="flex-1 px-4 border-r border-border/50">
                   <h3 className="text-xl font-bold text-foreground group-hover:text-primary-foreground transition-colors leading-tight">
                     {selectedBeer.name}
                   </h3>

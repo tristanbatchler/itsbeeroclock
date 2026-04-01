@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Drink, Beer, DrinkSize } from "../types/drinks";
-import { Repeat, Trash2 } from "lucide-react";
+import { Repeat, Trash2, Undo2, X } from "lucide-react";
 import { getDrinkDisplay } from "../utils/calculations";
 import { formatRelativeTime } from "../utils/time";
 import { Card } from "./Card";
@@ -8,6 +8,7 @@ import { Button } from "./Button";
 import { CancelButton } from "./CancelButton";
 import { Modal } from "./Modal";
 import { DrinkSizeSelector } from "./DrinkSizeSelector";
+import { BeerPlaceholder, beerThumbUrl } from "./BeerPlaceholder";
 
 interface Props {
   drinks: Drink[];
@@ -57,15 +58,17 @@ export function DrinkLog({
             className="text-[10px] font-black text-muted-foreground hover:text-primary-foreground uppercase tracking-widest"
             disabled={drinks.length === 0}
           >
-            [ Undo Last ]
+            <Undo2 className="size-3 mr-1" />
+            Undo previous
           </Button>
           <Button
-            variant="destructive"
+            variant="ghost"
             onClick={() => setClearModalOpen(true)}
-            className="text-[10px] font-black text-destructive-foreground hover:text-destructive uppercase tracking-widest"
+            className="text-[10px] font-black text-muted-foreground hover:text-destructive-foreground hover:bg-destructive uppercase tracking-widest"
             disabled={drinks.length === 0}
           >
-            [ Clear All ]
+            <X className="size-3 mr-1" />
+            Clear all
           </Button>
         </div>
       </div>
@@ -73,13 +76,27 @@ export function DrinkLog({
       <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
         {sortedDrinks.map((drink) => {
           const display = getDrinkDisplay(drink, allBeers);
+          const beer = allBeers.find((b) => b.id === drink.beerId);
           return (
             <Card
               key={drink.id}
               className="p-4 flex justify-between items-center border-l-4 border-primary animate-slide-in"
             >
-              <div>
-                <div className="font-bold text-foreground leading-tight">
+              <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden mr-3">
+                {beer?.image
+                  ? <img
+                      src={beerThumbUrl(beer.image)}
+                      alt={beer.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  : beer
+                    ? <BeerPlaceholder beer={beer} />
+                    : null
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-foreground leading-tight truncate">
                   {display.name}
                 </div>
                 <div className="text-[10px] text-muted-foreground uppercase font-bold mt-1">

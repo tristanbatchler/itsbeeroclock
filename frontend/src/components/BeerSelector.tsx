@@ -9,7 +9,7 @@ import { Input } from "./Input";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { CancelButton } from "./CancelButton";
-import { BeerPlaceholder } from "./BeerPlaceholder";
+import { BeerPlaceholder, beerThumbUrl } from "./BeerPlaceholder";
 import { useBeerStore } from "../store/beerStore";
 
 
@@ -25,17 +25,6 @@ function useDebounce<T>(value: T, delay: number): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
-}
-
-function thumbUrl(image: string): string {
-  // If it's an S3 URL or a Base64 string, just use it directly!
-  if (image.startsWith("http") || image.startsWith("data:")) {
-    return image;
-  }
-  // Otherwise, process it as a local catalogue image
-  const filename = image.split("/").pop()!;
-  const base = filename.replace(/\.[^.]+$/, "");
-  return `/beer_images/thumbs/${base}.webp`;
 }
 
 export function BeerSelector({ onSelect, onClose }: Props) {
@@ -202,7 +191,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
                   <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden">
                     {beer.image
                       ? <img
-                          src={thumbUrl(beer.image)}
+                          src={beerThumbUrl(beer.image)}
                           alt={beer.name}
                           className="w-full h-full object-cover"
                           onError={(e) => (e.currentTarget.style.display = "none")}
