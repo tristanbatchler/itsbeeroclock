@@ -48,7 +48,7 @@ export function DrinkLog({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex justify-between items-center mb-4 border-b border-border pb-2">
-        <h2 className="text-primary-foreground font-bold text-xl uppercase tracking-tighter">
+        <h2 className="text-foreground font-bold text-xl uppercase tracking-tighter">
           History
         </h2>
         <div className="flex flex-row gap-2">
@@ -105,7 +105,7 @@ export function DrinkLog({
               </div>
               <div className="flex items-center gap-1 sm:gap-2">
                 <div className="text-right mr-2">
-                  <div className="font-bold text-2xl text-primary-foreground leading-none">
+                  <div className="font-bold text-2xl text-foreground leading-none">
                     {display.standardDrinks.toFixed(1)}
                   </div>
                   <div className="text-[8px] text-muted-foreground uppercase font-black">
@@ -190,13 +190,13 @@ export function DrinkLog({
         title="Another Round?"
       >
         <div className="text-center">
-          <div className="bg-primary/10 p-4 rounded-full inline-block mb-4">
-            <Repeat className="size-8 text-primary-foreground" />
+          <div className="bg-muted p-4 rounded-full inline-block mb-4">
+            <Repeat className="size-8 text-foreground" />
           </div>
           <p className="text-foreground font-medium mb-1">
             Log another round of
           </p>
-          <p className="text-2xl font-black text-primary-foreground mb-6">
+          <p className="text-2xl font-black text-foreground mb-6">
             {drinkToRepeat ? getDrinkDisplay(drinkToRepeat, allBeers).name : ""}
           </p>
 

@@ -51,7 +51,7 @@ export function SessionCard({ archive, allBeers = [] }: SessionCardProps) {
 
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-right">
-            <div className="font-bold text-2xl text-primary-foreground leading-none">
+            <div className="font-bold text-2xl text-foreground leading-none">
               {archive.totalStandardDrinks.toFixed(1)}
             </div>
             <div className="text-[8px] text-muted-foreground uppercase font-black">
@@ -60,7 +60,7 @@ export function SessionCard({ archive, allBeers = [] }: SessionCardProps) {
           </div>
 
           <div className="text-right">
-            <div className="font-bold text-2xl text-primary-foreground leading-none">
+            <div className="font-bold text-2xl text-foreground leading-none">
               {archive.peakBAC.toFixed(2)}
             </div>
             <div className="text-[8px] text-muted-foreground uppercase font-black">
@@ -95,7 +95,7 @@ export function SessionCard({ archive, allBeers = [] }: SessionCardProps) {
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-3">
-                  <div className="font-bold text-lg text-primary-foreground leading-none">
+                  <div className="font-bold text-lg text-foreground leading-none">
                     {display.standardDrinks.toFixed(1)}
                   </div>
                   <div className="text-[8px] text-muted-foreground uppercase font-black">

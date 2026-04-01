@@ -7,6 +7,8 @@ import type { Drink, Beer, UserProfile } from "../../types/drinks";
 const BEER: Beer = { id: "b1", name: "Test Lager", abv: 4.5 };
 const PROFILE: UserProfile = {
   weight: 80,
+  height: 175,
+  age: 35,
   sex: "male",
   optInHistory: false,
 };
@@ -44,7 +46,7 @@ describe("useBACGraph — unit tests", () => {
   });
 
   it("sets interval of 300 000 ms", () => {
-    const setSpy = vi.spyOn(global, "setInterval");
+    const setSpy = vi.spyOn(globalThis, "setInterval");
     renderHook(() => useBACGraph([drink(0)], [BEER], PROFILE));
     expect(setSpy).toHaveBeenCalledWith(expect.any(Function), 300_000);
     setSpy.mockRestore();
@@ -79,13 +81,13 @@ describe("Property 4 — adding a drink changes snapshots", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 3 }).chain((n) =>
-          fc.array(
+          fc.array<Drink>(
             fc.record({
               id: fc.uuid(),
               beerId: fc.constant("b1"),
               size: fc.constant("pot" as const),
               timestamp: fc.integer({ min: T0, max: T0 + 1_800_000 }),
-            }),
+            }) as fc.Arbitrary<Drink>,
             { minLength: n, maxLength: n },
           ),
         ),

@@ -23,7 +23,7 @@ export function SignIn() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <Card className="p-8 max-w-md text-center">
-          <Mail className="size-12 mx-auto mb-4 text-primary-foreground" />
+          <Mail className="size-12 mx-auto mb-4 text-foreground" />
           <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
           <p className="text-muted-foreground">
             We sent a magic link to <span className="font-medium text-foreground">{email}</span>

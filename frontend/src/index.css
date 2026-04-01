@@ -24,6 +24,14 @@
   --destructive: #c71d1d;
   --destructive-foreground: #ffffff;
 
+  /* success — safe-to-drive green */
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+
+  /* info — neutral blue for notices */
+  --info: #0369a1;
+  --info-foreground: #ffffff;
+
   --border: #fde047;
   --input: #fde047;
   --input-background: #ffffff;
@@ -69,6 +77,14 @@
 
   --destructive: #e62727;
   --destructive-foreground: #fff8e1;
+
+  /* success */
+  --success: #22c55e;
+  --success-foreground: #052e16;
+
+  /* info */
+  --info: #38bdf8;
+  --info-foreground: #0c1a2e;
 
   --border: #4b3a2f; /* brownish border */
   --input: #4b3a2f;
@@ -139,6 +155,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-input-background: var(--input-background);

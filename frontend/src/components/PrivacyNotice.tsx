@@ -30,7 +30,7 @@ export function PrivacyNotice() {
   return (
     <NotificationCard
       icon={
-        <div className="bg-primary text-primary-foreground p-2 rounded-xl">
+        <div className="bg-info text-info-foreground p-2 rounded-xl">
           <Shield className="size-5" />
         </div>
       }
@@ -40,7 +40,7 @@ export function PrivacyNotice() {
           Read our{" "}
           <Link
             to="/privacy"
-            className="underline hover:text-primary-foreground font-semibold"
+            className="underline hover:text-info font-semibold"
           >
             Privacy Policy
           </Link>{" "}
@@ -48,7 +48,7 @@ export function PrivacyNotice() {
         </>
       }
       onDismiss={handleDismiss}
-      colorClassName="bg-primary/5 border-primary/30 mt-2 mb-4"
+      colorClassName="bg-info/5 border-info/30 mt-2 mb-4"
     />
   );
 }

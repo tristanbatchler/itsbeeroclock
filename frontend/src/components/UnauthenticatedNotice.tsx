@@ -33,7 +33,7 @@ export function UnauthenticatedNotice() {
   return (
     <NotificationCard
       icon={
-        <div className="bg-primary text-primary-foreground p-2 rounded-xl">
+        <div className="bg-primary/20 text-primary p-2 rounded-xl">
           <Sparkles className="size-5" />
         </div>
       }
@@ -54,7 +54,7 @@ export function UnauthenticatedNotice() {
         </Link>
       }
       onDismiss={handleDismiss}
-      colorClassName="bg-primary/5 border-primary/30"
+      colorClassName="bg-muted/60 border-border"
     />
   );
 }

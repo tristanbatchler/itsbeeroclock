@@ -112,21 +112,21 @@ export function DrinkLogger({ onAdd }: Props) {
                   }
                 </div>
                 <div className="flex-1 px-4 border-r border-border/50">
-                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary-foreground transition-colors leading-tight">
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
                     {selectedBeer.name}
                   </h3>
                   {selectedBeer.brewery && (
                     <p className="text-sm text-muted-foreground mt-0.5">{selectedBeer.brewery}</p>
                   )}
-                  <p className="text-xs font-black text-primary-foreground mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md tracking-wide">
+                  <p className="text-xs font-black text-primary mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md tracking-wide">
                     {selectedBeer.abv}% ABV
                   </p>
                 </div>
                 <div className="bg-muted group-hover:bg-primary/10 px-3 py-2.5 rounded-xl transition-colors ml-4 shrink-0 flex items-center gap-1 border border-border group-hover:border-primary/60">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary-foreground">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">
                     Change
                   </span>
-                  <ChevronRight className="size-3 text-muted-foreground group-hover:text-primary-foreground" strokeWidth={3} />
+                  <ChevronRight className="size-3 text-muted-foreground group-hover:text-primary" strokeWidth={3} />
                 </div>
               </>
             )}

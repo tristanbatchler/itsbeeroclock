@@ -144,14 +144,14 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
       <polyline
         points={points}
         fill="none"
-        stroke="var(--color-primary)"
+        stroke="var(--color-info)"
         strokeWidth="2"
         strokeLinejoin="round"
         strokeLinecap="round"
       />
 
       {/* Peak annotation */}
-      <circle cx={peakX} cy={peakY} r="3" fill="var(--color-primary)" />
+      <circle cx={peakX} cy={peakY} r="3" fill="var(--color-info)" />
       <text
         x={peakX}
         y={peakY - 6}

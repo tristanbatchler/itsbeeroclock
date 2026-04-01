@@ -51,10 +51,10 @@ export function Root() {
                   />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">
+                  <h1 className="text-black/80 text-2xl font-bold tracking-tight">
                     Beer O'Clock
                   </h1>
-                  <p className="text-muted-foreground text-xs font-medium">
+                  <p className="text-black/70 text-xs font-medium">
                     Queensland's Simple Drink Tracker
                   </p>
                 </div>

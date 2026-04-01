@@ -10,6 +10,8 @@ import type { Drink, Beer, UserProfile } from "../../types/drinks";
 const BEER: Beer = { id: "b1", name: "Test Lager", abv: 4.5 };
 const PROFILE: UserProfile = {
   weight: 80,
+  height: 175,
+  age: 35,
   sex: "male",
   optInHistory: false,
 };

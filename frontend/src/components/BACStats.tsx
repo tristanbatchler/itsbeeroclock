@@ -7,10 +7,6 @@ interface Props {
   showBAC?: boolean;
 }
 
-/**
- * Stat card showing total standard drinks, and optionally current BAC.
- * Unauthenticated users see std drinks only — enough to self-calculate BAC.
- */
 export function BACStats({ bacData, showBAC = true }: Props) {
   return (
     <Card className="p-6 shadow-xl">
@@ -22,7 +18,7 @@ export function BACStats({ bacData, showBAC = true }: Props) {
             </p>
             <p
               key={bacData.currentBAC !== null ? bacData.currentBAC.toFixed(3) : "0.000"}
-              className="text-3xl font-bold text-primary-foreground animate-pop"
+              className="text-3xl font-bold text-foreground animate-pop"
             >
               {bacData.currentBAC !== null ? bacData.currentBAC.toFixed(3) : "0.000"}%
             </p>
@@ -34,7 +30,7 @@ export function BACStats({ bacData, showBAC = true }: Props) {
           </p>
           <p
             key={bacData.totalStandardDrinks.toFixed(1)}
-            className="text-3xl font-bold text-primary-foreground animate-pop"
+            className="text-3xl font-bold text-foreground animate-pop"
           >
             {bacData.totalStandardDrinks.toFixed(1)}
           </p>
