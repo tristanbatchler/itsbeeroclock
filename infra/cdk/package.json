@@ -25,5 +25,8 @@
     "constructs": "^10.6.0",
     "dotenv": "^17.3.1",
     "dotenv-expand": "^12.0.3"
+  },
+  "_comments": {
+    "brace-expansion": "GHSA-f886-m6hf-6m8v: brace-expansion 5.0.3 is bundled inside aws-cdk-lib and cannot be overridden via npm overrides. Upgrade aws-cdk-lib once a release ships brace-expansion >=5.0.5 internally."
   }
 }
