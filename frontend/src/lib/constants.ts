@@ -24,4 +24,9 @@ export const STORAGE_KEYS = {
   PRIVACY_DISMISSED: "beeroclock_privacy_dismissed",
   UNAUTH_DISMISSED: "beeroclock_unauth_notice_dismissed",
   OFFLINE_QUEUE: "beeroclock_offline_queue",
+  HISTORY: "beeroclock_history",
+} as const;
+
+export const API_ROUTES = {
+  HISTORY: "/api/history",
 } as const;

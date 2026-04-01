@@ -44,3 +44,12 @@ export interface Drink {
   size: DrinkSize;
   timestamp: number;
 }
+
+export interface SessionArchive {
+  startTimestamp: number; // epoch ms — first drink timestamp
+  endTimestamp: number; // epoch ms — last drink timestamp + 7_200_000
+  durationMinutes: number; // (endTimestamp - startTimestamp) / 60_000
+  totalStandardDrinks: number;
+  peakBAC: number;
+  drinks: Drink[];
+}

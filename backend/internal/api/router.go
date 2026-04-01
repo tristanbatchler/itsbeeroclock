@@ -37,6 +37,8 @@ var routes = []Route{
 	{"/api/clear", http.MethodDelete, wrapAuth(ClearUserDataHandler), true},
 	{"/api/custom-beers", http.MethodPost, wrapAuth(AddCustomBeerHandler), true},
 	{"/api/custom-beers", http.MethodGet, wrapAuth(GetCustomBeersHandler), true},
+	{"/api/history", http.MethodPost, wrapAuth(SaveHistoryHandler), true},
+	{"/api/history", http.MethodGet, wrapAuth(GetHistoryHandler), true},
 }
 
 var Router ApiProxyGatewayHandler = func(ctx context.Context, req events.APIGatewayProxyRequest) (resp events.APIGatewayProxyResponse, err error) {

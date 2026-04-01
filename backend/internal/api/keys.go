@@ -10,6 +10,7 @@ const (
 	PrefixUser       = "USER#"
 	PrefixDrink      = "DRINK#"
 	PrefixCustomBeer = "CUSTOMBEER#"
+	PrefixHistory    = "HISTORY#"
 	KeyProfile       = "PROFILE"
 	KeyCatalog       = "CATALOGUE"
 
@@ -28,6 +29,10 @@ func DrinkSK(timestamp int64, drinkID string) string {
 
 func CustomBeerSK(beerID string) string {
 	return PrefixCustomBeer + beerID
+}
+
+func HistorySK(startTimestamp int64) string {
+	return fmt.Sprintf("%s%013d", PrefixHistory, startTimestamp)
 }
 
 // DrinkTimeRangeQuery returns the KeyConditionExpression and ExpressionAttributeValues

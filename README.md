@@ -14,6 +14,22 @@ Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to 
 - Can be easily used even if intoxicated.
 - Everything is opt-in by default.
 
+## Session lifecycle
+
+A session begins when the first drink is logged and ends when the user's estimated BAC has returned to zero **and** no drinks have been logged for at least two hours. This avoids arbitrary time-based cutoffs (e.g. midnight rollovers or fixed idle windows) that would incorrectly split or merge sessions.
+
+When a session ends, it is automatically committed to history and the active log is cleared. The user does not need to manually close a session.
+
+## History
+
+Completed sessions are available at `/history`. Each entry summarises the session with:
+
+- Full drink log (name, size, time logged)
+- Total duration (first drink to estimated sober time)
+- Number of standard drinks
+- Peak estimated BAC
+- Additional aggregate stats (e.g. drink rate, session start/end times)
+
 ## Roadmap
 
 ### v0.1.0
@@ -25,7 +41,6 @@ Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to 
 - Session data migrates automatically from local storage to user profile on sign-in
 - Real-time BAC estimate with "Can I drive?" banner
 - "When can I drive?" time projection
-- BAC graph for the current session
 - Light/dark/system theme support
 - Searchable beer catalogue with recent list and favourites
 - Ping the server in the background and mention when you're offline
@@ -35,6 +50,12 @@ Everything about Beer O'Clock is for Queenslanders who just want a no-BS way to 
 
 - User-uploaded beers with optional photo
 - Drinking history dashboard (average consumption, favourite beers, stats)
+
+### v0.3.0
+
+- BAC graph for the current session
+- Review previous sessions the next day with various questions, e.g. "how do you feel?", etc.
+- "Not-so-fun facts", censored by default, and opt-in, in the history like "calories consumed", "money spent", etc.
 
 ### v1.0.0
 

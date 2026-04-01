@@ -1,4 +1,4 @@
-import type { Beer, Drink, UserProfile } from "../types/drinks";
+import type { Beer, Drink, UserProfile, SessionArchive } from "../types/drinks";
 import { STORAGE_KEYS } from "./constants";
 import { supabase } from "./supabase";
 
@@ -228,5 +228,11 @@ export const api = {
     fetchWithAuth<Beer>("/api/custom-beers", {
       method: "POST",
       body: JSON.stringify(beer),
+    }),
+  getHistory: () => fetchWithAuth<SessionArchive[]>("/api/history"),
+  saveHistory: (archive: SessionArchive) =>
+    fetchWithAuth("/api/history", {
+      method: "POST",
+      body: JSON.stringify(archive),
     }),
 };

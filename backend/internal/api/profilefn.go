@@ -94,7 +94,9 @@ var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
 ) (events.APIGatewayProxyResponse, error) {
 	pk := UserPK(authCtx.UserID)
 
-	// 1. Query ALL items for this user (Profile + Drinks)
+	// 1. Query ALL items for this user (Profile, Drinks, Custom Beers, and History).
+	// The KeyConditionExpression "PK = :pk" has no SK filter, so it returns every item
+	// under this user's partition key — including HISTORY# SK items (Requirement 7.2).
 	var allItems []map[string]types.AttributeValue
 	var lastKey map[string]types.AttributeValue
 

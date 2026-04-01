@@ -1,12 +1,62 @@
-import { Card } from '../components/Card';
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
+import { useHistorySync } from "../hooks/useHistorySync";
+import { useBeerStore } from "../store/beerStore";
+import { getHistory } from "../utils/sessionArchive";
+import { SessionCard } from "../components/SessionCard";
+import type { SessionArchive } from "../types/drinks";
 
 export function History() {
+  const { user } = useAuth();
+  const { profile, allBeers } = useBeerStore();
+  const isOnline = useOnlineStatus();
+
+  const [archives, setArchives] = useState<SessionArchive[]>([]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    setArchives(getHistory());
+  }, []);
+
+  const lastArchiveTimestamp = archives[0]?.startTimestamp ?? null;
+
+  const { isSyncing } = useHistorySync({
+    user,
+    profile,
+    isOnline,
+    lastArchiveTimestamp,
+  });
+
+  // Re-read from localStorage after sync completes to pick up merged remote archives
+  useEffect(() => {
+    if (!isSyncing) {
+      setArchives(getHistory());
+    }
+  }, [isSyncing]);
+
   return (
-    <div className="p-6 space-y-6">
-      <Card className="p-8 text-center bg-muted/30 shadow-sm border-dashed border-border">
-        <h2 className="text-2xl font-bold text-foreground mb-2">History</h2>
-        <p className="text-muted-foreground">Coming soon</p>
-      </Card>
+    <div className="p-4 space-y-3">
+      {isSyncing && (
+        <div className="flex justify-center py-6">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {!isSyncing && archives.length === 0 && (
+        <div className="text-center text-muted-foreground py-12 text-sm">
+          No sessions recorded yet.
+        </div>
+      )}
+
+      {archives.map((archive) => (
+        <SessionCard
+          key={archive.startTimestamp}
+          archive={archive}
+          allBeers={allBeers}
+        />
+      ))}
     </div>
   );
 }

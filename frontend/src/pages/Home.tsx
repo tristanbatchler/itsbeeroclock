@@ -5,6 +5,7 @@ import { useBAC } from "../hooks/useBAC";
 import { useCloudSync } from "../hooks/useCloudSync";
 import { useDrinkActions } from "../hooks/useDrinkActions";
 import { useBeerStore } from "../store/beerStore";
+import { useSessionChecker } from "../hooks/useSessionChecker";
 
 import { Card } from "../components/Card";
 import { DrinkLog } from "../components/DrinkLog";
@@ -26,6 +27,8 @@ export function Home() {
   const { isApiDown } = useCloudSync({ drinks, setAllDrinks, user, profile, isOnline });
   const { handleAddDrink, handleRemoveDrink, handleUndoLast, handleClearSession, handleRepeatDrink } =
     useDrinkActions({ drinks, profile, addDrink, removeDrink, undoLast, clearSession });
+
+  useSessionChecker({ drinks, allBeers, profile, clearSession });
 
   const bacData = useBAC(drinks, allBeers, profile);
 
