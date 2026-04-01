@@ -233,6 +233,7 @@ export function Profile() {
 
 
 
+      {user && (
       <Card className="p-6">
         <h3 className="text-lg font-bold text-foreground mb-3">How BAC is calculated</h3>
         <div className="space-y-3 text-sm text-muted-foreground">
@@ -327,6 +328,7 @@ export function Profile() {
           </p>
         </div>
       </Card>
+      )}
 
       <Card className="p-6 border-destructive/30 bg-destructive/5">
         <h3 className="text-lg font-bold text-destructive mb-2">Danger Zone</h3>

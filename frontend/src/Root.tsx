@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { User, History as HistoryIcon, Home as HomeIcon } from "lucide-react";
 import { AppMenu } from "./components/AppMenu";
-import { useRef, useEffect, useReducer } from "react";
+import { useRef, useEffect, useReducer, useState } from "react";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { InitialLoading } from "./components/InitialLoading";
 import { useInitialLoad } from "./hooks/useInitialLoad";
@@ -13,6 +13,8 @@ export function Root() {
   const location = useLocation();
   const [bounceKey, triggerBounce] = useReducer((k) => k + 1, 0);
   const prevPathRef = useRef(location.pathname);
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   const isOnline = useOnlineStatus();
   const { isLoading: isInitialLoading, initialLoadFailed } = useInitialLoad();
@@ -21,6 +23,15 @@ export function Root() {
 
   useBeerInit();
   useProfileInit(user, isOnline);
+
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
+    });
+    observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
@@ -38,7 +49,7 @@ export function Root() {
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <header className="bg-primary bg-linear-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground shadow-xl sticky top-0 z-40">
+      <header ref={headerRef} className="bg-primary bg-linear-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground shadow-xl sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -65,9 +76,12 @@ export function Root() {
         </div>
       </header>
 
-      {/* Offline banner */}
+      {/* Offline banner — sticky just below the header */}
       {!isInitialLoading && showOfflineBanner && (
-        <div className="bg-destructive text-destructive-foreground text-center py-2 text-xs font-bold">
+        <div
+          className="sticky z-39 bg-destructive text-destructive-foreground text-center py-2 text-xs font-bold shadow-md"
+          style={{ top: headerHeight }}
+        >
           Offline: Changes will sync when reconnected
         </div>
       )}

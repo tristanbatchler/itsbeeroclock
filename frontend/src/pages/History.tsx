@@ -45,8 +45,11 @@ export function History() {
       )}
 
       {!isSyncing && archives.length === 0 && (
-        <div className="text-center text-muted-foreground py-12 text-sm">
-          No sessions recorded yet.
+        <div className="text-center text-muted-foreground py-12 text-sm space-y-2">
+          <p>No sessions recorded yet.</p>
+          <p className="text-xs">
+            Sessions appear here automatically once your estimated BAC returns to zero and you haven't logged a drink for at least two hours.
+          </p>
         </div>
       )}
 
