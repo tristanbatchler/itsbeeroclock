@@ -17,8 +17,8 @@ export function Root() {
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const isOnline = useOnlineStatus();
-  const { isLoading: isInitialLoading, initialLoadFailed } = useInitialLoad();
-  const showOfflineBanner = initialLoadFailed || !isOnline;
+  const { isLoading: isInitialLoading } = useInitialLoad();
+  const showOfflineBanner = !isOnline;
   const { user } = useAuth();
 
   useBeerInit();
