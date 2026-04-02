@@ -74,7 +74,7 @@ export function Profile() {
       }
     }
 
-    navigate("/");
+    navigate("/profile");
   };
 
   const handlePurge = async () => {
@@ -136,8 +136,7 @@ export function Profile() {
                     <HelpCircle className="size-3.5" />
                   </button>
                   {showSexInfo && (
-                    <div className="absolute left-0 top-6 z-10 w-72 rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
-                      {/* speech bubble tail */}
+                    <div className="absolute left-0 top-6 z-10 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
                       <div className="absolute -top-1.5 left-2 size-3 rotate-45 border-l border-t border-border bg-card" />
                       <p>
                         If you identify as a sex different from the one you were assigned at
@@ -169,11 +168,6 @@ export function Profile() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Used to calculate your body water percentage. If you are on hormone replacement
-                therapy (HRT), select the option that best aligns with your current hormonal
-                profile.
-              </p>
             </div>
 
             <div>

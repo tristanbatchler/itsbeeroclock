@@ -47,7 +47,7 @@ export function Root() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-28 overflow-x-hidden">
       {/* Header */}
       <header ref={headerRef} className="bg-primary bg-linear-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground shadow-xl sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-5">

@@ -35,18 +35,20 @@ export function computePeakBAC(
   allBeers: Beer[],
   profile: UserProfile | null,
 ): number {
-  if (drinks.length === 0) return 0;
-  return Math.max(
-    0,
-    ...drinks.map((_, i) =>
-      calculateBAC(
-        drinks.slice(0, i + 1),
-        profile,
-        drinks[i].timestamp,
-        getGramsAlcohol(allBeers),
-      ),
-    ),
+  if (drinks.length === 0 || !profile) return 0;
+  const timestamps = drinks.map((d) => d.timestamp);
+  const startTime = Math.min(...timestamps);
+  const endTime = Math.max(...timestamps) + 7_200_000;
+  // Sample every 5 minutes across the full session window and take the max
+  const curve = computeBACCurve(
+    drinks,
+    allBeers,
+    profile,
+    startTime,
+    endTime,
+    300_000,
   );
+  return curve.length > 0 ? Math.max(...curve.map((s) => s.bac)) : 0;
 }
 
 export function archiveSession(

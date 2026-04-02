@@ -12,7 +12,7 @@
   --popover-foreground: #1c160f;
 
   --primary: #facc15; /* ← BRIGHT SUNSHINE BEER GOLD (same in both modes) */
-  --primary-foreground: #b49209; /* dark text on bright gold = perfect contrast */
+  --primary-foreground: #1c160f; /* near-black on gold = strong contrast */
 
   --secondary: #fefce8;
   --secondary-foreground: #1c160f;
@@ -66,7 +66,7 @@
   --popover-foreground: #ffe9b3;
 
   --primary: #facc15; /* beer gold */
-  --primary-foreground: #b49209;
+  --primary-foreground: #1c160f; /* near-black on gold */
 
   --secondary: #3a2536; /* muted plum */
   --secondary-foreground: #ffe9b3;

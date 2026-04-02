@@ -5,6 +5,7 @@ import {
   archiveSession,
   prependArchive,
 } from "../utils/sessionArchive";
+import { api } from "../lib/api";
 
 interface UseSessionCheckerOptions {
   drinks: Drink[];
@@ -26,7 +27,7 @@ export function useSessionChecker({
   });
 
   // Stable ref to the check function so the interval closure never goes stale
-  const check = useRef(() => {});
+  const check = useRef(async () => {});
   const drinksRef = useRef(drinks);
   const allBeersRef = useRef(allBeers);
   const profileRef = useRef(profile);
@@ -41,7 +42,7 @@ export function useSessionChecker({
     profileRef.current = profile;
   });
 
-  check.current = () => {
+  check.current = async () => {
     const now = Date.now();
     if (
       !isSessionEnded(
@@ -68,6 +69,12 @@ export function useSessionChecker({
       return;
     }
     clearSessionRef.current();
+    // Clear the server's drink store so old drinks aren't restored on next hydration
+    try {
+      await api.syncDrinks([]);
+    } catch {
+      // Non-fatal — the next syncDrinks from the new session will overwrite anyway
+    }
   };
 
   // 60-second polling interval — same cadence as useBAC
