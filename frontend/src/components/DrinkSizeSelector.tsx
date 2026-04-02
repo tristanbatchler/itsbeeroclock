@@ -50,7 +50,7 @@ export function DrinkSizeSelector({ selectedSize, onSelectSize }: Props) {
             />
             <span className="font-bold text-sm leading-none">{label}</span>
             <span
-              className={`text-[10px] mt-1 font-medium ${isActive ? "text-muted-foreground" : "opacity-50"}`}
+              className={`text-[10px] mt-1 font-medium ${isActive ? "text-muted-foreground" : "text-muted-foreground"}`}
             >
               {ml}ml
             </span>

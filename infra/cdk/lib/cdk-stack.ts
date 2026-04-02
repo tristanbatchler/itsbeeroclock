@@ -121,6 +121,54 @@ export class BeerOClockStack extends cdk.Stack {
       },
     );
 
+    const cacheHeadersAssets = new cloudfront.ResponseHeadersPolicy(
+      this,
+      "CacheHeadersAssets",
+      {
+        responseHeadersPolicyName: "beeroclock-cache-headers-assets",
+        securityHeadersBehavior: {
+          strictTransportSecurity: {
+            accessControlMaxAge: cdk.Duration.days(365),
+            includeSubdomains: true,
+            override: true,
+          },
+        },
+        customHeadersBehavior: {
+          customHeaders: [
+            {
+              header: "Cache-Control",
+              value: "max-age=31536000, immutable",
+              override: true,
+            },
+          ],
+        },
+      },
+    );
+
+    const cacheHeadersDefault = new cloudfront.ResponseHeadersPolicy(
+      this,
+      "CacheHeadersDefault",
+      {
+        responseHeadersPolicyName: "beeroclock-cache-headers-default",
+        securityHeadersBehavior: {
+          strictTransportSecurity: {
+            accessControlMaxAge: cdk.Duration.days(365),
+            includeSubdomains: true,
+            override: true,
+          },
+        },
+        customHeadersBehavior: {
+          customHeaders: [
+            {
+              header: "Cache-Control",
+              value: "max-age=86400",
+              override: true,
+            },
+          ],
+        },
+      },
+    );
+
     const api = new apigw.LambdaRestApi(this, "BeerOClockApi", {
       handler: apiFn,
       proxy: true,
@@ -145,7 +193,7 @@ export class BeerOClockStack extends cdk.Stack {
         origin: origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
-        responseHeadersPolicy,
+        responseHeadersPolicy: cacheHeadersDefault,
         functionAssociations: [
           {
             function: normaliseRequestFn,
@@ -154,6 +202,14 @@ export class BeerOClockStack extends cdk.Stack {
         ],
       },
       additionalBehaviors: {
+        "/assets/*": {
+          origin:
+            origins.S3BucketOrigin.withOriginAccessControl(frontendBucket),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          responseHeadersPolicy: cacheHeadersAssets,
+        },
         "/api/*": {
           origin: new origins.RestApiOrigin(api),
           viewerProtocolPolicy:
