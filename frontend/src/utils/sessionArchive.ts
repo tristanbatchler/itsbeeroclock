@@ -36,6 +36,7 @@ export function computePeakBAC(
   profile: UserProfile | null,
 ): number {
   if (drinks.length === 0 || !profile) return 0;
+  const effectiveProfile = profile;
   const timestamps = drinks.map((d) => d.timestamp);
   const startTime = Math.min(...timestamps);
   const endTime = Math.max(...timestamps) + 7_200_000;
@@ -43,7 +44,7 @@ export function computePeakBAC(
   const curve = computeBACCurve(
     drinks,
     allBeers,
-    profile,
+    effectiveProfile,
     startTime,
     endTime,
     300_000,

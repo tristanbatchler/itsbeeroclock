@@ -41,7 +41,11 @@ export function useHistorySync({
       hasHydratedRef.current = true;
       setIsSyncing(true);
       try {
-        const remoteArchives = (await api.getHistory()) ?? [];
+        const remoteArchives = ((await api.getHistory()) ?? []).map((a) => ({
+          ...a,
+          drinks:
+            typeof a.drinks === "string" ? JSON.parse(a.drinks) : a.drinks,
+        }));
         const merged = mergeHistories(getHistory(), remoteArchives);
         saveHistory(merged);
       } catch (err) {

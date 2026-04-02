@@ -233,6 +233,9 @@ export const api = {
   saveHistory: (archive: SessionArchive) =>
     fetchWithAuth("/api/history", {
       method: "POST",
-      body: JSON.stringify(archive),
+      body: JSON.stringify({
+        ...archive,
+        drinks: JSON.stringify(archive.drinks),
+      }),
     }),
 };

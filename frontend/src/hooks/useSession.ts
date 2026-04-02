@@ -36,6 +36,7 @@ export function useSession() {
   };
 
   const clearSession = () => {
+    saveSession([]);
     setDrinks([]);
   };
 
