@@ -173,14 +173,17 @@ export class BeerOClockStack extends cdk.Stack {
         },
       },
       errorResponses: [
+        // Return index.html for unknown routes so React Router can handle them.
+        // Using 200 status would cause CloudFront to cache the HTML response
+        // against asset URLs — use the actual 4xx status to prevent that.
         {
           httpStatus: 403,
-          responseHttpStatus: 200,
+          responseHttpStatus: 404,
           responsePagePath: "/index.html",
         },
         {
           httpStatus: 404,
-          responseHttpStatus: 200,
+          responseHttpStatus: 404,
           responsePagePath: "/index.html",
         },
       ],

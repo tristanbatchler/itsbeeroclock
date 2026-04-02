@@ -1,13 +1,14 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly SUPABASE_URL: string
-  readonly SUPABASE_PUBLISHABLE_KEY: string
-  readonly APP_DOMAIN_NAME: string
-  readonly APP_SUPPORT_EMAIL: string
-  readonly TABLE_NAME: string
+  readonly SUPABASE_URL: string;
+  readonly SUPABASE_PUBLISHABLE_KEY: string;
+  readonly APP_DOMAIN_NAME: string;
+  readonly APP_SUPPORT_EMAIL: string;
+  readonly TABLE_NAME: string;
+  readonly S3_BUCKET: string;
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
+  readonly env: ImportMetaEnv;
 }

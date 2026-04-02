@@ -38,6 +38,14 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
           globIgnores: ["**/beer_images/**"],
+          // Don't intercept navigations to asset paths — let the browser
+          // fetch them directly from S3/CloudFront.
+          navigateFallbackDenylist: [
+            /^\/beer_images\//,
+            /^\/custom\//,
+            /^\/assets\//,
+            /\.(webp|png|jpg|jpeg|svg|gif|ico|css|js|woff2?)$/,
+          ],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|ico)$/,
@@ -77,6 +85,7 @@ export default defineConfig(({ mode }) => {
         env.APP_SUPPORT_EMAIL,
       ),
       "import.meta.env.TABLE_NAME": JSON.stringify(env.TABLE_NAME),
+      "import.meta.env.S3_BUCKET": JSON.stringify(env.S3_BUCKET),
     },
   };
 });

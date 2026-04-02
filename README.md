@@ -120,11 +120,7 @@ Open [http://localhost:5173](http://localhost:5173).
 ### 6. Subsequent deploys
 
 ```bash
-# Build the Go binary first
-cd backend && ./build_lambda.sh && cd ..
-
-# Deploy everything
-cd infra/cdk && npx cdk deploy
+npm run deploy
 ```
 
 ## Recommended VS Code extensions

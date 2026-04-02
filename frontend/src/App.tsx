@@ -9,6 +9,7 @@ import { AddBeer } from './pages/AddBeer';
 import { Privacy } from './pages/Privacy';
 import { TOS } from './pages/TOS';
 import { SignIn } from './pages/SignIn';
+import { NotFound } from './pages/NotFound';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="tos" element={<TOS />} />
             <Route path="auth/callback" element={<AuthCallback />} />
             <Route path="sign-in" element={<SignIn />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </BrowserRouter>
