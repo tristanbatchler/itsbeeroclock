@@ -12,8 +12,25 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      // Bug B fix: non-blocking CSS injection
+      {
+        name: "non-blocking-css",
+        enforce: "post" as const,
+        transformIndexHtml: {
+          order: "post" as const,
+          handler(html: string) {
+            return html.replace(
+              /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
+              (_, href) =>
+                `<link rel="stylesheet" media="print" onload="this.media='all'" crossorigin href="${href}"><noscript><link rel="stylesheet" href="${href}"></noscript>`,
+            );
+          },
+        },
+      },
       VitePWA({
         registerType: "autoUpdate",
+        // Bug C fix: disable auto SW script injection; registered manually in main.tsx
+        injectRegister: false,
         manifest: {
           name: "Beer O'Clock",
           short_name: "Beer O'Clock",
@@ -24,13 +41,10 @@ export default defineConfig(({ mode }) => {
           orientation: "portrait",
           icons: [
             {
+              // Bug E fix: removed incorrect 512x512 entry (favicon.png is 256×256).
+              // A proper 512×512 asset is needed before re-adding that entry.
               src: "/favicon.png",
               sizes: "192x192",
-              type: "image/png",
-            },
-            {
-              src: "/favicon.png",
-              sizes: "512x512",
               type: "image/png",
             },
           ],

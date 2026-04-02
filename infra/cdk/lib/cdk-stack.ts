@@ -161,7 +161,7 @@ export class BeerOClockStack extends cdk.Stack {
           customHeaders: [
             {
               header: "Cache-Control",
-              value: "max-age=86400",
+              value: "max-age=604800",
               override: true,
             },
           ],
@@ -230,16 +230,16 @@ export class BeerOClockStack extends cdk.Stack {
       },
       errorResponses: [
         // Return index.html for unknown routes so React Router can handle them.
-        // Using 200 status would cause CloudFront to cache the HTML response
-        // against asset URLs — use the actual 4xx status to prevent that.
+        // Must use 200 status — returning 404 causes monitoring tools, crawlers,
+        // and isitdown checkers to report the site as down even though it works.
         {
           httpStatus: 403,
-          responseHttpStatus: 404,
+          responseHttpStatus: 200,
           responsePagePath: "/index.html",
         },
         {
           httpStatus: 404,
-          responseHttpStatus: 404,
+          responseHttpStatus: 200,
           responsePagePath: "/index.html",
         },
       ],

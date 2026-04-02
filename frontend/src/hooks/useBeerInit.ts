@@ -13,16 +13,28 @@ export function useBeerInit() {
   const setBeersLoading = useBeerStore((s) => s.setBeersLoading);
 
   useEffect(() => {
-    api
-      .getBeers({ limit: 30 })
-      .then((data) => {
-        if (data.beers) addBeersToStore(data.beers);
-      })
-      .catch((err) => {
-        console.error("Failed to load beer catalogue, using local cache:", err);
-      })
-      .finally(() => {
-        setBeersLoading(false);
-      });
+    // Bug D fix: defer fetch until after first paint via requestIdleCallback (Safari fallback: setTimeout)
+    const run = () => {
+      api
+        .getBeers({ limit: 30 })
+        .then((data) => {
+          if (data.beers) addBeersToStore(data.beers);
+        })
+        .catch((err) => {
+          console.error(
+            "Failed to load beer catalogue, using local cache:",
+            err,
+          );
+        })
+        .finally(() => {
+          setBeersLoading(false);
+        });
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(run);
+    } else {
+      setTimeout(run, 0);
+    }
   }, [addBeersToStore, setBeersLoading]);
 }

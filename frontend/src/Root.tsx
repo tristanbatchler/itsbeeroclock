@@ -3,8 +3,6 @@ import { User, History as HistoryIcon, Home as HomeIcon } from "lucide-react";
 import { AppMenu } from "./components/AppMenu";
 import { useRef, useEffect, useReducer, useState } from "react";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
-import { InitialLoading } from "./components/InitialLoading";
-import { useInitialLoad } from "./hooks/useInitialLoad";
 import { useBeerInit } from "./hooks/useBeerInit";
 import { useProfileInit } from "./hooks/useProfile";
 import { useAuth } from "./hooks/useAuth";
@@ -17,7 +15,6 @@ export function Root() {
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const isOnline = useOnlineStatus();
-  const { isLoading: isInitialLoading } = useInitialLoad();
   const showOfflineBanner = !isOnline;
   const { user } = useAuth();
 
@@ -77,7 +74,7 @@ export function Root() {
       </header>
 
       {/* Offline banner — sticky just below the header */}
-      {!isInitialLoading && showOfflineBanner && (
+      {showOfflineBanner && (
         <div
           className="sticky z-39 bg-destructive text-destructive-foreground text-center py-2 text-xs font-bold shadow-md"
           style={{ top: headerHeight }}
@@ -88,15 +85,10 @@ export function Root() {
 
       {/* Main content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {isInitialLoading ? (
-          <InitialLoading />
-        ) : (
-          <Outlet />
-        )}
+        <Outlet />
       </main>
 
       {/* Bottom navigation */}
-      {!isInitialLoading && (
       <nav className="fixed bottom-0 left-0 right-0 bg-card/80 border-t border-border shadow-2xl backdrop-blur-xl z-40">
         <div className="max-w-4xl mx-auto px-2">
           <div className="flex justify-around">
@@ -125,7 +117,6 @@ export function Root() {
           </div>
         </div>
       </nav>
-      )}
     </div>
   );
 }

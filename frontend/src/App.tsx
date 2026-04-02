@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from 'next-themes';
+// Bug G fix: next-themes removed — theme toggle managed via localStorage in AppMenu.tsx
 import { Root } from './Root';
 import { AuthCallback } from './pages/AuthCallback';
 import { InitialLoading } from './components/InitialLoading';
@@ -16,8 +16,7 @@ const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.N
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem={true} storageKey="vite-ui-theme">
-      <BrowserRouter>
+    <BrowserRouter>
         <Suspense fallback={<InitialLoading />}>
           <Routes>
             <Route path="/" element={<Root />}>
@@ -34,6 +33,5 @@ export default function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
-    </ThemeProvider>
   );
 }

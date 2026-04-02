@@ -7,15 +7,32 @@ import {
   Shield,
   Text,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useState, useRef } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useEscapeKey } from "../hooks/useEscapeKey";
 
+// Bug G fix: replaced next-themes with simple localStorage pattern.
+// The inline script in index.html already handles FOUC.
+function useThemeToggle() {
+  const [theme, setThemeState] = useState<string>(
+    () => localStorage.getItem("vite-ui-theme") ?? "system"
+  );
+  const setTheme = (t: string) => {
+    localStorage.setItem("vite-ui-theme", t);
+    setThemeState(t);
+    if (t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+  return { theme, setTheme };
+}
+
 export function AppMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useThemeToggle();
 
   useClickOutside(menuRef, () => setOpen(false), open);
   useEscapeKey(() => setOpen(false), open);
