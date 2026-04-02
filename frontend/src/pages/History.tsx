@@ -25,6 +25,7 @@ export function History() {
   const { isSyncing } = useHistorySync({
     user,
     profile,
+    allBeers,
     isOnline,
     lastArchiveTimestamp,
   });

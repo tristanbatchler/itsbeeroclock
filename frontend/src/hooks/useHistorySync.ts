@@ -6,12 +6,14 @@ import {
   saveHistory,
   mergeHistories,
 } from "../utils/sessionArchive";
-import { type UserProfile } from "../types/drinks";
+import { computeBACCurve } from "../utils/calculations";
+import { type UserProfile, type Beer } from "../types/drinks";
 import { API_ROUTES } from "../lib/constants";
 
 interface UseHistorySyncOptions {
   user: User | null;
   profile: UserProfile | null;
+  allBeers: Beer[];
   isOnline: boolean;
   lastArchiveTimestamp: number | null;
 }
@@ -19,6 +21,7 @@ interface UseHistorySyncOptions {
 export function useHistorySync({
   user,
   profile,
+  allBeers,
   isOnline,
   lastArchiveTimestamp,
 }: UseHistorySyncOptions): { isSyncing: boolean } {
@@ -41,11 +44,20 @@ export function useHistorySync({
       hasHydratedRef.current = true;
       setIsSyncing(true);
       try {
-        const remoteArchives = ((await api.getHistory()) ?? []).map((a) => ({
-          ...a,
-          drinks:
-            typeof a.drinks === "string" ? JSON.parse(a.drinks) : a.drinks,
-        }));
+        const remoteArchives = ((await api.getHistory()) ?? []).map((a) => {
+          const drinks =
+            typeof a.drinks === "string" ? JSON.parse(a.drinks) : a.drinks;
+          const bacCurve = a.bacCurve?.length
+            ? a.bacCurve
+            : computeBACCurve(
+                drinks,
+                allBeers,
+                profile,
+                a.startTimestamp,
+                a.endTimestamp,
+              );
+          return { ...a, drinks, bacCurve };
+        });
         const merged = mergeHistories(getHistory(), remoteArchives);
         saveHistory(merged);
       } catch (err) {
