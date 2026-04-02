@@ -13,6 +13,19 @@ This directory contains the AWS CDK stack that provisions all cloud resources fo
 | `BeerOClockApi`  | API Gateway (Lambda proxy)                                                                                         |
 | `Distribution`   | CloudFront distribution serving the frontend, `/api/*` (API Gateway), and `/custom/*` (uploads bucket)             |
 
+## CloudFront behaviors
+
+| Path pattern   | Origin           | Notes                                                                                 |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------- |
+| `/assets/*`    | `FrontendBucket` | Immutable cache (`Cache-Control: max-age=31536000, immutable`)                        |
+| `/api/*`       | API Gateway      | Caching disabled; forwards `Authorization` header via `ALL_VIEWER_EXCEPT_HOST_HEADER` |
+| `/custom/*`    | `UploadsBucket`  | User-uploaded thumbnails via CloudFront OAC                                           |
+| `/*` (default) | `FrontendBucket` | 7-day cache TTL (`max-age=604800`); SPA fallback via `errorResponses` returning 200   |
+
+The default behavior uses a CloudFront Function (`beeroclock-normalise-request`) on viewer-request to normalise URL paths for the SPA.
+
+**Important:** `errorResponses` maps S3 403/404 → `index.html` with `responseHttpStatus: 200`. This is required so that monitoring tools, crawlers, and uptime checkers see a 200 for all valid SPA routes. Using 404 here causes external monitors to incorrectly report the site as down.
+
 ## Environment variables injected into the Lambda at deploy time
 
 The CDK automatically sets these on the Lambda — you do **not** need to manage them manually in production:
@@ -45,14 +58,18 @@ These values are only needed in `.env` for **local development**. In production 
 ## Subsequent deploys
 
 ```bash
-# Build the Go binary first (from repo root)
-cd backend && ./build_lambda.sh && cd ..
+# From repo root — builds frontend + backend then deploys
+npm run deploy
+```
 
-# Then deploy
+Or manually:
+
+```bash
+cd backend && ./build_lambda.sh && cd ..
 cd infra/cdk && npx cdk deploy
 ```
 
-The `BucketDeployment` construct will also sync the latest frontend build to S3 and invalidate CloudFront.
+The `BucketDeployment` construct syncs the latest `frontend/dist/` to S3 and invalidates CloudFront automatically.
 
 ## Useful commands
 
@@ -67,3 +84,4 @@ npx cdk destroy  # tear down (UploadsBucket is RETAIN — won't be deleted)
 - The ACM certificate ARN is hardcoded in `cdk-stack.ts`. It must be in `us-east-1` (CloudFront requirement). Update it if you're deploying to a different account.
 - The `FrontendBucket` uses `DESTROY` + `autoDeleteObjects` — it is fully replaced on every deploy. Never store anything important there manually.
 - The `UploadsBucket` uses `RETAIN` — it will not be deleted even if you run `cdk destroy`. This protects user-uploaded images.
+- Cache TTL for the default behavior is 7 days (`max-age=604800`). Assets under `/assets/*` use immutable caching and are content-hashed by Vite, so they can be cached indefinitely.

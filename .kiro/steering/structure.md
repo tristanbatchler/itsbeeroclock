@@ -5,11 +5,14 @@ itsbeeroclock/
 ├── frontend/src/
 │   ├── contexts/        # BeerContext.tsx — beer catalogue shared state
 │   ├── hooks/           # useBAC, useSession, useOnlineStatus, useClickOutside, useEscapeKey
-│   ├── lib/             # api.ts (all API calls + offline queue), constants.ts, supabase.ts
+│   ├── lib/             # api.ts (all API calls + offline queue), constants.ts, supabase.ts, latexPrerendered.ts
 │   ├── pages/           # Route-level components: Home, Profile, History, AddBeer, SignIn
 │   ├── components/      # Reusable UI: Button, Card, Modal, BeerSelector, DrinkLog, etc.
 │   ├── utils/           # calculations.ts (pure BAC math), storage.ts, image.ts, time.ts
 │   └── types/           # drinks.ts (shared TypeScript types)
+├── frontend/scripts/
+│   ├── prerender-latex.ts   # Build-time KaTeX pre-renderer → src/lib/latexPrerendered.ts
+│   └── generate-thumbs.ts   # Build-time WebP thumbnail generator for beer images
 ├── backend/
 │   ├── cmd/api/         # Lambda production entrypoint
 │   ├── cmd/local/       # Local dev server (simulates Lambda environment)
@@ -25,6 +28,8 @@ itsbeeroclock/
 - `useSession.ts` — local drinks array for current session
 - `calculations.ts` — BAC math, standard drinks, time-to-sober (pure functions, easy to test)
 - `constants.ts` — ALL storage keys and API routes. Add new keys here or the data purge breaks.
+- `latexPrerendered.ts` — auto-generated pre-rendered KaTeX HTML. Do not edit manually. Re-run `tsx scripts/prerender-latex.ts` if formulas change.
+- `AppMenu.tsx` — theme toggle (light/dark) via localStorage + classList. No external theme library.
 - `response.go` — ALL API responses must go through this
 - `keys.go` — ALL DynamoDB PK/SK construction must go through this
 - `router.go` — add new endpoints here as a Route struct

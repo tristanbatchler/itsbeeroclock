@@ -123,6 +123,14 @@ Open [http://localhost:5173](http://localhost:5173).
 npm run deploy
 ```
 
+This builds the frontend (including pre-rendering KaTeX formulas and generating image thumbnails), builds the Go Lambda binary, and runs `cdk deploy`. CloudFront is automatically invalidated.
+
+After deploying, run a CloudFront invalidation if you need changes to appear immediately:
+
+```bash
+aws cloudfront create-invalidation --distribution-id <DISTRIBUTION_ID> --paths "/*"
+```
+
 ## Recommended VS Code extensions
 
 ```bash

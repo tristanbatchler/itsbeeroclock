@@ -34,6 +34,21 @@
 
 - Use lucide-react exclusively. No other icon libraries.
 
+### Theme
+
+- No external theme library (next-themes has been removed).
+- The inline script in `index.html` reads `localStorage.getItem('vite-ui-theme')` on page load and applies `dark` class before first paint — this prevents FOUC.
+- `AppMenu.tsx` manages toggling: writes to `localStorage`, updates `document.documentElement.classList` directly.
+- Storage key is `vite-ui-theme` (values: `'dark'`, `'light'`, `'system'` or null).
+
+### KaTeX / formulas
+
+- KaTeX JS runtime is NOT loaded in the browser. Formulas are pre-rendered to static HTML at build time by `scripts/prerender-latex.ts`.
+- The output lives in `src/lib/latexPrerendered.ts` — do not edit it manually.
+- The `Latex` component (`src/components/Latex.tsx`) takes a `formula` key and injects the pre-rendered HTML.
+- `katex/dist/katex.min.css` is imported only in `Profile.tsx` so fonts/CSS only load when the Profile page is visited.
+- If you add or change a formula: update `scripts/prerender-latex.ts`, re-run `npx tsx scripts/prerender-latex.ts`, and commit the updated `latexPrerendered.ts`.
+
 ## Backend (Go)
 
 ### Handler declaration style

@@ -8,6 +8,7 @@ import { useBeerStore } from "../store/beerStore";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
+import "katex/dist/katex.min.css";
 import { Modal } from "../components/Modal";
 import { SignIn } from "./SignIn";
 import { STORAGE_KEYS } from "../lib/constants";
@@ -253,21 +254,15 @@ export function Profile() {
               empirically by Dr. P.E. Watson in his original 1980 research:
             </p>
             <div className="overflow-x-auto py-1">
-              <Latex display>
-                {String.raw`\text{TBW} = a + (b \times \text{Age}) + (c \times \text{Height}) + (d \times \text{Weight})`}
-              </Latex>
+              <Latex formula="tbwFormula" />
             </div>
             <p>Where, for people identifying as female have:</p>
             <div className="overflow-x-auto py-1">
-              <Latex display>
-                {String.raw`a = -2.097,\quad b = 0,\quad c = 0.1069,\quad d = 0.2466`}
-              </Latex>
+              <Latex formula="tbwFemale" />
             </div>
             <p>And all others have:</p>
             <div className="overflow-x-auto py-1">
-              <Latex display>
-                {String.raw`a = 2.447,\quad b = -0.09516,\quad c = 0.1074,\quad d = 0.3362`}
-              </Latex>
+              <Latex formula="tbwMale" />
             </div>
           </div>
 
@@ -285,9 +280,7 @@ export function Profile() {
               into a standard BAC percentage, it gives us this clean formula:
             </p>
             <div className="overflow-x-auto py-1">
-              <Latex display>
-                {String.raw`\text{BAC}_{\text{Jump}} = \frac{0.806 \times \text{std. drinks}}{\text{TBW}}`}
-              </Latex>
+              <Latex formula="bacJump" />
             </div>
           </div>
 
@@ -304,9 +297,7 @@ export function Profile() {
               you've logged, minus the steady amount your liver has cleared since your first drink:
             </p>
             <div className="overflow-x-auto py-1">
-              <Latex display>
-                {String.raw`\text{BAC}_{\text{Now}} = \sum(\text{BAC}_{\text{Jump}}) - (0.015 \times \text{hours since first drink})`}
-              </Latex>
+              <Latex formula="bacNow" />
             </div>
           </div>
 
