@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { type User } from "@supabase/supabase-js";
 import { api } from "../lib/api";
 import { getCustomBeers, saveCustomBeer } from "../utils/storage";
+import { getHistory } from "../utils/sessionArchive";
 import { type Drink, type UserProfile } from "../types/drinks";
 import { useBeerStore } from "../store/beerStore";
 
@@ -67,7 +68,17 @@ export function useCloudSync({
         await api.processOfflineQueue();
 
         const serverDrinks = (await api.getDrinks()) || [];
-        const serverIds = new Set(serverDrinks.map((d: Drink) => d.id));
+
+        // Filter out drinks from already-archived sessions
+        const history = getHistory();
+        const latestArchive = history.length > 0 ? history[0] : null;
+        const currentServerDrinks = latestArchive
+          ? serverDrinks.filter(
+              (d: Drink) => d.timestamp > latestArchive.endTimestamp,
+            )
+          : serverDrinks;
+
+        const serverIds = new Set(currentServerDrinks.map((d: Drink) => d.id));
         // Capture drinks via closure — safe here because we only read it once
         // at hydration time, not on every change.
         const localOnly = drinks.filter((d) => !serverIds.has(d.id));
@@ -79,7 +90,7 @@ export function useCloudSync({
         });
         if (serverCustomBeers.length > 0) addBeersToStore(serverCustomBeers);
 
-        const merged = [...serverDrinks, ...localOnly].sort(
+        const merged = [...currentServerDrinks, ...localOnly].sort(
           (a, b) => b.timestamp - a.timestamp,
         );
         setAllDrinksRef.current(merged);
