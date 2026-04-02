@@ -25,6 +25,13 @@ export class BeerOClockStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
+    // Separate bucket for user-uploaded content (custom beer thumbnails).
+    // Served via CloudFront OAC — not publicly accessible directly.
+    const uploadsBucket = new s3.Bucket(this, "UploadsBucket", {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
     const apiFn = new lambda.Function(this, "ApiFn", {
       runtime: lambda.Runtime.PROVIDED_AL2023,
       architecture: lambda.Architecture.ARM_64,
@@ -71,6 +78,10 @@ export class BeerOClockStack extends cdk.Stack {
 
     table.grantReadWriteData(apiFn);
     apiFn.addEnvironment("TABLE_NAME", table.tableName);
+
+    uploadsBucket.grantPut(apiFn);
+    apiFn.addEnvironment("S3_BUCKET", uploadsBucket.bucketName);
+    apiFn.addEnvironment("APP_DOMAIN_NAME", domainName);
 
     const normaliseRequestFn = new cloudfront.Function(
       this,
@@ -153,6 +164,13 @@ export class BeerOClockStack extends cdk.Stack {
             cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
           responseHeadersPolicy,
         },
+        "/custom/*": {
+          origin: origins.S3BucketOrigin.withOriginAccessControl(uploadsBucket),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          responseHeadersPolicy,
+        },
       },
       errorResponses: [
         {
@@ -183,5 +201,8 @@ export class BeerOClockStack extends cdk.Stack {
     });
     new cdk.CfnOutput(this, "ApiUrl", { value: api.url });
     new cdk.CfnOutput(this, "TableName", { value: table.tableName });
+    new cdk.CfnOutput(this, "UploadsBucketName", {
+      value: uploadsBucket.bucketName,
+    });
   }
 }

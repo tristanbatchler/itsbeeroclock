@@ -57,6 +57,8 @@ export function AddBeer() {
       api.addCustomBeer(newBeer)
         .then((saved) => {
           if (saved.image && saved.image !== newBeer.image) {
+            // Persist the S3 URL to localStorage so other devices get it on sync
+            saveCustomBeer(saved);
             addBeersToStore([saved]);
           }
         })

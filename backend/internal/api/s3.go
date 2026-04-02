@@ -55,6 +55,13 @@ func UploadThumbnail(ctx context.Context, base64DataURL string, key string) (str
 	if region == "" {
 		region = "ap-southeast-2"
 	}
-	url := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key)
+	// Serve via CloudFront if available, otherwise fall back to direct S3 URL
+	cfDomain := utils.GetVar("APP_DOMAIN_NAME")
+	var url string
+	if cfDomain != "" {
+		url = fmt.Sprintf("https://%s/%s", cfDomain, key)
+	} else {
+		url = fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key)
+	}
 	return url, nil
 }

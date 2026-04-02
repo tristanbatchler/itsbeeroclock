@@ -1,39 +1,146 @@
-This document outlines the architecture, patterns, and standards for the Beer O'Clock backend. The backend is a Go service designed to run on AWS Lambda, interfacing with API Gateway, DynamoDB, and Supabase (for JWT authentication).
+# Beer O'Clock — Backend
 
-## Architecture Overview
+Go service running on AWS Lambda (ARM64, `provided.al2023`), fronted by API Gateway, with DynamoDB for storage and Supabase for JWT auth.
 
-The application follows a serverless pattern. Instead of a persistent HTTP server, AWS Lambda executes our code per request via API Gateway.
+## Running locally
 
-- **Entrypoints:** `cmd/api/main.go` is the production entrypoint for AWS Lambda. `cmd/local/main.go` is a custom local development server that wraps standard HTTP requests into `events.APIGatewayProxyRequest` structs to simulate the Lambda environment locally.
-- **Routing:** All routing is handled internally by a declarative route table in `internal/api/router.go`.
-- **Data Store:** We use a single-table DynamoDB design.
-- **Auth:** JWTs are issued by Supabase and verified locally using Supabase's public JWKS endpoint.
+```bash
+go mod tidy
+go run cmd/local/main.go
+```
 
-## Core Patterns and Best Practices
+This starts an HTTP server on `:8080` that wraps incoming requests into `APIGatewayProxyRequest` structs, simulating the Lambda environment. The frontend dev server proxies `/api/*` to it automatically.
 
-**1. Routing and Handlers**
-Routes are defined in the `routes` slice within `internal/api/router.go`. To add a new endpoint, append a `Route` struct to this slice.
-All handlers must conform to the `ApiProxyGatewayHandler` or `AuthenticatedApiProxyGatewayHandler` signature. We declare handlers as variables rather than standard functions to maintain consistency (e.g., `var AddDrinkHandler AuthenticatedApiProxyGatewayHandler = func(...)`).
+Required `.env` values for local dev (see `.env.example`):
 
-**2. API Responses**
-Always use the helper functions in `internal/api/response.go` (`JSONResponse`, `ErrorResponse`, `SuccessResponse`). These handle JSON marshaling and inject the required headers (like `Content-Type: application/json`). Do not manually construct `events.APIGatewayProxyResponse` structs in your handlers.
+```
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+TABLE_NAME=          # from first CDK deploy output
+S3_BUCKET=           # UploadsBucketName from first CDK deploy output
+APP_DOMAIN_NAME=     # e.g. itsbeeroclock.au (used to build CloudFront image URLs)
+CORS_ORIGIN=         # e.g. http://localhost:5173
+```
 
-**3. DynamoDB Key Generation**
-Do not use raw strings or `fmt.Sprintf` to construct partition keys (PK) or sort keys (SK). Use the centralized constants and helper functions in `internal/api/keys.go` (e.g., `UserPK(userID)` and `DrinkSK(timestamp, drinkID)`). This ensures schema consistency and makes refactoring easier.
+## Building for Lambda
 
-**4. Error Handling**
-Do not swallow errors. If a database operation or unmarshaling fails, log the internal error for debugging and return an appropriate HTTP status code to the client using `ErrorResponse(statusCode, message)`.
+```bash
+./build_lambda.sh
+```
 
-## Common Gotchas and Anti-Patterns
+Produces `deployment.zip` which the CDK stack uploads to Lambda.
 
-**1. Local Development CORS**
-When running `cmd/local/main.go`, the server reads the `CORS_ORIGIN` environment variable to set headers. If this is not set in your `.env` file, it defaults to `http://localhost:5173`. If you are running the frontend on a different port, API requests will fail with CORS errors unless you update the local environment variable.
+---
 
-**2. Missing Timeouts on External Calls**
-Never use the default HTTP client for external network calls (such as fetching the JWKS for auth verification). The default client has no timeout, which can cause the Lambda function to hang indefinitely and rack up AWS billing costs. Always specify a timeout (e.g., `&http.Client{Timeout: 5 * time.Second}`).
+## Architecture
 
-**3. Unverified Database Deletions**
-DynamoDB's `DeleteItem` operation will return a 200 OK even if the item does not exist. If you need to ensure an item exists before deleting or modifying it, you must use a `ConditionExpression` (e.g., `attribute_exists(PK)`). See `deletedrinkfn.go` for the implementation.
+### Entrypoints
 
-**4. Incomplete Data Purges**
-When deleting user data, remember that we use a single-table design. Deleting the user's profile record does not delete their associated data records. You must query all items matching the user's partition key and utilize `BatchWriteItem` to clear the data. See `ClearUserDataHandler` for the chunking logic required to handle DynamoDB's 25-item batch limit.
+- `cmd/api/main.go` — production Lambda handler
+- `cmd/local/main.go` — local HTTP server (simulates Lambda)
+- `cmd/seed/main.go` — one-off DynamoDB seeder for the beer catalogue
+
+### Request flow
+
+```
+CloudFront → API Gateway → Lambda → router.go → handler (*fn.go)
+```
+
+All routing is a declarative slice in `internal/api/router.go`. To add an endpoint, append a `Route` struct there.
+
+### Auth
+
+Supabase issues JWTs (ES256). The Lambda verifies them locally by fetching the JWKS from Supabase on first request and caching it. Authenticated routes use `AuthenticatedApiProxyGatewayHandler` which injects an `AuthContext` (containing `UserID`) into the handler.
+
+### S3 (custom beer thumbnails)
+
+`internal/api/s3.go` handles thumbnail uploads. The Lambda writes to `UploadsBucket` (injected as `S3_BUCKET` env var by CDK) and returns a CloudFront URL (`https://{APP_DOMAIN_NAME}/custom/{userId}/{beerId}/thumb.webp`). The direct S3 URL is never returned — the bucket is private and only accessible via CloudFront OAC.
+
+---
+
+## Patterns
+
+### Handlers
+
+Declare handlers as variables, not functions:
+
+```go
+// correct
+var AddDrinkHandler AuthenticatedApiProxyGatewayHandler = func(...) { ... }
+
+// wrong
+func AddDrinkHandler(...) { ... }
+```
+
+### Responses
+
+Always use helpers from `internal/api/response.go`:
+
+```go
+JSONResponse(200, data)
+ErrorResponse(400, "bad request")
+SuccessResponse(map[string]bool{"success": true})
+```
+
+Never construct `events.APIGatewayProxyResponse` manually.
+
+### DynamoDB keys
+
+Never use raw strings or `fmt.Sprintf` for PK/SK values. Use `internal/api/keys.go`:
+
+```go
+UserPK(userID)
+DrinkSK(timestamp, drinkID)
+CustomBeerSK(beerID)
+```
+
+### Error handling
+
+Never swallow errors:
+
+```go
+if err != nil {
+    log.Printf("ContextName: description: %v", err)
+    return ErrorResponse(http.StatusInternalServerError, "user-facing message")
+}
+```
+
+---
+
+## DynamoDB schema
+
+Single-table design. All user data lives under `PK = USER#{userId}`.
+
+| SK prefix                | Data                                                  |
+| ------------------------ | ----------------------------------------------------- |
+| `PROFILE`                | User profile (weight, height, age, sex, optInHistory) |
+| `DRINK#{timestamp}#{id}` | Individual drink log entry                            |
+| `CUSTOMBEER#{id}`        | User-uploaded custom beer                             |
+| `HISTORY#{timestamp}`    | Archived session                                      |
+
+### GSIs
+
+| Index | PK       | SK              | Purpose                                          |
+| ----- | -------- | --------------- | ------------------------------------------------ |
+| GSI1  | `GSI1PK` | `GSI1SK`        | Beer catalogue scan (`KeyCatalog = "CATALOGUE"`) |
+| GSI2  | `PK`     | `Timestamp` (N) | Time-range queries on a user's drinks            |
+
+For GSI2 queries, use `DrinkTimeRangeQuery()` from `keys.go`. Note: `Timestamp` is a DynamoDB reserved word — always alias it as `#ts` in expressions.
+
+---
+
+## Common gotchas
+
+**CORS in local dev** — `cmd/local/main.go` reads `CORS_ORIGIN` from `.env`, defaulting to `http://localhost:5173`. If your frontend runs on a different port, update `.env`.
+
+**No default HTTP client timeouts** — always set a timeout on external calls (JWKS fetch, etc.):
+
+```go
+&http.Client{Timeout: 5 * time.Second}
+```
+
+**`DeleteItem` always returns 200** — even if the item didn't exist. Use `ConditionExpression: attribute_exists(PK)` if you need to confirm existence. See `deletedrinkfn.go`.
+
+**Single-table purges** — deleting a profile record does not delete drinks or custom beers. `ClearUserDataHandler` queries all items under the user's PK and batch-deletes them in chunks of 25 (DynamoDB batch limit).
+
+**`S3_BUCKET` in local dev** — in production this is injected by CDK automatically. For local dev, set it in `.env` to the `UploadsBucketName` value from your CDK deploy output. The bucket must exist before you can test custom beer uploads locally.
