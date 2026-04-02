@@ -44,7 +44,8 @@ export default defineConfig(({ mode }) => {
             /^\/beer_images\//,
             /^\/custom\//,
             /^\/assets\//,
-            /\.(webp|png|jpg|jpeg|svg|gif|ico|css|js|woff2?)$/,
+            /^\/robots\.txt$/,
+            /\.(webp|png|jpg|jpeg|svg|gif|ico|css|js|txt|woff2?)$/,
           ],
           runtimeCaching: [
             {
