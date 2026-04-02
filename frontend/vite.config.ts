@@ -77,6 +77,15 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            supabase: ["@supabase/supabase-js"],
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         "/api": {
