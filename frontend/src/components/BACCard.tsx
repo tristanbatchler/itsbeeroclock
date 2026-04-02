@@ -52,8 +52,8 @@ export function BACCard({ bacData }: Props) {
                   <HelpCircle className="size-4" />
                 </button>
                 {showInfo && (
-                  <div className="absolute right-0 top-6 z-10 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
-                    <div className="absolute -top-1.5 right-2 size-3 rotate-45 border-l border-t border-border bg-card" />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-6 z-10 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
+                    <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 size-3 rotate-45 border-l border-t border-border bg-card" />
                     <p>
                       Based on what you've logged, your estimated BAC is below the legal limit.
                       However, this is a <strong className="text-foreground">mathematical estimate</strong>.
