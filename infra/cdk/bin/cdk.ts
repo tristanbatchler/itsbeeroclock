@@ -2,6 +2,7 @@
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { BeerOClockStack } from "../lib/cdk-stack";
+import { GitHubRoleStack } from "../lib/github-role-stack";
 import * as dotenv from "dotenv";
 import * as dotenvExpand from "dotenv-expand";
 import * as path from "path";
@@ -30,6 +31,15 @@ if (fs.existsSync(envPath)) {
 }
 
 new BeerOClockStack(app, "BeerOClockStack", {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: "ap-southeast-2",
+  },
+});
+
+// One-time stack — deploy once locally to create the GitHub OIDC role.
+// After deploying, copy the RoleArn output into .github/workflows/deploy.yml.
+new GitHubRoleStack(app, "GitHubRoleStack", {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: "ap-southeast-2",
