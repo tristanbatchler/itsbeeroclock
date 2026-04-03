@@ -8,7 +8,8 @@ import { Button } from "./Button";
 import { CancelButton } from "./CancelButton";
 import { Modal } from "./Modal";
 import { DrinkSizeSelector } from "./DrinkSizeSelector";
-import { BeerPlaceholder, beerThumbUrl } from "./BeerPlaceholder";
+import { BeerPlaceholder } from "./BeerPlaceholder";
+import { beerThumbUrl } from "../utils/image";
 
 interface Props {
   drinks: Drink[];

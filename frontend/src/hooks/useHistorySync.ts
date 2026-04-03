@@ -7,7 +7,11 @@ import {
   mergeHistories,
 } from "../utils/sessionArchive";
 import { computeBACCurve } from "../utils/calculations";
-import { type UserProfile, type Beer } from "../types/drinks";
+import {
+  type UserProfile,
+  type Beer,
+  type SessionArchive,
+} from "../types/drinks";
 import { API_ROUTES } from "../lib/constants";
 
 interface UseHistorySyncOptions {
@@ -15,7 +19,6 @@ interface UseHistorySyncOptions {
   profile: UserProfile | null;
   allBeers: Beer[];
   isOnline: boolean;
-  lastArchiveTimestamp: number | null;
 }
 
 export function useHistorySync({
@@ -23,10 +26,23 @@ export function useHistorySync({
   profile,
   allBeers,
   isOnline,
-  lastArchiveTimestamp,
-}: UseHistorySyncOptions): { isSyncing: boolean } {
+}: UseHistorySyncOptions): { isSyncing: boolean; archives: SessionArchive[] } {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [archives, setArchives] = useState<SessionArchive[]>(() =>
+    getHistory(),
+  );
+  const lastArchiveTimestamp = archives[0]?.startTimestamp ?? null;
   const hasHydratedRef = useRef(false);
+  // Stable refs so the hydration closure always sees current values without
+  // re-triggering on every beer list / profile change.
+  const allBeersRef = useRef(allBeers);
+  const profileRef = useRef(profile);
+  useEffect(() => {
+    allBeersRef.current = allBeers;
+  });
+  useEffect(() => {
+    profileRef.current = profile;
+  });
 
   // Reset hydration flag when offline so we re-hydrate on reconnect
   useEffect(() => {
@@ -51,8 +67,8 @@ export function useHistorySync({
             ? a.bacCurve
             : computeBACCurve(
                 drinks,
-                allBeers,
-                profile,
+                allBeersRef.current,
+                profileRef.current,
                 a.startTimestamp,
                 a.endTimestamp,
               );
@@ -60,16 +76,16 @@ export function useHistorySync({
         });
         const merged = mergeHistories(getHistory(), remoteArchives);
         saveHistory(merged);
+        setArchives(merged);
       } catch (err) {
         console.error("useHistorySync: hydration failed", err);
-        hasHydratedRef.current = false; // allow retry on next reconnect
+        hasHydratedRef.current = false;
       } finally {
         setIsSyncing(false);
       }
     };
 
     hydrate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnline, user, profile?.optInHistory]);
 
   // POST the latest archive whenever lastArchiveTimestamp changes
@@ -96,8 +112,7 @@ export function useHistorySync({
     };
 
     postArchive();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastArchiveTimestamp, isOnline, user, profile?.optInHistory]);
 
-  return { isSyncing };
+  return { isSyncing, archives };
 }

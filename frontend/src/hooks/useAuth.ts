@@ -49,6 +49,9 @@ export function useAuth() {
       },
     });
 
+  const verifyOtp = (email: string, token: string) =>
+    supabase.auth.verifyOtp({ email, token, type: "email" });
+
   const signOut = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem(STORAGE_KEYS.PROFILE);
@@ -60,6 +63,7 @@ export function useAuth() {
     signInWithGoogle,
     signInWithApple,
     signInWithMagicLink,
+    verifyOtp,
     signOut,
   };
 }

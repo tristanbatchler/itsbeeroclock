@@ -5,6 +5,8 @@ export interface UserProfile {
   sex: "male" | "female";
   optInHistory: boolean;
   favouriteBeerIds?: string[];
+  /** false until the user explicitly saves their profile */
+  profileSetup: boolean;
 }
 
 export const DRINK_SIZES = {

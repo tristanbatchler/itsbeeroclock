@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
 import * as fc from "fast-check";
 import { BACGraph } from "../BACGraph";
 import type { BACSnapshot } from "../../types/drinks";
@@ -71,6 +71,8 @@ describe("BACGraph — unit tests", () => {
 
 const NUM_RUNS = 25;
 
+afterEach(() => cleanup());
+
 // Feature: bac-graph, Property 5: Peak BAC annotation is present and correct
 describe("Property 5 — peak BAC annotation is correct", () => {
   it("annotation label equals max BAC formatted to 2dp", () => {
@@ -79,7 +81,7 @@ describe("Property 5 — peak BAC annotation is correct", () => {
         fc.array(
           fc.record({
             offsetMs: fc.integer({ min: 0, max: 7_200_000 }),
-            bac: fc.float({ min: 0.01, max: 0.3, noNaN: true }),
+            bac: fc.float({ min: Math.fround(0.01), max: Math.fround(0.3), noNaN: true }),
           }),
           { minLength: 1, maxLength: 6 },
         ),
@@ -89,10 +91,11 @@ describe("Property 5 — peak BAC annotation is correct", () => {
           const startTime = T0;
           const endTime = T0 + 7_200_000;
 
-          const { getByText } = render(
+          const { getAllByText } = render(
             <BACGraph snapshots={snapshots} startTime={startTime} endTime={endTime} />,
           );
-          expect(getByText(maxBac.toFixed(2))).toBeInTheDocument();
+          expect(getAllByText(maxBac.toFixed(2)).length).toBeGreaterThan(0);
+          cleanup();
         },
       ),
       { numRuns: NUM_RUNS },
@@ -106,24 +109,22 @@ describe("Property 6 — axis labels reflect time range and BAC range", () => {
     fc.assert(
       fc.property(
         fc.integer({ min: 1, max: 4 }), // duration in hours
-        fc.float({ min: 0.06, max: 0.25, noNaN: true }), // peak BAC
+        fc.float({ min: Math.fround(0.06), max: Math.fround(0.25), noNaN: true }), // peak BAC
         (durationHours, peakBac) => {
           const endTime = T0 + durationHours * 3_600_000;
           const snapshots = [snap(0, peakBac), snap(durationHours * 3_600_000, 0.01)];
 
-          const { getAllByText, getByText } = render(
+          const { getAllByText } = render(
             <BACGraph snapshots={snapshots} startTime={T0} endTime={endTime} />,
           );
 
-          // x-axis: 0h through durationHours h
           for (let h = 0; h <= durationHours; h++) {
             expect(getAllByText(`${h}h`).length).toBeGreaterThan(0);
           }
 
-          // y-axis: at least 0.00 label present
-          expect(getByText("0.00")).toBeInTheDocument();
-          // and 0.05 label
-          expect(getByText("0.05")).toBeInTheDocument();
+          expect(getAllByText("0.00").length).toBeGreaterThan(0);
+          expect(getAllByText("0.05").length).toBeGreaterThan(0);
+          cleanup();
         },
       ),
       { numRuns: NUM_RUNS },

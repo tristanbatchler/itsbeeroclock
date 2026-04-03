@@ -26,7 +26,8 @@ export const getUserProfile = (): UserProfile | null => {
       if (
         parsed &&
         (parsed.sex === "male" || parsed.sex === "female") &&
-        typeof parsed.weight === "number"
+        typeof parsed.weight === "number" &&
+        parsed.profileSetup === true
       ) {
         return parsed;
       }

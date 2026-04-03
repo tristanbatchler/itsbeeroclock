@@ -8,12 +8,12 @@ import { createThumbnail } from "../utils/image";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
-import { Camera } from "lucide-react";
+import { Camera, LogIn, ShieldAlert } from "lucide-react";
 import type { Beer } from "../types/drinks";
 
 export function AddBeer() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const addBeersToStore = useBeerStore((s) => s.addBeersToStore);
 
   const [name, setName] = useState("");
@@ -65,6 +65,47 @@ export function AddBeer() {
         .catch((err) => console.error("Failed to sync custom beer to cloud:", err));
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 text-center">
+          <p className="text-sm text-muted-foreground">Checking sign-in status...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 border-2 border-primary/30 bg-primary/5">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="size-5 text-primary mt-0.5 shrink-0" />
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Sign in required</h2>
+              <p className="text-sm text-foreground/90 mt-2">
+                Custom beers are account-based. Sign in to create and sync your custom beers across devices.
+              </p>
+              <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                <Button onClick={() => navigate("/sign-in")} className="w-full sm:w-auto">
+                  <LogIn className="size-4 mr-2" />
+                  Sign In
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/")}
+                  className="w-full sm:w-auto"
+                >
+                  Back to Tracker
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -135,12 +176,6 @@ export function AddBeer() {
           >
             {saving ? "Saving…" : "Save Beer"}
           </Button>
-
-          {!user && (
-            <p className="text-xs text-muted-foreground text-center">
-              Sign in to save your custom beers across devices.
-            </p>
-          )}
         </div>
       </Card>
     </div>

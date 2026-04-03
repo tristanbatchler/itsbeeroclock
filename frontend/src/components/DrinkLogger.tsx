@@ -5,7 +5,8 @@ import { Button } from "./Button";
 import { Card } from "./Card";
 import { DrinkSizeSelector } from "./DrinkSizeSelector";
 import { BeerSelector } from "./BeerSelector";
-import { BeerPlaceholder, beerThumbUrl } from "./BeerPlaceholder";
+import { BeerPlaceholder } from "./BeerPlaceholder";
+import { beerThumbUrl } from "../utils/image";
 
 interface Props {
   onAdd: (drink: Drink) => void;

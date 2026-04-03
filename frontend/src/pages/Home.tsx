@@ -14,7 +14,7 @@ import { BACCard } from "../components/BACCard";
 import { BACStats } from "../components/BACStats";
 import { BACGraph } from "../components/BACGraph";
 import { PrivacyNotice } from "../components/PrivacyNotice";
-import { UnauthenticatedNotice } from "../components/UnauthenticatedNotice";
+import { ProfileNotice } from "../components/ProfileNotice";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useBACGraph } from "../hooks/useBACGraph";
 
@@ -35,6 +35,8 @@ export function Home() {
   const bacData = useBAC(drinks, allBeers, profile);
   const { snapshots, startTime, endTime } = useBACGraph(drinks, allBeers, profile);
 
+  const profileReady = !!profile?.profileSetup;
+
   if (!beersLoading && allBeers.length === 0 && (isApiDown || !isOnline)) {
     return (
       <Card className="p-6 my-10 text-center">
@@ -54,9 +56,11 @@ export function Home() {
     <div className="space-y-6">
       <PrivacyNotice />
 
-      {!user && drinks.length > 0 && <UnauthenticatedNotice />}
+      {!user && drinks.length > 0 && <ProfileNotice variant="unauthenticated" />}
 
-      {profile && drinks.length > 0 && (
+      {user && profile && !profile.profileSetup && <ProfileNotice variant="incomplete" />}
+
+      {profileReady && drinks.length > 0 && (
         <ErrorBoundary>
           <BACCard bacData={bacData} />
         </ErrorBoundary>
@@ -65,7 +69,7 @@ export function Home() {
       <DrinkLogger onAdd={handleAddDrink} />
 
       {drinks.length > 0 && (
-        <BACStats bacData={bacData} showBAC={!!profile} />
+        <BACStats bacData={bacData} showBAC={profileReady} />
       )}
 
       {drinks.length > 0 && (
@@ -81,7 +85,7 @@ export function Home() {
         </ErrorBoundary>
       )}
 
-      {profile && drinks.length > 0 && (
+      {profileReady && drinks.length > 0 && (
         <ErrorBoundary>
           <BACGraph snapshots={snapshots} startTime={startTime} endTime={endTime} />
         </ErrorBoundary>

@@ -41,6 +41,7 @@ export function PrivacyNotice() {
           <Link
             to="/privacy"
             className="underline hover:text-info font-semibold"
+            onClick={handleDismiss}
           >
             Privacy Policy
           </Link>{" "}

@@ -42,3 +42,17 @@ export function createThumbnail(file: File): Promise<string> {
     img.src = url;
   });
 }
+
+/**
+ * Resolves the display URL for a beer image.
+ * - S3 URLs and base64 data URLs are used as-is.
+ * - Local catalogue filenames are mapped to the pre-generated WebP thumbnails.
+ */
+export function beerThumbUrl(image: string): string {
+  if (image.startsWith("http") || image.startsWith("data:")) {
+    return image;
+  }
+  const filename = image.split("/").pop()!;
+  const base = filename.replace(/\.[^.]+$/, "");
+  return `/beer_images/thumbs/${base}.webp`;
+}

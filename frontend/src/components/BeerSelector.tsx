@@ -9,7 +9,8 @@ import { Input } from "./Input";
 import { Button } from "./Button";
 import { Card } from "./Card";
 import { CancelButton } from "./CancelButton";
-import { BeerPlaceholder, beerThumbUrl } from "./BeerPlaceholder";
+import { BeerPlaceholder } from "./BeerPlaceholder";
+import { beerThumbUrl } from "../utils/image";
 import { useBeerStore } from "../store/beerStore";
 
 

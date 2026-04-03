@@ -11,6 +11,7 @@ const PROFILE: UserProfile = {
   age: 35,
   sex: "male",
   optInHistory: false,
+  profileSetup: true,
 };
 const T0 = 1_700_000_000_000;
 

@@ -41,41 +41,41 @@ export function useSessionChecker({
   useEffect(() => {
     profileRef.current = profile;
   });
-
-  check.current = async () => {
-    const now = Date.now();
-    if (
-      !isSessionEnded(
+  useEffect(() => {
+    check.current = async () => {
+      const now = Date.now();
+      if (
+        !isSessionEnded(
+          drinksRef.current,
+          profileRef.current,
+          allBeersRef.current,
+          now,
+        )
+      ) {
+        return;
+      }
+      const archive = archiveSession(
         drinksRef.current,
-        profileRef.current,
         allBeersRef.current,
-        now,
-      )
-    ) {
-      return;
-    }
-    const archive = archiveSession(
-      drinksRef.current,
-      allBeersRef.current,
-      profileRef.current,
-    );
-    try {
-      prependArchive(archive);
-    } catch (err) {
-      console.error(
-        "useSessionChecker: failed to write archive to localStorage",
-        err,
+        profileRef.current,
       );
-      return;
-    }
-    clearSessionRef.current();
-    // Clear the server's drink store so old drinks aren't restored on next hydration
-    try {
-      await api.syncDrinks([]);
-    } catch {
-      // Non-fatal — the next syncDrinks from the new session will overwrite anyway
-    }
-  };
+      try {
+        prependArchive(archive);
+      } catch (err) {
+        console.error(
+          "useSessionChecker: failed to write archive to localStorage",
+          err,
+        );
+        return;
+      }
+      clearSessionRef.current();
+      try {
+        await api.syncDrinks([]);
+      } catch {
+        // Non-fatal — the next syncDrinks from the new session will overwrite anyway
+      }
+    };
+  });
 
   // 60-second polling interval — same cadence as useBAC
   useEffect(() => {
@@ -86,6 +86,5 @@ export function useSessionChecker({
   // Immediate check whenever drinks change
   useEffect(() => {
     check.current();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drinks]);
 }

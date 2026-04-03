@@ -14,6 +14,7 @@ const PROFILE: UserProfile = {
   age: 35,
   sex: "male",
   optInHistory: false,
+  profileSetup: true,
 };
 const T0 = 1_700_000_000_000;
 
@@ -111,7 +112,7 @@ describe("Property 1 — curve covers full time range", () => {
             fc.integer({ min: 60_000, max: 600_000 }), // intervalMs
           ),
         ),
-        ([_n, drinks, intervalMs]) => {
+        ([, drinks, intervalMs]) => {
           const startTime = Math.min(...drinks.map((d) => d.timestamp));
           const endTime = startTime + intervalMs * 3 + 17_000; // not a clean multiple
           const result = computeBACCurve(
@@ -170,8 +171,11 @@ describe("Property 2 — BAC values match calculateBAC", () => {
           );
 
           result.forEach((snap) => {
+            const drinksAtSnap = drinks.filter(
+              (d) => d.timestamp <= snap.timestamp,
+            );
             const expected = calculateBAC(
-              drinks,
+              drinksAtSnap,
               PROFILE,
               snap.timestamp,
               gramsAlcohol([BEER]),

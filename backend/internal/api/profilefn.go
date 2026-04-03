@@ -34,16 +34,8 @@ var GetProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 		return ErrorResponse(500, "Failed to get profile")
 	}
 	if out.Item == nil {
-		// Return sensible defaults (ABS average Australian male)
-		profile := models.UserProfile{
-			Weight:           80,
-			Height:           175,
-			Age:              35,
-			Sex:              "male",
-			OptInHistory:     true,
-			FavouriteBeerIDs: []string{},
-		}
-		return JSONResponse(200, profile)
+		// No profile saved yet — return a sentinel so the frontend knows to nag.
+		return JSONResponse(200, models.UserProfile{ProfileSetup: false})
 	}
 	var profile models.UserProfile
 	err = attributevalue.UnmarshalMap(out.Item, &profile)
@@ -65,6 +57,8 @@ var UpdateProfileHandler AuthenticatedApiProxyGatewayHandler = func(
 	if err := json.Unmarshal([]byte(req.Body), &profile); err != nil {
 		return ErrorResponse(400, "Invalid profile data")
 	}
+	// Mark the profile as explicitly set up, regardless of what the client sent.
+	profile.ProfileSetup = true
 	item, err := attributevalue.MarshalMap(struct {
 		PK string
 		SK string

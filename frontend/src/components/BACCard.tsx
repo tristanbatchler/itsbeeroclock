@@ -37,7 +37,7 @@ export function BACCard({ bacData }: Props) {
             <p className={`font-bold text-lg ${safe ? "text-success" : "text-destructive"}`}>
               {bacData.hasValidData
                 ? bacData.canDrive
-                  ? "Safe to drive"
+                  ? "Use a breathalyser before driving"
                   : "Do NOT drive"
                 : "Cannot calculate BAC (missing drink data)"}
             </p>
@@ -71,7 +71,7 @@ export function BACCard({ bacData }: Props) {
           <p className={`text-sm mt-1 ${safe ? "text-success" : "text-destructive"}`}>
             {bacData.hasValidData
               ? bacData.canDrive
-                ? `Under limit (${(bacData.currentBAC ?? 0).toFixed(3)}% BAC)`
+                ? `Estimated under legal limit (${(bacData.currentBAC ?? 0).toFixed(3)}% BAC)`
                 : `Wait ${formatHours(bacData.hoursUntilSober ?? 0)} until ${bacData.soberTime?.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}`
               : "Drink details are missing for some drinks. BAC cannot be shown."}
           </p>
