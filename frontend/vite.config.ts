@@ -3,10 +3,32 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import fs from "fs";
 /// <reference types="vitest" />
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
+  const rootDir = path.resolve(__dirname, "..");
+
+  // Mirror the CDK env loading: prefer .env.prod over .env.
+  // loadEnv only knows about .env.{mode} — it won't pick up .env.prod automatically.
+  const prodEnvPath = path.join(rootDir, ".env.prod");
+  const envFilePath = fs.existsSync(prodEnvPath)
+    ? prodEnvPath
+    : path.join(rootDir, ".env");
+
+  // Parse the chosen env file and merge into process.env so loadEnv picks it up.
+  const fileContents = fs.existsSync(envFilePath)
+    ? fs.readFileSync(envFilePath, "utf-8")
+    : "";
+  for (const line of fileContents.split("\n")) {
+    const match = line.match(/^([^#=\s][^=]*)=(.*)$/);
+    if (match) {
+      const [, key, value] = match;
+      if (!(key in process.env)) process.env[key] = value.trim();
+    }
+  }
+
+  const env = loadEnv(mode, rootDir, "");
 
   return {
     plugins: [

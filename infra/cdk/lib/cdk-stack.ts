@@ -37,8 +37,10 @@ export class BeerOClockStack extends cdk.Stack {
       architecture: lambda.Architecture.ARM_64,
       handler: "bootstrap",
       code: lambda.Code.fromAsset("../../backend/deployment.zip"),
+      timeout: cdk.Duration.seconds(15),
       environment: {
         SUPABASE_URL: process.env.SUPABASE_URL || "",
+        SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || "",
         CF_TURNSTILE_SECRET_KEY: process.env.CF_TURNSTILE_SECRET_KEY || "",
       },
     });
