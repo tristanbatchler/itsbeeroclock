@@ -131,6 +131,32 @@ npm run deploy
 
 This builds the frontend (including pre-rendering KaTeX formulas and generating image thumbnails), builds the Go Lambda binary, and runs `cdk deploy`. CloudFront is automatically invalidated.
 
+## CI/CD
+
+Pushes to `master` automatically deploy via GitHub Actions (`.github/workflows/deploy.yml`).
+
+The workflow authenticates to AWS using OIDC (no long-lived secrets). The IAM role is provisioned by `GitHubRoleStack` — deploy it once locally:
+
+```bash
+cd infra/cdk && npx cdk deploy GitHubRoleStack
+```
+
+Then add the following secrets to your GitHub repo (Settings → Secrets and variables → Actions):
+
+| Secret                     | Value                               |
+| -------------------------- | ----------------------------------- |
+| `AWS_DEPLOY_ROLE_ARN`      | RoleArn output from GitHubRoleStack |
+| `SUPABASE_URL`             | from `.env.prod`                    |
+| `SUPABASE_PUBLISHABLE_KEY` | from `.env.prod`                    |
+| `SUPABASE_SECRET_KEY`      | from `.env.prod`                    |
+| `TABLE_NAME`               | from `.env.prod`                    |
+| `APP_DOMAIN_NAME`          | `itsbeeroclock.au`                  |
+| `APP_SUPPORT_EMAIL`        | from `.env.prod`                    |
+| `CORS_ORIGIN`              | `https://itsbeeroclock.au`          |
+| `S3_BUCKET`                | from `.env.prod`                    |
+| `CF_TURNSTILE_SITE_KEY`    | from `.env.prod`                    |
+| `CF_TURNSTILE_SECRET_KEY`  | from `.env.prod`                    |
+
 ## Recommended VS Code extensions
 
 ```bash

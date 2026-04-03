@@ -46,8 +46,18 @@ You do **not** need to manage these manually in production — CDK handles it.
 # From the repo root
 cd infra/cdk
 npx cdk bootstrap   # once per AWS account/region
-npx cdk deploy
+npx cdk deploy BeerOClockStack
 ```
+
+## CI/CD
+
+The `GitHubRoleStack` provisions the IAM OIDC role used by GitHub Actions. Deploy it once:
+
+```bash
+npx cdk deploy GitHubRoleStack
+```
+
+Copy the `RoleArn` output into the `AWS_DEPLOY_ROLE_ARN` GitHub secret. After that, every push to `master` deploys automatically via `.github/workflows/deploy.yml` — no long-lived AWS credentials stored anywhere.
 
 After deploying, note the stack outputs:
 
