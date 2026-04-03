@@ -1,6 +1,8 @@
 # Beer O'Clock
 
-[https://itsbeeroclock.au](https://itsbeeroclock.au)
+![Deploy](https://github.com/tristanbatchler/itsbeeroclock/actions/workflows/deploy.yml/badge.svg)
+[![Live](https://img.shields.io/badge/Live-itsbeeroclock.au-green)](https://itsbeeroclock.au)
+![Stack](https://img.shields.io/badge/Stack-React%20%7C%20Go%20%7C%20AWS-black)
 
 Beer O'Clock lets Queenslanders confidently track their nights out with a stupid-simple interface for logging pots, pints, and schooners. If a drink can't be logged in under 5 seconds, it's too hard.
 
