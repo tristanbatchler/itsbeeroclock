@@ -22,18 +22,23 @@ This directory contains the AWS CDK stack that provisions all cloud resources fo
 | `/custom/*`    | `UploadsBucket`  | User-uploaded thumbnails via CloudFront OAC                                           |
 | `/*` (default) | `FrontendBucket` | 7-day cache TTL (`max-age=604800`); SPA fallback via `errorResponses` returning 200   |
 
-The default behavior uses a CloudFront Function (`beeroclock-normalise-request`) on viewer-request to normalise URL paths for the SPA.
+The default behavior uses a CloudFront Function (`beeroclock-normalise-request`) on viewer-request to redirect `www.` to the apex domain.
 
 **Important:** `errorResponses` maps S3 403/404 → `index.html` with `responseHttpStatus: 200`. This is required so that monitoring tools, crawlers, and uptime checkers see a 200 for all valid SPA routes. Using 404 here causes external monitors to incorrectly report the site as down.
 
 ## Environment variables injected into the Lambda at deploy time
 
-The CDK automatically sets these on the Lambda — you do **not** need to manage them manually in production:
+The CDK reads these from your local environment at deploy time and injects them into the Lambda automatically:
 
-- `TABLE_NAME` — DynamoDB table name
-- `S3_BUCKET` — uploads bucket name
-- `APP_DOMAIN_NAME` — your domain (used to construct CloudFront URLs for uploaded images)
-- `SUPABASE_URL` — read from your local environment at deploy time
+| Variable                  | Purpose                                                    |
+| ------------------------- | ---------------------------------------------------------- |
+| `TABLE_NAME`              | DynamoDB table name (set automatically from stack output)  |
+| `S3_BUCKET`               | Uploads bucket name (set automatically from stack output)  |
+| `APP_DOMAIN_NAME`         | Your domain (used to construct CloudFront image URLs)      |
+| `SUPABASE_URL`            | Supabase project URL                                       |
+| `CF_TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key for server-side validation |
+
+You do **not** need to manage these manually in production — CDK handles it.
 
 ## First deploy
 

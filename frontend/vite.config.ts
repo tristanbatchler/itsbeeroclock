@@ -110,6 +110,9 @@ export default defineConfig(({ mode }) => {
       ),
       "import.meta.env.TABLE_NAME": JSON.stringify(env.TABLE_NAME),
       "import.meta.env.S3_BUCKET": JSON.stringify(env.S3_BUCKET),
+      "import.meta.env.CF_TURNSTILE_SITE_KEY": JSON.stringify(
+        env.CF_TURNSTILE_SITE_KEY,
+      ),
     },
   };
 });

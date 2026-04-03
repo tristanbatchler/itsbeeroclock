@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Card } from "../components/Card";
+import { Turnstile } from "../components/Turnstile";
 import { Mail, ArrowRight } from "lucide-react";
 
 export function SignIn() {
@@ -12,18 +13,27 @@ export function SignIn() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [sendError, setSendError] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpError, setOtpError] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleMagicLink = async () => {
-    if (!email) return;
+    if (!email || !turnstileToken) return;
     setLoading(true);
-    await signInWithMagicLink(email);
-    setSent(true);
-    setOtp(["", "", "", "", "", ""]);
-    setOtpError("");
-    setLoading(false);
+    setSendError("");
+    try {
+      await signInWithMagicLink(email, turnstileToken);
+      setSent(true);
+      setOtp(["", "", "", "", "", ""]);
+      setOtpError("");
+    } catch {
+      setSendError("Something went wrong. Please try again.");
+      setTurnstileToken(null); // token is single-use, force re-challenge
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOtpChange = async (index: number, value: string) => {
@@ -164,7 +174,15 @@ export function SignIn() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <Button type="submit" disabled={loading} className="w-full">
+          <Turnstile
+            action="magic_link"
+            onSuccess={setTurnstileToken}
+            onError={() => setTurnstileToken(null)}
+          />
+          {sendError && (
+            <p className="text-sm text-destructive">{sendError}</p>
+          )}
+          <Button type="submit" disabled={loading || !turnstileToken} className="w-full">
             {loading ? "Sending..." : "Send one-time code"}
             {!loading && <ArrowRight className="ml-2 size-4" />}
           </Button>

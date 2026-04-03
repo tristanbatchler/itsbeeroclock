@@ -41,13 +41,14 @@ export function useAuth() {
   const signInWithApple = () =>
     supabase.auth.signInWithOAuth({ provider: "apple" });
 
-  const signInWithMagicLink = (email: string) =>
-    supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+  const signInWithMagicLink = async (email: string, turnstileToken: string) => {
+    const resp = await fetch("/api/send-magic-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, turnstileToken }),
     });
+    if (!resp.ok) throw new Error("Failed to send login email");
+  };
 
   const verifyOtp = (email: string, token: string) =>
     supabase.auth.verifyOtp({ email, token, type: "email" });

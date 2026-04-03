@@ -18,11 +18,11 @@ A session begins when the first drink is logged and ends when the user's estimat
 
 ### v0.1.0 (current)
 
-Anonymous sessions, drink logging, beer catalogue, BAC estimates, offline-first sync, opt-in accounts, BAC graph
+Anonymous sessions, drink logging, beer catalogue, BAC estimates, offline-first sync, opt-in accounts, BAC graph, drinking history dashboard, OTP sign-in, Cloudflare Turnstile bot protection
 
 ### v0.2.0
 
-Drinking history dashboard (average consumption, favourite beers, stats)
+Drinking history stats (average consumption, favourite beers, trends)
 
 ### v1.0.0
 
@@ -30,20 +30,22 @@ Optional AI session tips, UI polish based on user feedback
 
 ## Technology stack
 
-| Layer    | Tech                                        |
-| -------- | ------------------------------------------- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4 |
-| Backend  | Go, AWS Lambda (provided.al2023, ARM64)     |
-| Database | DynamoDB single-table design                |
-| Auth     | Supabase (Google SSO + magic link)          |
-| Infra    | AWS CDK, CloudFront, S3, SES                |
+| Layer    | Tech                                                        |
+| -------- | ----------------------------------------------------------- |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4                 |
+| Backend  | Go, AWS Lambda (provided.al2023, ARM64)                     |
+| Database | DynamoDB single-table design                                |
+| Auth     | Supabase (Google SSO + email OTP)                           |
+| Security | Cloudflare Turnstile (invisible CAPTCHA on magic link send) |
+| Infra    | AWS CDK, CloudFront, S3                                     |
 
 ## Prerequisites
 
 You will need accounts / credentials for:
 
 - **AWS** — with a profile configured locally (`aws configure`)
-- **Supabase** — project with Google OAuth and magic link enabled
+- **Supabase** — project with Google OAuth and magic link/OTP enabled; OTP length set to 6
+- **Cloudflare** — Turnstile widget (invisible mode) with site key and secret key
 - A domain name with an ACM certificate in `us-east-1` (CloudFront requires it there)
 
 ## First-time setup
@@ -70,7 +72,7 @@ mise install
 cp .env.example .env
 ```
 
-Fill in every value. See `.env.example` for descriptions. Leave `TABLE_NAME`, `S3_BUCKET`, and `UPLOADS_BUCKET` blank for now — you'll get them after the first deploy.
+Fill in every value. See `.env.example` for descriptions. Leave `TABLE_NAME` and `S3_BUCKET` blank for now — you'll get them after the first deploy.
 
 ### 3. Install dependencies
 
@@ -117,6 +119,8 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
+> **Turnstile in local dev:** if `CF_TURNSTILE_SITE_KEY` is not set, the Turnstile widget auto-passes silently. For the backend to accept the token, set `CF_TURNSTILE_SECRET_KEY` to Cloudflare's test secret key: `1x0000000000000000000000000000000AA`.
+
 ### 6. Subsequent deploys
 
 ```bash
@@ -124,12 +128,6 @@ npm run deploy
 ```
 
 This builds the frontend (including pre-rendering KaTeX formulas and generating image thumbnails), builds the Go Lambda binary, and runs `cdk deploy`. CloudFront is automatically invalidated.
-
-After deploying, run a CloudFront invalidation if you need changes to appear immediately:
-
-```bash
-aws cloudfront create-invalidation --distribution-id <DISTRIBUTION_ID> --paths "/*"
-```
 
 ## Recommended VS Code extensions
 

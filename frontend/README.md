@@ -32,7 +32,7 @@ Output goes to `dist/`. The CDK stack picks this up automatically during `cdk de
 npx vitest run
 ```
 
-Tests use Vitest + jsdom + Testing Library + fast-check (property-based tests).
+Tests use Vitest + jsdom + Testing Library + fast-check (property-based tests). The test suite runs automatically after each completed agent task via a Kiro hook.
 
 ---
 
@@ -40,15 +40,33 @@ Tests use Vitest + jsdom + Testing Library + fast-check (property-based tests).
 
 ### State management
 
-- **Beer catalogue** — Zustand store (`src/store/beerStore.ts`). Stable action references by default, no `useCallback` needed for store actions.
+- **Beer catalogue + profile** — Zustand store (`src/store/beerStore.ts`). Profile lives here so Home and Profile pages share one instance without prop drilling.
 - **Current session drinks** — `useSession` hook, backed by `localStorage`.
-- **Everything else** — local `useState` / `useReducer`.
+- **History archives** — owned by `useHistorySync`, which returns `{ isSyncing, archives }` directly. No secondary effect needed to re-read localStorage after sync.
+- **Everything else** — local `useState`.
 
-React Context is used only for things that genuinely need to be shared across the whole tree without prop drilling.
+### Auth flow
+
+Sign-in uses Supabase email OTP (6-digit code). The magic link send is proxied through `/api/send-magic-link` on the Go backend, which verifies a Cloudflare Turnstile token before calling the Supabase Admin API. This keeps the Supabase service role key server-side and gates email sending behind bot protection.
+
+After sending, `SignIn.tsx` shows a 6-cell OTP input. On completion it calls `supabase.auth.verifyOtp()` directly. On success, `onAuthStateChange` fires and the app reacts automatically.
+
+### Profile setup gate
+
+A new user's profile is not written to DynamoDB until they explicitly save it. `GET /api/profile` returns `{ profileSetup: false }` for new users. The frontend:
+
+- Hides BAC card, BAC graph, and BAC stats when `profile.profileSetup !== true`
+- Shows `<ProfileNotice variant="incomplete">` to nag signed-in users who haven't set up their profile
+- `getUserProfile()` in `storage.ts` rejects any cached profile where `profileSetup !== true`
+- `ProfileForm` uses a `key` prop so it remounts with correct initial values when the cloud profile loads
+
+### Turnstile
+
+`Turnstile.tsx` uses explicit rendering (required for React SPAs). When `CF_TURNSTILE_SITE_KEY` is not set (local dev), it immediately calls `onSuccess("dev-bypass")` and renders nothing. In production it runs invisibly — no visible widget.
 
 ### Theme
 
-Theme switching (light/dark) is managed without any external library. The inline script in `index.html` reads `localStorage` on page load to apply the correct class before first paint, preventing FOUC. The `AppMenu` component manages toggling via a simple `localStorage` + `document.documentElement.classList` pattern.
+Theme switching (light/dark) is managed without any external library. The inline script in `index.html` reads `localStorage` on page load to apply the correct class before first paint, preventing FOUC. The `AppMenu` component manages toggling via `localStorage` + `document.documentElement.classList`.
 
 ### Offline-first
 
@@ -68,7 +86,7 @@ All BAC math lives in `src/utils/calculations.ts` as pure functions. The formula
 
 ### KaTeX formulas
 
-The Profile page displays BAC formula explanations using KaTeX. To avoid shipping the KaTeX JS runtime (~500 KB) and its fonts to every user, formulas are **pre-rendered to static HTML at build time** by `scripts/prerender-latex.ts`. The output is committed to `src/lib/latexPrerendered.ts`. The `Latex` component simply injects the pre-rendered HTML — no KaTeX JS runs in the browser. KaTeX CSS (and its fonts) is imported only in `Profile.tsx` so it only loads when the Profile page is visited.
+The Profile page displays BAC formula explanations using KaTeX. To avoid shipping the KaTeX JS runtime (~500 KB), formulas are **pre-rendered to static HTML at build time** by `scripts/prerender-latex.ts`. The output is committed to `src/lib/latexPrerendered.ts`. The `Latex` component simply injects the pre-rendered HTML. KaTeX CSS is imported only in `Profile.tsx`.
 
 If you change a formula, re-run:
 
@@ -76,57 +94,48 @@ If you change a formula, re-run:
 npx tsx scripts/prerender-latex.ts
 ```
 
-### Bundle structure
+### History skeletons
 
-| Chunk           | Contents                          | Size (gzip) |
-| --------------- | --------------------------------- | ----------- |
-| `index-*.js`    | React, app shell, hooks, contexts | ~81 KB      |
-| `supabase-*.js` | `@supabase/supabase-js`           | ~51 KB      |
-| `Home-*.js`     | Home page                         | ~10 KB      |
-| `Profile-*.js`  | Profile page (no KaTeX JS)        | ~4 KB       |
-| Other routes    | Lazy-loaded per page              | <3 KB each  |
-
-### Custom hooks
-
-Don't write raw `useEffect` for DOM events. Use:
-
-- `useClickOutside(ref, handler, isOpen)`
-- `useEscapeKey(handler, isOpen)`
-
-### Constants
-
-All `localStorage` keys live in `src/lib/constants.ts` as `STORAGE_KEYS`. All API route strings live there too as `API_ROUTES`. Never hardcode these inline — the "Purge All Data" function iterates `STORAGE_KEYS` to clear everything.
+`History.tsx` uses `SessionCardSkeleton` instead of a spinner. When syncing with existing local archives, skeletons replace the real cards in-place so there's no layout shift when remote data arrives.
 
 ---
 
 ## Key files
 
-| File                               | Purpose                                                       |
-| ---------------------------------- | ------------------------------------------------------------- |
-| `src/store/beerStore.ts`           | Zustand store: beer catalogue, profile, loading state         |
-| `src/lib/api.ts`                   | All HTTP calls, offline queue, token refresh                  |
-| `src/hooks/useSession.ts`          | Local drinks array for the current session                    |
-| `src/utils/calculations.ts`        | Pure BAC math (Watson formula, ledger method, curve sampling) |
-| `src/utils/sessionArchive.ts`      | Session archiving, peak BAC, history read/write               |
-| `src/lib/constants.ts`             | All storage keys and API routes                               |
-| `src/lib/latexPrerendered.ts`      | Auto-generated pre-rendered KaTeX HTML (do not edit manually) |
-| `src/components/ErrorBoundary.tsx` | Wraps all BAC/math-heavy components                           |
-| `src/components/AppMenu.tsx`       | Theme toggle (light/dark) via localStorage                    |
-| `scripts/prerender-latex.ts`       | Build-time KaTeX pre-renderer                                 |
-| `scripts/generate-thumbs.ts`       | Build-time WebP thumbnail generator for beer images           |
+| File                                     | Purpose                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| `src/store/beerStore.ts`                 | Zustand store: beer catalogue, profile, loading state             |
+| `src/lib/api.ts`                         | All HTTP calls, offline queue, token refresh                      |
+| `src/hooks/useSession.ts`                | Local drinks array for the current session                        |
+| `src/hooks/useProfile.ts`                | Fetches cloud profile on sign-in, syncs to Zustand + localStorage |
+| `src/hooks/useHistorySync.ts`            | History hydration from remote, owns archives state                |
+| `src/utils/calculations.ts`              | Pure BAC math (Watson formula, ledger method, curve sampling)     |
+| `src/utils/sessionArchive.ts`            | Session archiving, peak BAC, history read/write, merge            |
+| `src/utils/storage.ts`                   | localStorage helpers; getUserProfile rejects profileSetup=false   |
+| `src/lib/constants.ts`                   | All storage keys and API routes                                   |
+| `src/lib/latexPrerendered.ts`            | Auto-generated pre-rendered KaTeX HTML (do not edit manually)     |
+| `src/components/Turnstile.tsx`           | Cloudflare Turnstile widget (invisible, explicit rendering)       |
+| `src/components/ProfileNotice.tsx`       | Unified notice for unauthenticated + incomplete profile states    |
+| `src/components/SessionCardSkeleton.tsx` | Skeleton placeholder for history cards during sync                |
+| `src/components/ErrorBoundary.tsx`       | Wraps all BAC/math-heavy components                               |
+| `src/components/AppMenu.tsx`             | Theme toggle (light/dark) via localStorage                        |
+| `scripts/prerender-latex.ts`             | Build-time KaTeX pre-renderer                                     |
+| `scripts/generate-thumbs.ts`             | Build-time WebP thumbnail generator for beer images               |
 
 ---
 
 ## Common gotchas
 
-**`useCallback` in Context** — any function passed through React Context must be wrapped in `useCallback` with a stable dependency array or you'll get infinite re-render loops.
+**Profile form seeding** — `ProfileForm` is a child component with a `key` prop. When the cloud profile loads after mount, changing the key remounts the form with correct initial values. Do not use `useEffect` + `setState` to sync form fields from async data.
 
 **`localStorage` is not state** — writing to it does not trigger a re-render. Always update React state first.
 
-**Session checker fires on every drink change** — `useSessionChecker` runs immediately when the `drinks` array changes. This is intentional (catches sessions that ended while offline) but means the check logic must be fast and idempotent.
+**History archives live in the hook** — `useHistorySync` owns `archives` state and returns it. `History.tsx` does not maintain its own archives state or re-read localStorage after sync.
 
-**Custom beer images** — uploaded thumbnails are stored in the `UploadsBucket` S3 bucket and served via CloudFront at `https://{domain}/custom/{userId}/{beerId}/thumb.webp`. The local base64 data URL is used as a fallback until the cloud sync returns the permanent URL, which is then persisted back to `localStorage`.
+**Turnstile tokens are single-use** — after any error, set `turnstileToken` to null so the widget re-challenges. Never retry with the same token.
 
-**KaTeX formulas are static** — `src/lib/latexPrerendered.ts` is auto-generated. Do not edit it manually. If you add or change a formula, update `scripts/prerender-latex.ts` and re-run it.
+**Session checker fires on every drink change** — `useSessionChecker` runs immediately when the `drinks` array changes. The check logic must be fast and idempotent.
 
-**Beer fetch is deferred** — `useBeerInit` wraps `api.getBeers()` in `requestIdleCallback` (with a `setTimeout(0)` fallback for Safari) so it does not run before first paint. This is intentional for LCP performance.
+**KaTeX formulas are static** — `src/lib/latexPrerendered.ts` is auto-generated. Do not edit it manually.
+
+**Beer fetch is deferred** — `useBeerInit` wraps `api.getBeers()` in `requestIdleCallback`. This is intentional for LCP performance. Do not make it synchronous.

@@ -26,6 +26,7 @@ var routes = []Route{
 	{"/api/health", http.MethodGet, HealthHandler, false},
 	{"/api/beers", http.MethodGet, GetBeersHandler, false},
 	{"/api/beers/batch", http.MethodGet, GetBeersBatchHandler, false},
+	{"/api/send-magic-link", http.MethodPost, SendMagicLinkHandler, false},
 
 	// Protected
 	{"/api/drinks", http.MethodPost, wrapAuth(AddDrinkHandler), true},

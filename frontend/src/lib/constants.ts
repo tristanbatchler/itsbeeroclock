@@ -30,4 +30,5 @@ export const STORAGE_KEYS = {
 
 export const API_ROUTES = {
   HISTORY: "/api/history",
+  SEND_MAGIC_LINK: "/api/send-magic-link",
 } as const;

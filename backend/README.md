@@ -16,10 +16,11 @@ Required `.env` values for local dev (see `.env.example`):
 ```
 SUPABASE_URL=
 SUPABASE_SECRET_KEY=
-TABLE_NAME=          # from first CDK deploy output
-S3_BUCKET=           # UploadsBucketName from first CDK deploy output
-APP_DOMAIN_NAME=     # e.g. itsbeeroclock.au (used to build CloudFront image URLs)
-CORS_ORIGIN=         # e.g. http://localhost:5173
+TABLE_NAME=              # from first CDK deploy output
+S3_BUCKET=               # UploadsBucketName from first CDK deploy output
+APP_DOMAIN_NAME=         # e.g. localhost:5173 (used to build image URLs)
+CORS_ORIGIN=             # e.g. http://localhost:5173
+CF_TURNSTILE_SECRET_KEY= # use 1x0000000000000000000000000000000AA for local dev
 ```
 
 ## Building for Lambda
@@ -50,7 +51,23 @@ All routing is a declarative slice in `internal/api/router.go`. To add an endpoi
 
 ### Auth
 
-Supabase issues JWTs (ES256). The Lambda verifies them locally by fetching the JWKS from Supabase on first request and caching it. Authenticated routes use `AuthenticatedApiProxyGatewayHandler` which injects an `AuthContext` (containing `UserID`) into the handler.
+Supabase issues JWTs (ES256). The Lambda verifies them locally by fetching the JWKS from Supabase on first request and caching it for 24 hours. Authenticated routes use `AuthenticatedApiProxyGatewayHandler` which injects an `AuthContext` (containing `UserID`) into the handler.
+
+### Bot protection (Turnstile)
+
+`internal/api/turnstile.go` provides `verifyTurnstile(token, ip string) error`. Call it in any public handler that triggers expensive operations before doing any real work. The `/api/send-magic-link` endpoint uses it to gate Supabase OTP sends.
+
+For local dev, set `CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA` — Cloudflare's always-passes test secret.
+
+### Magic link / OTP send
+
+`/api/send-magic-link` (in `sendmagiclink.go`) is a public endpoint that:
+
+1. Verifies the Cloudflare Turnstile token
+2. Calls the Supabase Admin API (`POST /auth/v1/otp`) using the service role key
+3. Returns `{ "sent": true }` on success
+
+This keeps `SUPABASE_SECRET_KEY` server-side and prevents bots from burning your SES/email quota.
 
 ### S3 (custom beer thumbnails)
 
@@ -111,12 +128,16 @@ if err != nil {
 
 Single-table design. All user data lives under `PK = USER#{userId}`.
 
-| SK prefix                | Data                                                  |
-| ------------------------ | ----------------------------------------------------- |
-| `PROFILE`                | User profile (weight, height, age, sex, optInHistory) |
-| `DRINK#{timestamp}#{id}` | Individual drink log entry                            |
-| `CUSTOMBEER#{id}`        | User-uploaded custom beer                             |
-| `HISTORY#{timestamp}`    | Archived session                                      |
+| SK prefix                | Data                                                                |
+| ------------------------ | ------------------------------------------------------------------- |
+| `PROFILE`                | User profile (weight, height, age, sex, optInHistory, profileSetup) |
+| `DRINK#{timestamp}#{id}` | Individual drink log entry                                          |
+| `CUSTOMBEER#{id}`        | User-uploaded custom beer                                           |
+| `HISTORY#{timestamp}`    | Archived session                                                    |
+
+### Profile record
+
+`profileSetup` (bool) is always `false` on the default record returned by `GET /api/profile` for new users. It is forced to `true` by `UpdateProfileHandler` on any `PUT /api/profile`. The frontend uses this flag to gate BAC features and nag users who haven't set up their profile.
 
 ### GSIs
 
@@ -133,7 +154,7 @@ For GSI2 queries, use `DrinkTimeRangeQuery()` from `keys.go`. Note: `Timestamp` 
 
 **CORS in local dev** — `cmd/local/main.go` reads `CORS_ORIGIN` from `.env`, defaulting to `http://localhost:5173`. If your frontend runs on a different port, update `.env`.
 
-**No default HTTP client timeouts** — always set a timeout on external calls (JWKS fetch, etc.):
+**No default HTTP client timeouts** — always set a timeout on external calls (JWKS fetch, Turnstile verify, Supabase OTP):
 
 ```go
 &http.Client{Timeout: 5 * time.Second}
@@ -143,4 +164,6 @@ For GSI2 queries, use `DrinkTimeRangeQuery()` from `keys.go`. Note: `Timestamp` 
 
 **Single-table purges** — deleting a profile record does not delete drinks or custom beers. `ClearUserDataHandler` queries all items under the user's PK and batch-deletes them in chunks of 25 (DynamoDB batch limit).
 
-**`S3_BUCKET` in local dev** — in production this is injected by CDK automatically. For local dev, set it in `.env` to the `UploadsBucketName` value from your CDK deploy output. The bucket must exist before you can test custom beer uploads locally.
+**`S3_BUCKET` in local dev** — in production this is injected by CDK automatically. For local dev, set it in `.env` to the `UploadsBucketName` value from your CDK deploy output.
+
+**Profile is never written on GET** — `GetProfileHandler` returns defaults with `profileSetup: false` for new users but does NOT write to DynamoDB. Only `UpdateProfileHandler` creates the record.
