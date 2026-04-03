@@ -26,6 +26,7 @@ export const STORAGE_KEYS = {
   PROFILE_NOTICE_DISMISSED: "beeroclock_profile_notice_dismissed",
   OFFLINE_QUEUE: "beeroclock_offline_queue",
   HISTORY: "beeroclock_history",
+  LAST_BEER: "beeroclock_last_beer",
 } as const;
 
 export const API_ROUTES = {

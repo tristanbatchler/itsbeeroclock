@@ -7,6 +7,20 @@ import { DrinkSizeSelector } from "./DrinkSizeSelector";
 import { BeerSelector } from "./BeerSelector";
 import { BeerPlaceholder } from "./BeerPlaceholder";
 import { beerThumbUrl } from "../utils/image";
+import { STORAGE_KEYS } from "../lib/constants";
+
+function getLastBeer(): Beer | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_BEER);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLastBeer(beer: Beer) {
+  localStorage.setItem(STORAGE_KEYS.LAST_BEER, JSON.stringify(beer));
+}
 
 interface Props {
   onAdd: (drink: Drink) => void;
@@ -18,7 +32,7 @@ interface Props {
  * Calls onAdd with a fully-formed Drink once the user confirms.
  */
 export function DrinkLogger({ onAdd }: Props) {
-  const [selectedBeer, setSelectedBeer] = useState<Beer | null>(null);
+  const [selectedBeer, setSelectedBeer] = useState<Beer | null>(getLastBeer);
   const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -173,6 +187,7 @@ export function DrinkLogger({ onAdd }: Props) {
         <BeerSelector
           onSelect={(beer) => {
             setSelectedBeer(beer);
+            saveLastBeer(beer);
             setShowBeerSelector(false);
           }}
           onClose={() => setShowBeerSelector(false)}

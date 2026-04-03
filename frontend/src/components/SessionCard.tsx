@@ -4,6 +4,8 @@ import type { SessionArchive, Beer } from "../types/drinks";
 import { getDrinkDisplay } from "../utils/calculations";
 import { Card } from "./Card";
 import { BACGraph } from "./BACGraph";
+import { BeerPlaceholder } from "./BeerPlaceholder";
+import { beerThumbUrl } from "../utils/image";
 import { ErrorBoundary } from "./ErrorBoundary";
 
 interface SessionCardProps {
@@ -81,11 +83,25 @@ export function SessionCard({ archive, allBeers = [] }: SessionCardProps) {
         <div className="border-t border-border px-4 pb-4 pt-3 space-y-2">
           {archive.drinks.map((drink) => {
             const display = getDrinkDisplay(drink, allBeers);
+            const beer = allBeers.find((b) => b.id === drink.beerId);
             return (
               <div
                 key={drink.id}
-                className="flex items-center justify-between py-1"
+                className="flex items-center justify-between py-1 gap-3"
               >
+                <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden">
+                  {beer?.image
+                    ? <img
+                        src={beerThumbUrl(beer.image)}
+                        alt={beer.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => (e.currentTarget.style.display = "none")}
+                      />
+                    : beer
+                      ? <BeerPlaceholder beer={beer} />
+                      : null
+                  }
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm text-foreground leading-tight truncate">
                     {display.name}
@@ -94,7 +110,7 @@ export function SessionCard({ archive, allBeers = [] }: SessionCardProps) {
                     {display.size}
                   </div>
                 </div>
-                <div className="text-right shrink-0 ml-3">
+                <div className="text-right shrink-0">
                   <div className="font-bold text-lg text-foreground leading-none">
                     {display.standardDrinks.toFixed(1)}
                   </div>

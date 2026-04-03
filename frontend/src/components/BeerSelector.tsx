@@ -156,7 +156,6 @@ export function BeerSelector({ onSelect, onClose }: Props) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-12"
-            autoFocus
           />
         </div>
 
