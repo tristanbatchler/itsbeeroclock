@@ -1,5 +1,5 @@
 import { api } from "../lib/api";
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, Link } from "react-router-dom";
 import { saveUserProfile, getFavouriteIds } from "../utils/storage";
@@ -8,18 +8,14 @@ import { useBeerStore } from "../store/beerStore";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Input } from "../components/Input";
+import { InfoTooltip } from "../components/InfoTooltip";
 import "katex/dist/katex.min.css";
 import { Modal } from "../components/Modal";
 import { SignIn } from "./SignIn";
 import { STORAGE_KEYS } from "../lib/constants";
-import { HelpCircle } from "lucide-react";
-import { useClickOutside } from "../hooks/useClickOutside";
 import type { UserProfile } from "../types/drinks";
 
 // ── ProfileForm ───────────────────────────────────────────────────────────────
-// Extracted so the parent can pass `key={profile?.profileSetup ? 'loaded' : 'empty'}`
-// and remount with fresh initial values when the cloud profile arrives — no
-// useEffect setState needed.
 
 interface ProfileFormProps {
   initialProfile: UserProfile | null;
@@ -43,16 +39,6 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
   const [optInHistory, setOptInHistory] = useState(
     initialProfile?.optInHistory ?? true,
   );
-
-  const [showSexInfo, setShowSexInfo] = useState(false);
-  const sexInfoRef = useRef<HTMLDivElement>(null);
-  const closeSexInfo = useCallback(() => setShowSexInfo(false), []);
-  useClickOutside(sexInfoRef, closeSexInfo, showSexInfo);
-
-  const [showHistoryInfo, setShowHistoryInfo] = useState(false);
-  const historyInfoRef = useRef<HTMLDivElement>(null);
-  const closeHistoryInfo = useCallback(() => setShowHistoryInfo(false), []);
-  useClickOutside(historyInfoRef, closeHistoryInfo, showHistoryInfo);
 
   const handleSave = async () => {
     const weightNum = parseFloat(weight);
@@ -88,33 +74,20 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
       <div>
         <div className="flex items-center gap-1.5 mb-2">
           <label className="text-sm font-medium text-foreground">Sex</label>
-          <div className="relative" ref={sexInfoRef}>
-            <button
-              type="button"
-              onClick={() => setShowSexInfo((v) => !v)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Why do we ask for sex?"
-            >
-              <HelpCircle className="size-3.5" />
-            </button>
-            {showSexInfo && (
-              <div className="absolute left-0 top-6 z-10 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
-                <div className="absolute -top-1.5 left-2 size-3 rotate-45 border-l border-t border-border bg-card" />
-                <p>
-                  If you identify as a sex different from the one you were assigned at birth,
-                  choose the one that reflects your{" "}
-                  <strong className="text-foreground">current physiology</strong>. This gives
-                  us the most accurate BAC estimate.
-                </p>
-                <p className="mt-1.5">
-                  On <strong className="text-foreground">HRT?</strong> Select the option that
-                  aligns with your current hormonal profile. HRT shifts body composition over
-                  time, but please try and place yourself to one side for the purpose of the
-                  limited model. Thank you for understanding.
-                </p>
-              </div>
-            )}
-          </div>
+          <InfoTooltip label="Why do we ask for sex?">
+            <p>
+              If you identify as a sex different from the one you were assigned at birth,
+              choose the one that reflects your{" "}
+              <strong className="text-foreground">current physiology</strong>. This gives
+              us the most accurate BAC estimate.
+            </p>
+            <p className="mt-1.5">
+              On <strong className="text-foreground">HRT?</strong> Select the option that
+              aligns with your current hormonal profile. HRT shifts body composition over
+              time, but please try and place yourself to one side for the purpose of the
+              limited model. Thank you for understanding.
+            </p>
+          </InfoTooltip>
         </div>
         <div className="flex gap-4">
           {(["male", "female"] as const).map((g) => (
@@ -135,32 +108,17 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Weight (kg)</label>
-        <Input
-          type="number"
-          value={weight}
-          onChange={(e) => setWeight(e.target.value)}
-          placeholder="80"
-        />
+        <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="80" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Height (cm)</label>
-        <Input
-          type="number"
-          value={height}
-          onChange={(e) => setHeight(e.target.value)}
-          placeholder="175"
-        />
+        <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Age (years)</label>
-        <Input
-          type="number"
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
-          placeholder="35"
-        />
+        <Input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="35" />
       </div>
 
       <label className="flex items-center gap-3 cursor-pointer">
@@ -171,37 +129,23 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
           className="size-5 rounded border-border accent-primary"
         />
         <span className="text-sm text-foreground">Save my drinking history</span>
-        <div className="relative" ref={historyInfoRef}>
-          <button
-            type="button"
-            onClick={() => setShowHistoryInfo((v) => !v)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Why save drinking history?"
-          >
-            <HelpCircle className="size-3.5" />
-          </button>
-          {showHistoryInfo && (
-            <div className="absolute left-0 top-6 z-10 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-3 shadow-lg text-xs text-muted-foreground">
-              <div className="absolute -top-1.5 left-2 size-3 rotate-45 border-l border-t border-border bg-card" />
-              <p>
-                Keeping this on lets you review your past sessions in the{" "}
-                <strong className="text-foreground">History</strong> tab — useful for spotting
-                patterns over time.
-              </p>
-              <p className="mt-1.5">
-                Your data is stored securely and never sold. Read our{" "}
-                <Link
-                  to="/privacy"
-                  className="underline hover:text-info font-semibold text-foreground"
-                  onClick={() => setShowHistoryInfo(false)}
-                >
-                  Privacy Policy
-                </Link>{" "}
-                for the full details.
-              </p>
-            </div>
-          )}
-        </div>
+        <InfoTooltip label="Why save drinking history?">
+          <p>
+            Keeping this on lets you review your past sessions in the{" "}
+            <strong className="text-foreground">History</strong> tab — useful for spotting
+            patterns over time.
+          </p>
+          <p className="mt-1.5">
+            Your data is stored securely and never sold. Read our{" "}
+            <Link
+              to="/privacy"
+              className="underline hover:text-info font-semibold text-foreground"
+            >
+              Privacy Policy
+            </Link>{" "}
+            for the full details.
+          </p>
+        </InfoTooltip>
       </label>
 
       <Button onClick={handleSave} className="w-full mt-4">
@@ -266,7 +210,6 @@ export function Profile() {
           <p className="text-sm text-muted-foreground mb-6">
             Used to calculate accurate BAC estimates
           </p>
-          {/* key remounts the form with fresh initial values when the cloud profile loads */}
           <ProfileForm
             key={profile?.profileSetup ? "loaded" : "empty"}
             initialProfile={profile}
@@ -288,7 +231,6 @@ export function Profile() {
               composition, rather than relying on flat averages.
             </p>
             <p className="text-foreground font-medium">The calculation happens in three steps:</p>
-
             <div className="space-y-2">
               <p className="font-medium text-foreground">1. Total body water (TBW)</p>
               <p>
@@ -307,13 +249,11 @@ export function Profile() {
               <p>And all others have:</p>
               <div className="overflow-x-auto py-1"><Latex formula="tbwMale" /></div>
             </div>
-
             <div className="space-y-2">
               <p className="font-medium text-foreground">2. The alcohol jump</p>
               <p>
                 The alcohol jump is the exact spike in your blood alcohol as you consume a
-                drink. In Australia, one standard drink is defined as exactly 10 grams of
-                ethanol.
+                drink. In Australia, one standard drink is defined as exactly 10 grams of ethanol.
               </p>
               <p>
                 Because alcohol distributes itself evenly through all the water in your body,
@@ -324,7 +264,6 @@ export function Profile() {
               </p>
               <div className="overflow-x-auto py-1"><Latex formula="bacJump" /></div>
             </div>
-
             <div className="space-y-2">
               <p className="font-medium text-foreground">3. Metabolism</p>
               <p>
@@ -335,14 +274,11 @@ export function Profile() {
               </p>
               <p>
                 Your BAC at any given moment is just the sum of all the spikes from the drinks
-                you've logged, minus the steady amount your liver has cleared since your first
-                drink:
+                you've logged, minus the steady amount your liver has cleared since your first drink:
               </p>
               <div className="overflow-x-auto py-1"><Latex formula="bacNow" /></div>
             </div>
-
             <hr className="border-border" />
-
             <p className="text-xs italic">
               <strong className="not-italic text-foreground">Disclaimer:</strong> While Watson's
               formula is a highly regarded mathematical model, everybody is different. Factors
@@ -356,15 +292,15 @@ export function Profile() {
       )}
 
       {user && (
-      <Card className="p-6 border-destructive/30 bg-destructive/5">
-        <h3 className="text-lg font-bold text-destructive mb-2">Danger Zone</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Permanently delete all your data from this device and the cloud.
-        </p>
-        <Button variant="destructive" className="w-full" onClick={() => setShowPurgeModal(true)}>
-          Purge All Data
-        </Button>
-      </Card>
+        <Card className="p-6 border-destructive/30 bg-destructive/5">
+          <h3 className="text-lg font-bold text-destructive mb-2">Danger Zone</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Permanently delete all your data from this device and the cloud.
+          </p>
+          <Button variant="destructive" className="w-full" onClick={() => setShowPurgeModal(true)}>
+            Purge All Data
+          </Button>
+        </Card>
       )}
 
       <Modal isOpen={showPurgeModal} onClose={() => setShowPurgeModal(false)} title="Purge All Data?">
