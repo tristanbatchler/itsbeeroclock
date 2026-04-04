@@ -53,7 +53,7 @@ export function Root() {
               <Link to="/" className="flex items-center gap-3">
                 <div className="bg-primary/10 backdrop-blur-sm p-2 rounded-2xl">
                   <img
-                    src="/favicon.png"
+                    src="/logo.png"
                     alt="Logo"
                     className="w-8 h-8 rounded-xl"
                   />
