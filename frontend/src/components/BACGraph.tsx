@@ -8,8 +8,8 @@ interface BACGraphProps {
 }
 
 const VIEW_W = 600;
-const VIEW_H = 200;
-const PAD = { top: 10, right: 10, bottom: 24, left: 40 };
+const VIEW_H = 220;
+const PAD = { top: 20, right: 16, bottom: 30, left: 48 };
 const PLOT_W = VIEW_W - PAD.left - PAD.right;
 const PLOT_H = VIEW_H - PAD.top - PAD.bottom;
 
@@ -20,6 +20,11 @@ function xScale(t: number, startTime: number, endTime: number): number {
 
 function yScale(bac: number, maxY: number): number {
   return PAD.top + PLOT_H - (bac / maxY) * PLOT_H;
+}
+
+/** Build a polyline points string from an array of [x, y] pairs. */
+function buildPoints(pts: [number, number][]): string {
+  return pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 }
 
 export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphProps) {
@@ -48,7 +53,10 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
   }
 
   const maxBAC = Math.max(...snapshots.map((s) => s.bac));
-  const maxY = Math.max(0.15, maxBAC * 1.2);
+  // Y-max: at least the legal limit (0.05), or peak + 25% padding — whichever is higher
+  const rawMax = Math.max(0.05, maxBAC * 1.25);
+  // Round up to nearest 0.05 so ticks land cleanly
+  const maxY = Math.ceil(rawMax / 0.05) * 0.05;
 
   // Y-axis ticks at 0.05 intervals
   const yTicks: number[] = [];
@@ -66,16 +74,21 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
   // Peak snapshot
   const peakSnap = snapshots.reduce((best, s) => (s.bac > best.bac ? s : best), snapshots[0]);
 
-  // Line path
-  const points = snapshots
-    .map((s) => `${xScale(s.timestamp, startTime, endTime).toFixed(1)},${yScale(s.bac, maxY).toFixed(1)}`)
-    .join(" ");
+  // Polyline points
+  const pts: [number, number][] = snapshots.map((s) => [
+    xScale(s.timestamp, startTime, endTime),
+    yScale(s.bac, maxY),
+  ]);
+  const points = buildPoints(pts);
 
   // Reference line y = 0.05
   const refY = yScale(0.05, maxY);
 
   const peakX = xScale(peakSnap.timestamp, startTime, endTime);
   const peakY = yScale(peakSnap.bac, maxY);
+
+  // Clamp peak label so it doesn't clip at the top
+  const peakLabelY = Math.max(PAD.top + 10, peakY - 8);
 
   return (
     <svg
@@ -90,12 +103,12 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
         return (
           <g key={v}>
             <text
-              x={PAD.left - 4}
+              x={PAD.left - 6}
               y={y}
               textAnchor="end"
               dominantBaseline="middle"
               fill="var(--color-muted-foreground)"
-              fontSize="9"
+              fontSize="11"
             >
               {v.toFixed(2)}
             </text>
@@ -110,10 +123,10 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
           <text
             key={h}
             x={x}
-            y={VIEW_H - PAD.bottom + 12}
+            y={VIEW_H - PAD.bottom + 16}
             textAnchor="middle"
             fill="var(--color-muted-foreground)"
-            fontSize="9"
+            fontSize="11"
           >
             {h}h
           </text>
@@ -127,15 +140,15 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
         x2={VIEW_W - PAD.right}
         y2={refY}
         stroke="var(--color-muted-foreground)"
-        strokeWidth="1"
-        strokeDasharray="4 3"
+        strokeWidth="1.5"
+        strokeDasharray="5 4"
       />
       <text
-        x={VIEW_W - PAD.right - 2}
-        y={refY - 3}
+        x={VIEW_W - PAD.right - 4}
+        y={refY - 5}
         textAnchor="end"
         fill="var(--color-muted-foreground)"
-        fontSize="8"
+        fontSize="10"
       >
         0.05 limit
       </text>
@@ -145,19 +158,21 @@ export function BACGraph({ snapshots, startTime, endTime, className }: BACGraphP
         points={points}
         fill="none"
         stroke="var(--color-info)"
-        strokeWidth="2"
+        strokeWidth="3"
         strokeLinejoin="round"
         strokeLinecap="round"
       />
 
-      {/* Peak annotation */}
-      <circle cx={peakX} cy={peakY} r="3" fill="var(--color-info)" />
+      {/* Peak dot */}
+      <circle cx={peakX} cy={peakY} r="4" fill="var(--color-info)" />
+
+      {/* Peak label */}
       <text
         x={peakX}
-        y={peakY - 6}
+        y={peakLabelY}
         textAnchor="middle"
         fill="var(--color-foreground)"
-        fontSize="9"
+        fontSize="12"
         fontWeight="bold"
       >
         {peakSnap.bac.toFixed(2)}
