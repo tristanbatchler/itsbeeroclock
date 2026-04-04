@@ -32,12 +32,12 @@ export function BACCard({ bacData }: Props) {
             <p className={`font-bold text-lg ${safe ? "text-success" : "text-destructive"}`}>
               {bacData.hasValidData
                 ? bacData.canDrive
-                  ? "Use a breathalyser before driving"
+                  ? "Breathalyser encouraged"
                   : "Do NOT drive"
                 : "Cannot calculate BAC (missing drink data)"}
             </p>
             {safe && (
-              <InfoTooltip label="More information about this estimate">
+              <InfoTooltip label="More information about this estimate" className="text-success/60 hover:text-success">
                 <p>
                   Based on what you've logged, your estimated BAC is below the legal limit.
                   However, this is a <strong className="text-foreground">mathematical estimate</strong>.

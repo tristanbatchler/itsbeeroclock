@@ -4,13 +4,14 @@ import { useState } from "react";
 interface InfoTooltipProps {
   children: React.ReactNode;
   label?: string;
+  className?: string;
 }
 
 /**
  * A ? button that opens a centered bottom-sheet style popup.
  * Avoids all overflow issues by not using absolute positioning.
  */
-export function InfoTooltip({ children, label = "More information" }: InfoTooltipProps) {
+export function InfoTooltip({ children, label = "More information", className }: InfoTooltipProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,7 +19,7 @@ export function InfoTooltip({ children, label = "More information" }: InfoToolti
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-muted-foreground hover:text-foreground transition-colors"
+        className={`transition-colors ${className ?? "text-muted-foreground hover:text-foreground"}`}
         aria-label={label}
       >
         <HelpCircle className="size-3.5" />

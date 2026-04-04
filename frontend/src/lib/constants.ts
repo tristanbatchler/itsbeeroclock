@@ -27,6 +27,8 @@ export const STORAGE_KEYS = {
   OFFLINE_QUEUE: "beeroclock_offline_queue",
   HISTORY: "beeroclock_history",
   LAST_BEER: "beeroclock_last_beer",
+  LAST_SIZE: "beeroclock_last_size",
+  DRINK_MODE: "beeroclock_drink_mode",
 } as const;
 
 export const API_ROUTES = {

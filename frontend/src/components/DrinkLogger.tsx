@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Plus, AlertTriangle, CheckCircle2, ChevronRight, Search, ChevronDown } from "lucide-react";
+import { Plus, AlertTriangle, CheckCircle2, ChevronRight, Search, ChevronDown, Beer as BeerIcon, Home } from "lucide-react";
 import { type Beer, type Drink, type DrinkSize } from "../types/drinks";
 import { Button } from "./Button";
 import { Card } from "./Card";
-import { DrinkSizeSelector } from "./DrinkSizeSelector";
+import { DrinkSizeSelector, type DrinkMode, PUB_SIZES, HOME_SIZES } from "./DrinkSizeSelector";
 import { BeerSelector } from "./BeerSelector";
 import { BeerPlaceholder } from "./BeerPlaceholder";
 import { beerThumbUrl } from "../utils/image";
@@ -18,8 +18,33 @@ function getLastBeer(): Beer | null {
   }
 }
 
+function getLastSize(): DrinkSize | null {
+  try {
+    return (localStorage.getItem(STORAGE_KEYS.LAST_SIZE) as DrinkSize) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function getLastMode(): DrinkMode {
+  try {
+    const m = localStorage.getItem(STORAGE_KEYS.DRINK_MODE);
+    return m === "home" ? "home" : "pub";
+  } catch {
+    return "pub";
+  }
+}
+
 function saveLastBeer(beer: Beer) {
   localStorage.setItem(STORAGE_KEYS.LAST_BEER, JSON.stringify(beer));
+}
+
+function saveLastSize(size: DrinkSize) {
+  localStorage.setItem(STORAGE_KEYS.LAST_SIZE, size);
+}
+
+function saveMode(mode: DrinkMode) {
+  localStorage.setItem(STORAGE_KEYS.DRINK_MODE, mode);
 }
 
 interface Props {
@@ -27,14 +52,15 @@ interface Props {
   drinkLogRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-/**
- * Self-contained drink logging card.
- * Owns beer/size selection, validation feedback, and the submit action.
- * Calls onAdd with a fully-formed Drink once the user confirms.
- */
 export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
+  const [mode, setMode] = useState<DrinkMode>(getLastMode);
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(getLastBeer);
-  const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
+  const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(() => {
+    const last = getLastSize();
+    // Only restore if the size belongs to the current mode's set
+    const validSizes = getLastMode() === "pub" ? PUB_SIZES : HOME_SIZES;
+    return last && validSizes.includes(last) ? last : null;
+  });
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [showScrollNudge, setShowScrollNudge] = useState(false);
@@ -42,15 +68,21 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
 
+  // When mode changes, clear the selected size if it doesn't belong to the new mode
+  const handleModeChange = (newMode: DrinkMode) => {
+    setMode(newMode);
+    saveMode(newMode);
+    const validSizes = newMode === "pub" ? PUB_SIZES : HOME_SIZES;
+    if (selectedSize && !validSizes.includes(selectedSize)) {
+      setSelectedSize(null);
+    }
+  };
+
   useEffect(() => {
     if (!showScrollNudge) return;
-
-    const dismissNudge = () => setShowScrollNudge(false);
-    window.addEventListener("scroll", dismissNudge, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", dismissNudge);
-    };
+    const dismiss = () => setShowScrollNudge(false);
+    window.addEventListener("scroll", dismiss, { passive: true });
+    return () => window.removeEventListener("scroll", dismiss);
   }, [showScrollNudge]);
 
   let currentError = "";
@@ -63,14 +95,8 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
   const handleSubmit = () => {
     if (!selectedBeer || !selectedSize) {
       setHasAttemptedSubmit(true);
-      if (!selectedBeer) {
-        setShakeBeer(true);
-        setTimeout(() => setShakeBeer(false), 500);
-      }
-      if (!selectedSize) {
-        setShakeSize(true);
-        setTimeout(() => setShakeSize(false), 500);
-      }
+      if (!selectedBeer) { setShakeBeer(true); setTimeout(() => setShakeBeer(false), 500); }
+      if (!selectedSize) { setShakeSize(true); setTimeout(() => setShakeSize(false), 500); }
       return;
     }
 
@@ -90,6 +116,32 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
   return (
     <>
       <Card className="p-6 bg-card shadow-xl border-2">
+        {/* Mode toggle — segmented control */}
+        <div className="flex gap-1 mb-5 bg-muted/40 p-1 rounded-2xl border border-border/50 shadow-inner">
+          <button
+            onClick={() => handleModeChange("pub")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+              mode === "pub"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            }`}
+          >
+            <BeerIcon className="size-4" strokeWidth={2.5} />
+            At the pub
+          </button>
+          <button
+            onClick={() => handleModeChange("home")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+              mode === "home"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            }`}
+          >
+            <Home className="size-4" strokeWidth={2.5} />
+            At home
+          </button>
+        </div>
+
         <div className="mb-6">
           <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide">
             What are you drinking?
@@ -107,19 +159,11 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
           >
             {!selectedBeer ? (
               <div className="flex items-center gap-4 w-full py-2">
-                <div
-                  className={`p-3 rounded-xl shadow-sm transition-colors ${
-                    shakeBeer ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"
-                  }`}
-                >
+                <div className={`p-3 rounded-xl shadow-sm transition-colors ${shakeBeer ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
                   <Search className="size-6" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p
-                    className={`font-black text-lg uppercase tracking-tight leading-none ${
-                      shakeBeer ? "text-destructive dark:text-destructive" : "text-foreground"
-                    }`}
-                  >
+                  <p className={`font-black text-lg uppercase tracking-tight leading-none ${shakeBeer ? "text-destructive dark:text-destructive" : "text-foreground"}`}>
                     Choose your beer
                   </p>
                   <p className="text-sm text-muted-foreground mt-1 font-medium">
@@ -131,30 +175,17 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
               <>
                 <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden">
                   {selectedBeer.image
-                    ? <img
-                        src={beerThumbUrl(selectedBeer.image)}
-                        alt={selectedBeer.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => (e.currentTarget.style.display = "none")}
-                      />
+                    ? <img src={beerThumbUrl(selectedBeer.image)} alt={selectedBeer.name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = "none")} />
                     : <BeerPlaceholder beer={selectedBeer} />
                   }
                 </div>
                 <div className="flex-1 px-4 border-r border-border/50">
-                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
-                    {selectedBeer.name}
-                  </h3>
-                  {selectedBeer.brewery && (
-                    <p className="text-sm text-muted-foreground mt-0.5">{selectedBeer.brewery}</p>
-                  )}
-                  <p className="text-xs font-black text-primary mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md tracking-wide">
-                    {selectedBeer.abv}% ABV
-                  </p>
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-tight">{selectedBeer.name}</h3>
+                  {selectedBeer.brewery && <p className="text-sm text-muted-foreground mt-0.5">{selectedBeer.brewery}</p>}
+                  <p className="text-xs font-black text-primary mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md tracking-wide">{selectedBeer.abv}% ABV</p>
                 </div>
                 <div className="bg-muted group-hover:bg-primary/10 px-3 py-2.5 rounded-xl transition-colors ml-4 shrink-0 flex items-center gap-1 border border-border group-hover:border-primary/60">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">
-                    Change
-                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-primary">Change</span>
                   <ChevronRight className="size-3 text-muted-foreground group-hover:text-primary" strokeWidth={3} />
                 </div>
               </>
@@ -166,12 +197,15 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
           <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wide">
             What size?
           </p>
-          <div
-            className={`transition-all rounded-2xl ${
-              shakeSize ? "animate-shake ring-2 ring-destructive ring-offset-2 ring-offset-card" : ""
-            }`}
-          >
-            <DrinkSizeSelector selectedSize={selectedSize} onSelectSize={setSelectedSize} />
+          <div className={`transition-all rounded-2xl ${shakeSize ? "animate-shake ring-2 ring-destructive ring-offset-2 ring-offset-card" : ""}`}>
+            <DrinkSizeSelector
+              selectedSize={selectedSize}
+              onSelectSize={(size) => {
+                setSelectedSize(size);
+                saveLastSize(size);
+              }}
+              mode={mode}
+            />
           </div>
         </div>
 
@@ -184,16 +218,11 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
           )}
         </div>
 
-        <Button
-          onClick={handleSubmit}
-          className="w-full h-16 text-lg shadow-xl hover:shadow-2xl transition-all"
-          size="lg"
-        >
-          {justAdded ? (
-            <><CheckCircle2 className="size-6 mr-2" strokeWidth={3} /> Logged!</>
-          ) : (
-            <><Plus className="size-6 mr-2" strokeWidth={3} /> Log Drink</>
-          )}
+        <Button onClick={handleSubmit} className="w-full h-16 text-lg shadow-xl hover:shadow-2xl transition-all" size="lg">
+          {justAdded
+            ? <><CheckCircle2 className="size-6 mr-2" strokeWidth={3} /> Logged!</>
+            : <><Plus className="size-6 mr-2" strokeWidth={3} /> Log Drink</>
+          }
         </Button>
 
         {showScrollNudge && (
