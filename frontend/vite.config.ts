@@ -9,12 +9,14 @@ import fs from "fs";
 export default defineConfig(({ mode }) => {
   const rootDir = path.resolve(__dirname, "..");
 
-  // Mirror the CDK env loading: prefer .env.prod over .env.
-  // loadEnv only knows about .env.{mode} — it won't pick up .env.prod automatically.
+  // Only prefer .env.prod over .env during production builds.
+  // Local dev (mode !== 'production') always uses .env so the test Turnstile
+  // key and localhost settings are active.
   const prodEnvPath = path.join(rootDir, ".env.prod");
-  const envFilePath = fs.existsSync(prodEnvPath)
-    ? prodEnvPath
-    : path.join(rootDir, ".env");
+  const envFilePath =
+    mode === "production" && fs.existsSync(prodEnvPath)
+      ? prodEnvPath
+      : path.join(rootDir, ".env");
 
   // Parse the chosen env file and merge into process.env so loadEnv picks it up.
   const fileContents = fs.existsSync(envFilePath)

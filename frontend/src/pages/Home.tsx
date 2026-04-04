@@ -6,6 +6,7 @@ import { useCloudSync } from "../hooks/useCloudSync";
 import { useDrinkActions } from "../hooks/useDrinkActions";
 import { useBeerStore } from "../store/beerStore";
 import { useSessionChecker } from "../hooks/useSessionChecker";
+import { useRef } from "react";
 
 import { Card } from "../components/Card";
 import { DrinkLog } from "../components/DrinkLog";
@@ -36,6 +37,7 @@ export function Home() {
   const { snapshots, startTime, endTime } = useBACGraph(drinks, allBeers, profile);
 
   const profileReady = !!profile?.profileSetup;
+  const drinkLogRef = useRef<HTMLDivElement>(null);
 
   if (!beersLoading && allBeers.length === 0 && (isApiDown || !isOnline)) {
     return (
@@ -66,7 +68,7 @@ export function Home() {
         </ErrorBoundary>
       )}
 
-      <DrinkLogger onAdd={handleAddDrink} />
+      <DrinkLogger onAdd={handleAddDrink} drinkLogRef={drinkLogRef} />
 
       {drinks.length > 0 && (
         <BACStats bacData={bacData} showBAC={profileReady} />
@@ -74,14 +76,16 @@ export function Home() {
 
       {drinks.length > 0 && (
         <ErrorBoundary>
-          <DrinkLog
-            drinks={drinks}
-            allBeers={allBeers}
-            onUndo={handleUndoLast}
-            onRemoveDrink={handleRemoveDrink}
-            onClear={handleClearSession}
-            onRepeat={handleRepeatDrink}
-          />
+          <div ref={drinkLogRef}>
+            <DrinkLog
+              drinks={drinks}
+              allBeers={allBeers}
+              onUndo={handleUndoLast}
+              onRemoveDrink={handleRemoveDrink}
+              onClear={handleClearSession}
+              onRepeat={handleRepeatDrink}
+            />
+          </div>
         </ErrorBoundary>
       )}
 

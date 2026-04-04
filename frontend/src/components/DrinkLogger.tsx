@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, AlertTriangle, CheckCircle2, ChevronRight, Search } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, AlertTriangle, CheckCircle2, ChevronRight, Search, ChevronDown } from "lucide-react";
 import { type Beer, type Drink, type DrinkSize } from "../types/drinks";
 import { Button } from "./Button";
 import { Card } from "./Card";
@@ -24,6 +24,7 @@ function saveLastBeer(beer: Beer) {
 
 interface Props {
   onAdd: (drink: Drink) => void;
+  drinkLogRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -31,11 +32,12 @@ interface Props {
  * Owns beer/size selection, validation feedback, and the submit action.
  * Calls onAdd with a fully-formed Drink once the user confirms.
  */
-export function DrinkLogger({ onAdd }: Props) {
+export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
   const [selectedBeer, setSelectedBeer] = useState<Beer | null>(getLastBeer);
   const [selectedSize, setSelectedSize] = useState<DrinkSize | null>(null);
   const [showBeerSelector, setShowBeerSelector] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const [showScrollNudge, setShowScrollNudge] = useState(false);
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
@@ -70,7 +72,12 @@ export function DrinkLogger({ onAdd }: Props) {
     };
     onAdd(drink);
     setJustAdded(true);
+    setShowScrollNudge(true);
     setTimeout(() => setJustAdded(false), 750);
+    setTimeout(() => {
+      drinkLogRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setShowScrollNudge(false);
+    }, 1200);
   };
 
   return (
@@ -181,6 +188,19 @@ export function DrinkLogger({ onAdd }: Props) {
             <><Plus className="size-6 mr-2" strokeWidth={3} /> Log Drink</>
           )}
         </Button>
+
+        {showScrollNudge && (
+          <button
+            onClick={() => {
+              drinkLogRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              setShowScrollNudge(false);
+            }}
+            className="w-full mt-3 flex flex-col items-center gap-1 text-sm text-muted-foreground animate-fade-in"
+          >
+            <span className="font-medium">Drink logged — see it below</span>
+            <ChevronDown className="size-5 animate-bounce" />
+          </button>
+        )}
       </Card>
 
       {showBeerSelector && (

@@ -38,7 +38,7 @@ export function AppMenu() {
   useEscapeKey(() => setOpen(false), open);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       <button
         className={`p-2 rounded-full bg-muted/60 hover:bg-muted transition-all duration-300 ${open ? "rotate-90" : "rotate-0"}`}
         aria-label={open ? "Close menu" : "Open menu"}
@@ -47,7 +47,6 @@ export function AppMenu() {
         {open ? <XIcon className="size-6 text-foreground" /> : <MenuIcon className="size-6 text-foreground" />}
       </button>
       <div
-        ref={menuRef}
         className={`absolute right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl py-2 px-4 z-50 min-w-40 flex flex-col gap-2 transition-all duration-200 origin-top-right ${open ? "scale-100 opacity-100 pointer-events-auto" : "scale-95 opacity-0 pointer-events-none"}`}
         style={{ top: "100%" }}
       >

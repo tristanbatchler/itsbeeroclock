@@ -10,6 +10,7 @@ import { Card } from "../components/Card";
 import { Input } from "../components/Input";
 import { Camera, LogIn, ShieldAlert } from "lucide-react";
 import type { Beer } from "../types/drinks";
+import { STORAGE_KEYS } from "../lib/constants";
 
 export function AddBeer() {
   const navigate = useNavigate();
@@ -67,6 +68,8 @@ export function AddBeer() {
     }
 
     setSaving(false);
+    // Pre-select the new beer in the drink logger on return
+    localStorage.setItem(STORAGE_KEYS.LAST_BEER, JSON.stringify(newBeer));
     navigate("/");
   };
 

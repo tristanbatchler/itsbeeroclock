@@ -13,6 +13,7 @@ import "katex/dist/katex.min.css";
 import { Modal } from "../components/Modal";
 import { SignIn } from "./SignIn";
 import { STORAGE_KEYS } from "../lib/constants";
+import { CheckCircle2 } from "lucide-react";
 import type { UserProfile } from "../types/drinks";
 
 // ── ProfileForm ───────────────────────────────────────────────────────────────
@@ -39,14 +40,25 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
   const [optInHistory, setOptInHistory] = useState(
     initialProfile?.optInHistory ?? true,
   );
+  const [shakeWeight, setShakeWeight] = useState(false);
+  const [shakeHeight, setShakeHeight] = useState(false);
+  const [shakeAge, setShakeAge] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const shake = (setter: (v: boolean) => void) => {
+    setter(true);
+    setTimeout(() => setter(false), 500);
+  };
 
   const handleSave = async () => {
     const weightNum = parseFloat(weight);
     const heightNum = parseFloat(height);
     const ageNum = parseInt(age, 10);
-    if (isNaN(weightNum) || weightNum <= 0) return;
-    if (isNaN(heightNum) || heightNum <= 0) return;
-    if (isNaN(ageNum) || ageNum <= 0) return;
+    let invalid = false;
+    if (isNaN(weightNum) || weightNum <= 0) { shake(setShakeWeight); invalid = true; }
+    if (isNaN(heightNum) || heightNum <= 0) { shake(setShakeHeight); invalid = true; }
+    if (isNaN(ageNum) || ageNum <= 0) { shake(setShakeAge); invalid = true; }
+    if (invalid) return;
 
     const updated: UserProfile = {
       sex,
@@ -59,6 +71,8 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
     };
 
     onSave(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
 
     if (user) {
       try {
@@ -108,17 +122,20 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Weight (kg)</label>
-        <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="80" />
+        <Input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="80"
+          className={shakeWeight ? "animate-shake ring-2 ring-destructive" : ""} />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Height (cm)</label>
-        <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175" />
+        <Input type="number" value={height} onChange={(e) => setHeight(e.target.value)} placeholder="175"
+          className={shakeHeight ? "animate-shake ring-2 ring-destructive" : ""} />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-foreground mb-2">Age (years)</label>
-        <Input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="35" />
+        <Input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="35"
+          className={shakeAge ? "animate-shake ring-2 ring-destructive" : ""} />
       </div>
 
       <label className="flex items-center gap-3 cursor-pointer">
@@ -149,7 +166,7 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
       </label>
 
       <Button onClick={handleSave} className="w-full mt-4">
-        Save Profile
+        {saved ? <><CheckCircle2 className="size-4 mr-2" /> Saved!</> : "Save Profile"}
       </Button>
     </div>
   );
