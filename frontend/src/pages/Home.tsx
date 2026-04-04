@@ -79,21 +79,26 @@ export function Home() {
 
       {user && profile && !profile.profileSetup && <ProfileNotice variant="incomplete" />}
 
-      <DrinkLogger onAdd={handleAddDrink} drinkLogRef={drinkLogRef} />
-
       {showDrinkUI && (
         <div
           className="space-y-6"
-          style={{
-            transition: "opacity 0.3s ease-out",
-            opacity: fadingOut ? 0 : 1,
-          }}
+          style={{ transition: "opacity 0.3s ease-out", opacity: fadingOut ? 0 : 1 }}
         >
           {profileReady && (
             <ErrorBoundary>
               <BACCard bacData={bacData} />
             </ErrorBoundary>
           )}
+        </div>
+      )}
+
+      <DrinkLogger onAdd={handleAddDrink} drinkLogRef={drinkLogRef} />
+
+      {showDrinkUI && (
+        <div
+          className="space-y-6"
+          style={{ transition: "opacity 0.3s ease-out", opacity: fadingOut ? 0 : 1 }}
+        >
 
           <BACStats bacData={bacData} showBAC={profileReady} />
 

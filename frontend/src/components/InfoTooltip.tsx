@@ -37,10 +37,10 @@ export function InfoTooltip({ children, label = "More information" }: InfoToolti
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="group p-1 rounded-lg text-muted-foreground hover:bg-destructive/10 transition-colors"
                 aria-label="Close"
               >
-                <X className="size-4" />
+                <X className="size-4 group-hover:text-destructive group-hover:scale-110 group-hover:rotate-90 transition-all duration-200" />
               </button>
             </div>
             {children}

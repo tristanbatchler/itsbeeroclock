@@ -15,8 +15,9 @@ export function CancelButton({
       size="icon"
       onClick={onClick}
       title={title}
+      className={`group ${props.className ?? ""}`}
     >
-      <X className="size-4 text-muted-foreground hover:text-destructive hover:scale-110 hover:rotate-90 transition-all duration-200" />
+      <X className="size-4 text-muted-foreground group-hover:text-destructive group-hover:scale-110 group-hover:rotate-90 transition-all duration-200" />
     </Button>
   );
 }
