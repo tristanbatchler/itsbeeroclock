@@ -59,8 +59,7 @@ export function useCloudSync({
   // Retry is handled naturally by the user going offline then online again,
   // which resets hasHydratedRef via the effect above.
   useEffect(() => {
-    if (!isOnline || !user || !profile?.optInHistory || hasHydratedRef.current)
-      return;
+    if (!isOnline || !user || hasHydratedRef.current) return;
 
     const hydrateAndFlush = async () => {
       hasHydratedRef.current = true;
@@ -69,19 +68,19 @@ export function useCloudSync({
 
         const serverDrinks = (await api.getDrinks()) || [];
 
-        // Filter out drinks from already-archived sessions
+        // Filter out drinks from already-archived sessions.
+        // This applies to BOTH server drinks and local-only drinks — without
+        // filtering localOnly, stale drinks from localStorage bypass the check.
         const history = getHistory();
         const latestArchive = history.length > 0 ? history[0] : null;
-        const currentServerDrinks = latestArchive
-          ? serverDrinks.filter(
-              (d: Drink) => d.timestamp > latestArchive.endTimestamp,
-            )
-          : serverDrinks;
+        const isCurrentDrink = (d: Drink) =>
+          !latestArchive || d.timestamp > latestArchive.endTimestamp;
 
+        const currentServerDrinks = serverDrinks.filter(isCurrentDrink);
         const serverIds = new Set(currentServerDrinks.map((d: Drink) => d.id));
-        // Capture drinks via closure — safe here because we only read it once
-        // at hydration time, not on every change.
-        const localOnly = drinks.filter((d) => !serverIds.has(d.id));
+        const localOnly = drinks.filter(
+          (d) => !serverIds.has(d.id) && isCurrentDrink(d),
+        );
 
         const serverCustomBeers = (await api.getCustomBeers()) || [];
         const localCustomIds = new Set(getCustomBeers().map((b) => b.id));

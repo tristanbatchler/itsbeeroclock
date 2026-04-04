@@ -41,29 +41,33 @@ export function AddBeer() {
       name: name.trim(),
       brewery: brewery.trim() || "Custom",
       abv: parseFloat(abv),
-      // Store the local base64 thumbnail so the beer renders correctly offline.
-      // If cloud sync succeeds below, state is updated with the S3 URL.
       image: thumbnail,
       isCustom: true,
     };
 
+    // Save locally first so it's available immediately offline
     saveCustomBeer(newBeer);
     addBeersToStore([newBeer]);
-    navigate("/");
 
-    // Cloud sync is fire-and-forget after navigation. On success, swap the local
-    // base64 image for the permanent S3 URL so subsequent renders use the CDN.
     if (user) {
-      api.addCustomBeer(newBeer)
-        .then((saved) => {
-          if (saved.image && saved.image !== newBeer.image) {
-            // Persist the S3 URL to localStorage so other devices get it on sync
-            saveCustomBeer(saved);
-            addBeersToStore([saved]);
-          }
-        })
-        .catch((err) => console.error("Failed to sync custom beer to cloud:", err));
+      try {
+        const saved = await api.addCustomBeer(newBeer);
+        // Swap local base64 for the permanent S3 URL if the upload succeeded
+        if (saved.image && saved.image !== newBeer.image) {
+          saveCustomBeer(saved);
+          addBeersToStore([saved]);
+        }
+      } catch (err: unknown) {
+        // NETWORK_ERROR_QUEUED means it's in the offline queue — that's fine.
+        // Any other error is a real failure worth logging.
+        if (err instanceof Error && err.message !== "NETWORK_ERROR_QUEUED") {
+          console.error("Failed to sync custom beer to cloud:", err);
+        }
+      }
     }
+
+    setSaving(false);
+    navigate("/");
   };
 
   if (loading) {
