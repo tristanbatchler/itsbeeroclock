@@ -43,6 +43,10 @@ ClearUserDataHandler queries all items under the user's PK and batch-deletes the
 The 25-item DynamoDB batch limit requires chunking — see ClearUserDataHandler for
 the implementation.
 
+The frontend purge (`handlePurge` in Profile.tsx) calls `localStorage.clear()` before
+signing out — not after. This prevents auth state change handlers from writing keys back
+between the clear and the navigation.
+
 ## CORS in local dev
 
 cmd/local/main.go reads CORS_ORIGIN from .env and defaults to http://localhost:5173.
@@ -125,3 +129,23 @@ a valid client-side parameter and will throw a TurnstileError.
 The OTP digit count is configured in Supabase Dashboard → Auth → Providers → Email → Email OTP
 length. The frontend OTP input is hardcoded to 6 cells. These must match. Default was 8 — it
 was changed to 6.
+
+## Turnstile test keys
+
+For local dev, both the site key and secret key must be set to Cloudflare's test pair — using
+the real site key on localhost causes error 110200 (hostname not allowed), and using the real
+secret key with the test site key causes `invalid-input-response` (the dummy token is rejected).
+
+`.env` (local dev):
+
+```
+CF_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+```
+
+`.env.prod` (production):
+
+```
+CF_TURNSTILE_SITE_KEY=<real site key from Cloudflare dashboard>
+CF_TURNSTILE_SECRET_KEY=<real secret key from Cloudflare dashboard>
+```

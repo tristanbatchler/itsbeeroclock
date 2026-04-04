@@ -12,8 +12,7 @@ import { InfoTooltip } from "../components/InfoTooltip";
 import "katex/dist/katex.min.css";
 import { Modal } from "../components/Modal";
 import { SignIn } from "./SignIn";
-import { STORAGE_KEYS } from "../lib/constants";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Beer as BeerIcon } from "lucide-react";
 import type { UserProfile } from "../types/drinks";
 
 // ── ProfileForm ───────────────────────────────────────────────────────────────
@@ -180,27 +179,34 @@ export function Profile() {
   const profile = useBeerStore((s) => s.profile);
   const setProfile = useBeerStore((s) => s.setProfile);
   const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [showFirstSaveNotice, setShowFirstSaveNotice] = useState(false);
 
   const handleSave = (updated: UserProfile) => {
+    const isFirstSetup = !profile?.profileSetup;
     setProfile(updated);
     saveUserProfile(updated);
-    navigate("/profile");
+    if (isFirstSetup) setShowFirstSaveNotice(true);
   };
 
   const handlePurge = async () => {
+    // Clear cloud data first
     if (user) {
       try {
         await api.clearUserData();
       } catch (err) {
         console.error("Failed to purge backend data", err);
       }
+    }
+    // Wipe localStorage before signing out so auth state change handlers
+    // can't write anything back between the clear and the navigation.
+    localStorage.clear();
+    if (user) {
       try {
         await signOut();
       } catch (err) {
         console.error("Sign out failed", err);
       }
     }
-    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
     window.location.href = "/";
   };
 
@@ -214,6 +220,33 @@ export function Profile() {
 
   return (
     <div className="space-y-6">
+      {showFirstSaveNotice && (
+        <div className="rounded-2xl border border-success/40 bg-success/10 p-5 flex items-start gap-3 animate-fade-in">
+          <div className="bg-success p-2 rounded-xl shrink-0">
+            <BeerIcon className="size-5 text-success-foreground" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-foreground mb-1">You're all set!</p>
+            <p className="text-sm text-muted-foreground mb-3">
+              Your profile is saved. Head to the tracker to start logging drinks and see your BAC estimates.
+            </p>
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm font-bold text-success underline underline-offset-2"
+            >
+              Go to tracker →
+            </button>
+          </div>
+          <button
+            onClick={() => setShowFirstSaveNotice(false)}
+            className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none shrink-0"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {!user ? (
         <SignIn />
       ) : (

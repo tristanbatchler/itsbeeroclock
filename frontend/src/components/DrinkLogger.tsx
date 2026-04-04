@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Plus, AlertTriangle, CheckCircle2, ChevronRight, Search, ChevronDown } from "lucide-react";
 import { type Beer, type Drink, type DrinkSize } from "../types/drinks";
 import { Button } from "./Button";
@@ -42,6 +42,17 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
   const [shakeBeer, setShakeBeer] = useState(false);
   const [shakeSize, setShakeSize] = useState(false);
 
+  useEffect(() => {
+    if (!showScrollNudge) return;
+
+    const dismissNudge = () => setShowScrollNudge(false);
+    window.addEventListener("scroll", dismissNudge, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", dismissNudge);
+    };
+  }, [showScrollNudge]);
+
   let currentError = "";
   if (hasAttemptedSubmit) {
     if (!selectedBeer && !selectedSize) currentError = "Please select a beer and size.";
@@ -74,10 +85,6 @@ export function DrinkLogger({ onAdd, drinkLogRef }: Props) {
     setJustAdded(true);
     setShowScrollNudge(true);
     setTimeout(() => setJustAdded(false), 750);
-    setTimeout(() => {
-      drinkLogRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setShowScrollNudge(false);
-    }, 1200);
   };
 
   return (

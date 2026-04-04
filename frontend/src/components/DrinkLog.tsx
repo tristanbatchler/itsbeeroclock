@@ -31,6 +31,15 @@ export function DrinkLog({
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [drinkToRepeat, setDrinkToRepeat] = useState<Drink | null>(null);
   const [repeatSize, setRepeatSize] = useState<DrinkSize | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const handleRemove = (id: string) => {
+    setRemovingId(id);
+    setTimeout(() => {
+      onRemoveDrink(id);
+      setRemovingId(null);
+    }, 180);
+  };
 
   const sortedDrinks = [...drinks].sort((a, b) => b.timestamp - a.timestamp);
 
@@ -81,7 +90,7 @@ export function DrinkLog({
           return (
             <Card
               key={drink.id}
-              className="p-4 flex justify-between items-center border-l-4 border-primary animate-slide-in"
+              className={`p-4 flex justify-between items-center border-l-4 border-primary ${removingId === drink.id ? "animate-slide-out" : "animate-slide-in"}`}
             >
               <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden mr-3">
                 {beer?.image
@@ -126,7 +135,7 @@ export function DrinkLog({
 
                 <CancelButton
                   title="Remove drink"
-                  onClick={() => onRemoveDrink(drink.id)}
+                  onClick={() => handleRemove(drink.id)}
                 />
               </div>
             </Card>

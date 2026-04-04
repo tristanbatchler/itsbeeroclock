@@ -207,6 +207,31 @@
   animation: slideIn 0.2s ease-out;
 }
 
+@keyframes slideOut {
+  from {
+    transform: scaleY(1);
+    opacity: 1;
+    max-height: 200px;
+    margin-bottom: 0.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  to {
+    transform: scaleY(0);
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+.animate-slide-out {
+  animation: slideOut 0.18s ease-out forwards;
+  overflow: hidden;
+  transform-origin: top;
+  pointer-events: none;
+}
+
 @keyframes pop {
   0% {
     transform: scale(0.95);

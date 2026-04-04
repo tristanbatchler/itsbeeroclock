@@ -14,25 +14,30 @@ import { useEscapeKey } from "../hooks/useEscapeKey";
 // Bug G fix: replaced next-themes with simple localStorage pattern.
 // The inline script in index.html already handles FOUC.
 function useThemeToggle() {
-  const [theme, setThemeState] = useState<string>(
-    () => localStorage.getItem("vite-ui-theme") ?? "system"
+  // Source of truth is the DOM class, not localStorage — avoids any mismatch
+  // between the stored preference and what's actually rendered.
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.classList.contains("dark")
   );
-  const setTheme = (t: string) => {
-    localStorage.setItem("vite-ui-theme", t);
-    setThemeState(t);
-    if (t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+
+  const setTheme = (dark: boolean) => {
+    const value = dark ? "dark" : "light";
+    localStorage.setItem("vite-ui-theme", value);
+    setIsDark(dark);
+    if (dark) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
   };
-  return { theme, setTheme };
+
+  return { isDark, setTheme };
 }
 
 export function AppMenu() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useThemeToggle();
+  const { isDark, setTheme } = useThemeToggle();
 
   useClickOutside(menuRef, () => setOpen(false), open);
   useEscapeKey(() => setOpen(false), open);
@@ -53,16 +58,16 @@ export function AppMenu() {
         <button
           className="flex items-center gap-2 py-1 hover:underline cursor-pointer text-foreground"
           onClick={() => {
-            setTheme(theme === "dark" ? "light" : "dark");
+            setTheme(!isDark);
             setOpen(false);
           }}
         >
-          {theme === "dark" ? (
+          {isDark ? (
             <Sun className="size-4 text-foreground" />
           ) : (
             <Moon className="size-4 text-foreground" />
           )}
-          Go {theme === "dark" ? "light" : "dark"}
+          Go {isDark ? "light" : "dark"}
         </button>
         <Link
           to="/privacy"

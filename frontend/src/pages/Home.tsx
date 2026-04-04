@@ -6,7 +6,7 @@ import { useCloudSync } from "../hooks/useCloudSync";
 import { useDrinkActions } from "../hooks/useDrinkActions";
 import { useBeerStore } from "../store/beerStore";
 import { useSessionChecker } from "../hooks/useSessionChecker";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 
 import { Card } from "../components/Card";
 import { DrinkLog } from "../components/DrinkLog";
@@ -39,6 +39,23 @@ export function Home() {
   const profileReady = !!profile?.profileSetup;
   const drinkLogRef = useRef<HTMLDivElement>(null);
 
+  // Keep drink UI visible briefly after the last drink is removed so it can fade out
+  const [showDrinkUI, setShowDrinkUI] = useState(drinks.length > 0);
+  const [fadingOut, setFadingOut] = useState(false);
+  useEffect(() => {
+    if (drinks.length > 0) {
+      setShowDrinkUI(true);
+      setFadingOut(false);
+    } else if (showDrinkUI) {
+      setFadingOut(true);
+      const t = setTimeout(() => {
+        setShowDrinkUI(false);
+        setFadingOut(false);
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, [drinks.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!beersLoading && allBeers.length === 0 && (isApiDown || !isOnline)) {
     return (
       <Card className="p-6 my-10 text-center">
@@ -62,37 +79,43 @@ export function Home() {
 
       {user && profile && !profile.profileSetup && <ProfileNotice variant="incomplete" />}
 
-      {profileReady && drinks.length > 0 && (
-        <ErrorBoundary>
-          <BACCard bacData={bacData} />
-        </ErrorBoundary>
-      )}
-
       <DrinkLogger onAdd={handleAddDrink} drinkLogRef={drinkLogRef} />
 
-      {drinks.length > 0 && (
-        <BACStats bacData={bacData} showBAC={profileReady} />
-      )}
+      {showDrinkUI && (
+        <div
+          className="space-y-6"
+          style={{
+            transition: "opacity 0.3s ease-out",
+            opacity: fadingOut ? 0 : 1,
+          }}
+        >
+          {profileReady && (
+            <ErrorBoundary>
+              <BACCard bacData={bacData} />
+            </ErrorBoundary>
+          )}
 
-      {drinks.length > 0 && (
-        <ErrorBoundary>
-          <div ref={drinkLogRef}>
-            <DrinkLog
-              drinks={drinks}
-              allBeers={allBeers}
-              onUndo={handleUndoLast}
-              onRemoveDrink={handleRemoveDrink}
-              onClear={handleClearSession}
-              onRepeat={handleRepeatDrink}
-            />
-          </div>
-        </ErrorBoundary>
-      )}
+          <BACStats bacData={bacData} showBAC={profileReady} />
 
-      {profileReady && drinks.length > 0 && (
-        <ErrorBoundary>
-          <BACGraph snapshots={snapshots} startTime={startTime} endTime={endTime} />
-        </ErrorBoundary>
+          <ErrorBoundary>
+            <div ref={drinkLogRef}>
+              <DrinkLog
+                drinks={drinks}
+                allBeers={allBeers}
+                onUndo={handleUndoLast}
+                onRemoveDrink={handleRemoveDrink}
+                onClear={handleClearSession}
+                onRepeat={handleRepeatDrink}
+              />
+            </div>
+          </ErrorBoundary>
+
+          {profileReady && (
+            <ErrorBoundary>
+              <BACGraph snapshots={snapshots} startTime={startTime} endTime={endTime} />
+            </ErrorBoundary>
+          )}
+        </div>
       )}
     </div>
   );
