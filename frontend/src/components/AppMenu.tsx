@@ -6,6 +6,7 @@ import {
   Moon,
   Shield,
   Text,
+  Info,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useClickOutside } from "../hooks/useClickOutside";
@@ -69,6 +70,13 @@ export function AppMenu() {
           )}
           Go {isDark ? "light" : "dark"}
         </button>
+        <Link
+          to="/about"
+          className="flex items-center gap-2 py-1 hover:underline text-foreground"
+          onClick={() => setOpen(false)}
+        >
+          <Info className="size-4 text-foreground" /> About
+        </Link>
         <Link
           to="/privacy"
           className="flex items-center gap-2 py-1 hover:underline text-foreground"

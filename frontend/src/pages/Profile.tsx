@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate, Link } from "react-router-dom";
 import { saveUserProfile, getFavouriteIds } from "../utils/storage";
-import { Latex } from "../components/Latex";
 import { useBeerStore } from "../store/beerStore";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -21,9 +20,10 @@ interface ProfileFormProps {
   initialProfile: UserProfile | null;
   user: { id: string } | null;
   onSave: (profile: UserProfile) => void;
+  onDeleteRequest: () => void;
 }
 
-function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
+function ProfileForm({ initialProfile, user, onSave, onDeleteRequest }: ProfileFormProps) {
   const [sex, setGender] = useState<"male" | "female">(
     initialProfile?.profileSetup ? (initialProfile.sex ?? "male") : "male",
   );
@@ -164,9 +164,16 @@ function ProfileForm({ initialProfile, user, onSave }: ProfileFormProps) {
         </InfoTooltip>
       </label>
 
-      <Button onClick={handleSave} className="w-full mt-4">
-        {saved ? <><CheckCircle2 className="size-4 mr-2" /> Saved!</> : "Save Profile"}
-      </Button>
+      <div className="flex gap-3 mt-4">
+        <Button onClick={handleSave} className="flex-1">
+          {saved ? <><CheckCircle2 className="size-4 mr-2" /> Saved!</> : "Save Profile"}
+        </Button>
+        {user && (
+          <Button variant="destructive" onClick={onDeleteRequest} className="shrink-0">
+            Delete data
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -180,6 +187,7 @@ export function Profile() {
   const setProfile = useBeerStore((s) => s.setProfile);
   const [showPurgeModal, setShowPurgeModal] = useState(false);
   const [showFirstSaveNotice, setShowFirstSaveNotice] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const handleSave = (updated: UserProfile) => {
     const isFirstSetup = !profile?.profileSetup;
@@ -265,114 +273,44 @@ export function Profile() {
             initialProfile={profile}
             user={user}
             onSave={handleSave}
+            onDeleteRequest={() => { setDeleteConfirmText(""); setShowPurgeModal(true); }}
           />
         </Card>
       )}
 
       {user && (
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-foreground mb-3">How BAC is calculated</h3>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              We use <strong className="text-foreground">Watson's formula</strong> because it
-              tends to be more accurate than other blood alcohol content estimation models,
-              though it does require more detailed user information: sex, weight, height, and
-              age. This allows us to personally tailor your BAC estimate to your unique body
-              composition, rather than relying on flat averages.
+        <Modal isOpen={showPurgeModal} onClose={() => setShowPurgeModal(false)} title="Delete all data?">
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This permanently deletes all your drinks, profile, custom beers, and history — from this device and the cloud. It cannot be undone.
             </p>
-            <p className="text-foreground font-medium">The calculation happens in three steps:</p>
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">1. Total body water (TBW)</p>
-              <p>
-                TBW is a measure of how much water is actually in your body, which differs based
-                on your sex, age, height, and weight. Because alcohol dissolves in water and not
-                fat, it's not enough to simply look at your weight; we need these other factors
-                to map out your water content and get a solid baseline.
-              </p>
-              <p>
-                The formulas for men and women use different statistical weights, calculated
-                empirically by Dr. P.E. Watson in his original 1980 research:
-              </p>
-              <div className="overflow-x-auto py-1"><Latex formula="tbwFormula" /></div>
-              <p>Where, for people identifying as female have:</p>
-              <div className="overflow-x-auto py-1"><Latex formula="tbwFemale" /></div>
-              <p>And all others have:</p>
-              <div className="overflow-x-auto py-1"><Latex formula="tbwMale" /></div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Type <span className="font-mono font-bold text-destructive">delete</span> to confirm
+              </label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="delete"
+                className="font-mono"
+              />
             </div>
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">2. The alcohol jump</p>
-              <p>
-                The alcohol jump is the exact spike in your blood alcohol as you consume a
-                drink. In Australia, one standard drink is defined as exactly 10 grams of ethanol.
-              </p>
-              <p>
-                Because alcohol distributes itself evenly through all the water in your body,
-                we calculate its concentration based on your TBW. But since we are looking for{" "}
-                <em>Blood</em> Alcohol Content, we also have to account for the fact that human
-                blood is about 80.6% water. When we run the math to convert those grams and
-                litres into a standard BAC percentage, it gives us this clean formula:
-              </p>
-              <div className="overflow-x-auto py-1"><Latex formula="bacJump" /></div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPurgeModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={deleteConfirmText !== "delete"}
+                onClick={handlePurge}
+              >
+                Delete everything
+              </Button>
             </div>
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">3. Metabolism</p>
-              <p>
-                Metabolism is where the liver processes the alcohol in your bloodstream. Unlike
-                a lot of things your body processes, alcohol burns off at a fairly consistent,
-                flat rate regardless of how much you've had. We use the commonly accepted
-                average metabolic rate of 0.015% BAC per hour.
-              </p>
-              <p>
-                Your BAC at any given moment is just the sum of all the spikes from the drinks
-                you've logged, minus the steady amount your liver has cleared since your first drink:
-              </p>
-              <div className="overflow-x-auto py-1"><Latex formula="bacNow" /></div>
-            </div>
-            <hr className="border-border" />
-            <p className="text-xs italic">
-              <strong className="not-italic text-foreground">Disclaimer:</strong> While Watson's
-              formula is a highly regarded mathematical model, everybody is different. Factors
-              like food intake, genetics, and general liver health play a massive role in
-              real-world alcohol metabolism. This calculation is a guide to help you track your
-              night, and should <strong>never</strong> be used as a definitive test of whether
-              you are legally or safely able to drive.
-            </p>
           </div>
-        </Card>
+        </Modal>
       )}
-
-      {user && (
-        <Card className="p-6 border-destructive/30 bg-destructive/5">
-          <h3 className="text-lg font-bold text-destructive mb-2">Danger Zone</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Permanently delete all your data from this device and the cloud.
-          </p>
-          <Button variant="destructive" className="w-full" onClick={() => setShowPurgeModal(true)}>
-            Purge All Data
-          </Button>
-        </Card>
-      )}
-
-      <Modal isOpen={showPurgeModal} onClose={() => setShowPurgeModal(false)} title="Purge All Data?">
-        <div className="text-center">
-          <p className="text-destructive font-bold mb-4">This will permanently delete:</p>
-          <ul className="text-left text-sm space-y-1 mb-6">
-            <li>• All drinks</li>
-            <li>• Profile settings</li>
-            <li>• Custom beers & favourites</li>
-            <li>• All local app data</li>
-          </ul>
-          <p className="text-destructive text-xs mb-6">This cannot be undone.</p>
-          <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={() => setShowPurgeModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" className="flex-1" onClick={handlePurge}>
-              Yes, purge everything
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const AddBeer = lazy(() => import('./pages/AddBeer').then(m => ({ default: m.Add
 const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
 const TOS = lazy(() => import('./pages/TOS').then(m => ({ default: m.TOS })));
 const SignIn = lazy(() => import('./pages/SignIn').then(m => ({ default: m.SignIn })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
               <Route path="tos" element={<TOS />} />
               <Route path="auth/callback" element={<AuthCallback />} />
               <Route path="sign-in" element={<SignIn />} />
+              <Route path="about" element={<About />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
