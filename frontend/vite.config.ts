@@ -83,7 +83,8 @@ export default defineConfig(({ mode }) => {
             /^\/custom\//,
             /^\/assets\//,
             /^\/robots\.txt$/,
-            /\.(webp|png|jpg|jpeg|svg|gif|ico|css|js|txt|woff2?)$/,
+            /^\/sitemap\.xml$/,
+            /\.(webp|png|jpg|jpeg|svg|gif|ico|css|js|txt|xml|woff2?)$/,
           ],
           runtimeCaching: [
             {
