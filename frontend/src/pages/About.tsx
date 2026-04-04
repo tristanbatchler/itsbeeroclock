@@ -85,7 +85,7 @@ export function About() {
           <p>
             It's free, it has no ads, and it doesn't sell your data. It's built and maintained
             by <a href="https://www.tbat.me/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">this guy</a> who got tired of how surprisingly hard it can be to track your drinks on 
-            a night out.
+            a night out. It's also <a href="https://github.com/tristanbatchler/itsbeeroclock" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">open source</a>.
           </p>
         </div>
       </Card>
