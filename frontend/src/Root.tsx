@@ -22,6 +22,13 @@ export function Root() {
   useProfileInit(user, isOnline);
 
   useEffect(() => {
+    const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+      ?? Object.assign(document.createElement('link'), { rel: 'canonical' });
+    if (!canonical.parentNode) document.head.appendChild(canonical);
+    canonical.href = `https://itsbeeroclock.au${location.pathname}`;
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (!headerRef.current) return;
     const observer = new ResizeObserver(() => {
       setHeaderHeight(headerRef.current?.offsetHeight ?? 0);
