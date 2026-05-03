@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
-import type { Drink, Beer, UserProfile } from "../types/drinks";
+import type {
+  Drink,
+  Beer,
+  UserProfile,
+  CheckInResponse,
+} from "../types/drinks";
 import {
   isSessionEnded,
   archiveSession,
@@ -12,6 +17,8 @@ interface UseSessionCheckerOptions {
   allBeers: Beer[];
   profile: UserProfile | null;
   clearSession: () => void;
+  checkIns: CheckInResponse[];
+  clearCheckIns: () => void;
 }
 
 export function useSessionChecker({
@@ -19,6 +26,8 @@ export function useSessionChecker({
   allBeers,
   profile,
   clearSession,
+  checkIns,
+  clearCheckIns,
 }: UseSessionCheckerOptions): void {
   // Keep a stable ref to clearSession to avoid stale closure issues
   const clearSessionRef = useRef(clearSession);
@@ -31,6 +40,8 @@ export function useSessionChecker({
   const drinksRef = useRef(drinks);
   const allBeersRef = useRef(allBeers);
   const profileRef = useRef(profile);
+  const checkInsRef = useRef(checkIns);
+  const clearCheckInsRef = useRef(clearCheckIns);
 
   useEffect(() => {
     drinksRef.current = drinks;
@@ -40,6 +51,12 @@ export function useSessionChecker({
   });
   useEffect(() => {
     profileRef.current = profile;
+  });
+  useEffect(() => {
+    checkInsRef.current = checkIns;
+  });
+  useEffect(() => {
+    clearCheckInsRef.current = clearCheckIns;
   });
   useEffect(() => {
     check.current = async () => {
@@ -58,6 +75,7 @@ export function useSessionChecker({
         drinksRef.current,
         allBeersRef.current,
         profileRef.current,
+        checkInsRef.current,
       );
       try {
         prependArchive(archive);
@@ -69,6 +87,7 @@ export function useSessionChecker({
         return;
       }
       clearSessionRef.current();
+      clearCheckInsRef.current();
       try {
         await api.syncDrinks([]);
       } catch {

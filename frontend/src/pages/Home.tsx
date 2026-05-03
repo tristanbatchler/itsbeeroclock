@@ -4,6 +4,7 @@ import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useBAC } from "../hooks/useBAC";
 import { useCloudSync } from "../hooks/useCloudSync";
 import { useDrinkActions } from "../hooks/useDrinkActions";
+import { useSessionCheckIns } from "../hooks/useSessionCheckIns";
 import { useBeerStore } from "../store/beerStore";
 import { useSessionChecker } from "../hooks/useSessionChecker";
 import { useRef, useState, useEffect } from "react";
@@ -14,30 +15,113 @@ import { DrinkLogger } from "../components/DrinkLogger";
 import { BACCard } from "../components/BACCard";
 import { BACStats } from "../components/BACStats";
 import { BACGraph } from "../components/BACGraph";
+import { NotesCheckIn } from "../components/NotesCheckIn";
 import { PrivacyNotice } from "../components/PrivacyNotice";
 import { ProfileNotice } from "../components/ProfileNotice";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useBACGraph } from "../hooks/useBACGraph";
+import type { Drink, CheckInResponse } from "../types/drinks";
+import { calculateBAC, getStandardDrinks } from "../utils/calculations";
 
 export function Home() {
-  const { drinks, addDrink, removeDrink, undoLast, clearSession, setAllDrinks } = useSession();
+  const {
+    drinks,
+    addDrink,
+    removeDrink,
+    undoLast,
+    clearSession: clearSessionDrinks,
+    setAllDrinks,
+  } = useSession();
   const { user } = useAuth();
   const isOnline = useOnlineStatus();
   const allBeers = useBeerStore((s) => s.allBeers);
   const beersLoading = useBeerStore((s) => s.beersLoading);
   const profile = useBeerStore((s) => s.profile);
+  const {
+    checkIns,
+    addCheckIn,
+    clearCheckIns,
+  } = useSessionCheckIns();
+
+  const clearAllSessionData = () => {
+    clearSessionDrinks();
+    clearCheckIns();
+    setCheckInQueue([]);
+  };
 
   const { isApiDown } = useCloudSync({ drinks, setAllDrinks, user, profile, isOnline });
   const { handleAddDrink, handleRemoveDrink, handleUndoLast, handleClearSession, handleRepeatDrink } =
-    useDrinkActions({ drinks, profile, addDrink, removeDrink, undoLast, clearSession });
+    useDrinkActions({
+      drinks,
+      profile,
+      addDrink,
+      removeDrink,
+      undoLast,
+      clearSession: clearAllSessionData,
+    });
 
-  useSessionChecker({ drinks, allBeers, profile, clearSession });
+  useSessionChecker({
+    drinks,
+    allBeers,
+    profile,
+    clearSession: clearSessionDrinks,
+    checkIns,
+    clearCheckIns,
+  });
 
   const bacData = useBAC(drinks, allBeers, profile);
   const { snapshots, startTime, endTime } = useBACGraph(drinks, allBeers, profile);
 
   const profileReady = !!profile?.profileSetup;
   const drinkLogRef = useRef<HTMLDivElement>(null);
+  const [checkInQueue, setCheckInQueue] = useState<Drink[]>([]);
+
+  const previousDrinkCountRef = useRef(drinks.length);
+  const processedDrinkIdRef = useRef<string | null>(null);
+
+  const activeCheckInDrink = checkInQueue.length > 0 ? checkInQueue[0] : null;
+
+  // Prompt notes check-in only when post-log BAC for that drink is >= 0.08.
+  useEffect(() => {
+    const previousCount = previousDrinkCountRef.current;
+    previousDrinkCountRef.current = drinks.length;
+
+    if (drinks.length <= previousCount) return;
+
+    const latestDrink = drinks[drinks.length - 1];
+    if (!latestDrink || latestDrink.id === processedDrinkIdRef.current) return;
+    processedDrinkIdRef.current = latestDrink.id;
+
+    if (!profileReady || !profile) return;
+
+    const getGramsAlcohol = (drink: Drink): number => {
+      const beer = allBeers.find((b) => b.id === drink.beerId);
+      if (!beer) return 0;
+      return getStandardDrinks(drink, beer) * 10;
+    };
+
+    const postLogBAC = calculateBAC(drinks, profile, latestDrink.timestamp, getGramsAlcohol);
+    if (postLogBAC < 0.08) return;
+
+    setCheckInQueue((prev) => [...prev, latestDrink]);
+  }, [allBeers, drinks, profile, profileReady]);
+
+  useEffect(() => {
+    if (drinks.length > 0) return;
+    setCheckInQueue([]);
+    clearCheckIns();
+    processedDrinkIdRef.current = null;
+    previousDrinkCountRef.current = 0;
+  }, [drinks.length]);
+
+  const handleCheckInClose = () => {
+    setCheckInQueue((prev) => prev.slice(1));
+  };
+
+  const handleCheckInSubmit = (entry: CheckInResponse) => {
+    addCheckIn(entry);
+    handleCheckInClose();
+  };
 
   // Keep drink UI visible briefly after the last drink is removed so it can fade out
   const [showDrinkUI, setShowDrinkUI] = useState(drinks.length > 0);
@@ -118,6 +202,20 @@ export function Home() {
           {profileReady && (
             <ErrorBoundary>
               <BACGraph snapshots={snapshots} startTime={startTime} endTime={endTime} />
+            </ErrorBoundary>
+          )}
+
+          {profileReady && (
+            <ErrorBoundary>
+              <NotesCheckIn
+                isOpen={activeCheckInDrink !== null}
+                drink={activeCheckInDrink}
+                drinks={drinks}
+                allBeers={allBeers}
+                profile={profile}
+                onClose={handleCheckInClose}
+                onSubmit={handleCheckInSubmit}
+              />
             </ErrorBoundary>
           )}
         </div>

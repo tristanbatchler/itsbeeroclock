@@ -21,12 +21,18 @@ interface UseHistorySyncOptions {
   isOnline: boolean;
 }
 
+interface UseHistorySyncResult {
+  isSyncing: boolean;
+  archives: SessionArchive[];
+  updateArchive: (updatedArchive: SessionArchive) => Promise<void>;
+}
+
 export function useHistorySync({
   user,
   profile,
   allBeers,
   isOnline,
-}: UseHistorySyncOptions): { isSyncing: boolean; archives: SessionArchive[] } {
+}: UseHistorySyncOptions): UseHistorySyncResult {
   const [isSyncing, setIsSyncing] = useState(false);
   const [archives, setArchives] = useState<SessionArchive[]>(() =>
     getHistory(),
@@ -63,6 +69,10 @@ export function useHistorySync({
         const remoteArchives = ((await api.getHistory()) ?? []).map((a) => {
           const drinks =
             typeof a.drinks === "string" ? JSON.parse(a.drinks) : a.drinks;
+          const checkIns =
+            typeof a.checkIns === "string"
+              ? JSON.parse(a.checkIns)
+              : (a.checkIns ?? []);
           const bacCurve = a.bacCurve?.length
             ? a.bacCurve
             : computeBACCurve(
@@ -72,7 +82,7 @@ export function useHistorySync({
                 a.startTimestamp,
                 a.endTimestamp,
               );
-          return { ...a, drinks, bacCurve };
+          return { ...a, drinks, checkIns, bacCurve };
         });
         const merged = mergeHistories(getHistory(), remoteArchives);
         saveHistory(merged);
@@ -114,5 +124,28 @@ export function useHistorySync({
     postArchive();
   }, [lastArchiveTimestamp, isOnline, user, profile?.optInHistory]);
 
-  return { isSyncing, archives };
+  const updateArchive = async (updatedArchive: SessionArchive) => {
+    const updated = archives.map((a) =>
+      a.startTimestamp === updatedArchive.startTimestamp ? updatedArchive : a,
+    );
+    setArchives(updated);
+    saveHistory(updated);
+
+    if (!isOnline || !user || !profile?.optInHistory) return;
+
+    try {
+      await api.saveHistory(updatedArchive);
+    } catch (err) {
+      if (err instanceof TypeError) {
+        queueRequest(API_ROUTES.HISTORY, {
+          method: "POST",
+          body: JSON.stringify(updatedArchive),
+        });
+      } else {
+        console.error("useHistorySync: failed to update archive", err);
+      }
+    }
+  };
+
+  return { isSyncing, archives, updateArchive };
 }

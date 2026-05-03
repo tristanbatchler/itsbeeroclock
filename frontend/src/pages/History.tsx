@@ -17,7 +17,7 @@ export function History() {
   const isOnline = useOnlineStatus();
 
   // Hook must be called unconditionally
-  const { isSyncing, archives } = useHistorySync({
+  const { isSyncing, archives, updateArchive } = useHistorySync({
     user,
     profile,
     allBeers,
@@ -72,6 +72,7 @@ export function History() {
               key={archive.startTimestamp}
               archive={archive}
               allBeers={allBeers}
+              onUpdateArchive={updateArchive}
             />
           ))}
     </div>

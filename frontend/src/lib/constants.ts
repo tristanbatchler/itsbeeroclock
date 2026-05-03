@@ -26,6 +26,8 @@ export const STORAGE_KEYS = {
   PROFILE_NOTICE_DISMISSED: "beeroclock_profile_notice_dismissed",
   OFFLINE_QUEUE: "beeroclock_offline_queue",
   HISTORY: "beeroclock_history",
+  SESSION_CHECKINS: "beeroclock_session_checkins",
+  SESSION_CHECKIN_TRIGGERED: "beeroclock_session_checkin_triggered",
   LAST_BEER: "beeroclock_last_beer",
   LAST_SIZE: "beeroclock_last_size",
   DRINK_MODE: "beeroclock_drink_mode",

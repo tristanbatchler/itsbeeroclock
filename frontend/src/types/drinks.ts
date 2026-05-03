@@ -54,6 +54,53 @@ export interface BACSnapshot {
   bac: number;
 }
 
+export type CheckInFeeling =
+  | "happy"
+  | "relaxed"
+  | "social"
+  | "energetic"
+  | "tired"
+  | "bored"
+  | "anxious"
+  | "sad"
+  | "nauseous"
+  | "other";
+
+export type CheckInIntoxication =
+  | "not_at_all"
+  | "small_buzz"
+  | "somewhat"
+  | "very"
+  | "plastered";
+
+export type CheckInSocialContext = "alone" | "with_others";
+
+export type CheckInQuestionKey =
+  | "feelings"
+  | "intoxication"
+  | "hadWater"
+  | "hadFood"
+  | "socialContext"
+  | "timeUntilSoberConsent";
+
+export interface CheckInResponse {
+  id: string;
+  timestamp: number;
+  drinkId: string;
+  lastDrinkDeltaMs: number | null;
+  lastDrinkDeltaWasRevealed: boolean;
+  feelings: CheckInFeeling[];
+  feelingsOtherText?: string;
+  intoxication?: CheckInIntoxication;
+  hadWater?: boolean;
+  hadFood?: boolean;
+  socialContext?: CheckInSocialContext;
+  timeUntilSoberMs: number | null;
+  timeUntilSoberConsent?: boolean;
+  isComplete: boolean;
+  skippedQuestionKeys?: CheckInQuestionKey[];
+}
+
 export interface SessionArchive {
   startTimestamp: number; // epoch ms — first drink timestamp
   endTimestamp: number; // epoch ms — last drink timestamp + 7_200_000
@@ -62,4 +109,5 @@ export interface SessionArchive {
   peakBAC: number;
   drinks: Drink[];
   bacCurve?: BACSnapshot[];
+  checkIns?: CheckInResponse[];
 }

@@ -123,6 +123,46 @@ Open [http://localhost:5173](http://localhost:5173).
 
 > **Turnstile in local dev:** if `CF_TURNSTILE_SITE_KEY` is not set, the Turnstile widget auto-passes silently. For the backend to accept the token, set `CF_TURNSTILE_SECRET_KEY` to Cloudflare's test secret key: `1x0000000000000000000000000000000AA`.
 
+### AWS login troubleshooting (local DynamoDB access)
+
+If backend logs show errors like:
+
+`create oauth2 token: login session has expired, please reauthenticate`
+
+then your AWS CLI login session has expired. This is an auth/session issue, not a DynamoDB schema issue.
+
+Use:
+
+```bash
+aws configure list-profiles
+aws sts get-caller-identity --profile default
+```
+
+If identity fails with session-expired/login errors, reauthenticate:
+
+```bash
+aws login --profile default
+```
+
+If `aws login` returns `INVALID_REQUEST` (expired or malformed authorization grant), clear the login cache and retry:
+
+```bash
+rm -rf ~/.aws/login/cache/*
+aws login --profile default
+```
+
+Then verify again:
+
+```bash
+aws sts get-caller-identity --profile default
+```
+
+If you are using SSH/remote shell and browser callback cannot complete, use:
+
+```bash
+aws login --profile default --remote
+```
+
 ### 6. Subsequent deploys
 
 ```bash

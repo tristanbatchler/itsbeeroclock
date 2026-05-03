@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fc from "fast-check";
 import { archiveSession } from "../sessionArchive";
-import type { Drink, Beer, UserProfile } from "../../types/drinks";
+import type {
+  Drink,
+  Beer,
+  UserProfile,
+  CheckInResponse,
+} from "../../types/drinks";
 
 // localStorage mock
 beforeEach(() => {
@@ -23,6 +28,23 @@ const PROFILE: UserProfile = {
   profileSetup: true,
 };
 const T0 = 1_700_000_000_000;
+
+const CHECK_IN: CheckInResponse = {
+  id: "check-1",
+  timestamp: T0 + 5_000,
+  drinkId: "d-0",
+  lastDrinkDeltaMs: 900_000,
+  lastDrinkDeltaWasRevealed: false,
+  feelings: ["happy"],
+  intoxication: "somewhat",
+  hadWater: true,
+  hadFood: false,
+  socialContext: "with_others",
+  timeUntilSoberMs: 3_600_000,
+  timeUntilSoberConsent: true,
+  isComplete: true,
+  skippedQuestionKeys: [],
+};
 
 function drink(offsetMs = 0): Drink {
   return {
@@ -77,6 +99,16 @@ describe("archiveSession — bacCurve", () => {
       PROFILE,
     );
     result.bacCurve!.forEach((s) => expect(s.bac).toBeGreaterThanOrEqual(0));
+  });
+
+  it("includes checkIns when provided", () => {
+    const result = archiveSession([drink(0)], [BEER], PROFILE, [CHECK_IN]);
+    expect(result.checkIns).toEqual([CHECK_IN]);
+  });
+
+  it("stores empty checkIns array when none provided", () => {
+    const result = archiveSession([drink(0)], [BEER], PROFILE);
+    expect(result.checkIns).toEqual([]);
   });
 });
 

@@ -236,6 +236,7 @@ export const api = {
       body: JSON.stringify({
         ...archive,
         drinks: JSON.stringify(archive.drinks),
+        checkIns: JSON.stringify(archive.checkIns ?? []),
       }),
     }),
 };

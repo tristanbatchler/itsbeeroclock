@@ -27,6 +27,7 @@ var SaveHistoryHandler AuthenticatedApiProxyGatewayHandler = func(
 		TotalStdDrinks  float64 `json:"totalStandardDrinks"`
 		PeakBAC         float64 `json:"peakBAC"`
 		Drinks          string  `json:"drinks"`
+		CheckIns        string  `json:"checkIns"`
 	}
 
 	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
@@ -46,6 +47,7 @@ var SaveHistoryHandler AuthenticatedApiProxyGatewayHandler = func(
 		TotalStdDrinks:  body.TotalStdDrinks,
 		PeakBAC:         body.PeakBAC,
 		Drinks:          body.Drinks,
+		CheckIns:        body.CheckIns,
 	}
 
 	av, err := attributevalue.MarshalMap(record)

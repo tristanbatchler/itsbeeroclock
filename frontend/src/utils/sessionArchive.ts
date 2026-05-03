@@ -3,7 +3,13 @@ import {
   getStandardDrinks,
   computeBACCurve,
 } from "../utils/calculations";
-import type { Drink, Beer, UserProfile, SessionArchive } from "../types/drinks";
+import type {
+  Drink,
+  Beer,
+  UserProfile,
+  SessionArchive,
+  CheckInResponse,
+} from "../types/drinks";
 import { STORAGE_KEYS } from "../lib/constants";
 
 function getGramsAlcohol(allBeers: Beer[]) {
@@ -56,6 +62,7 @@ export function archiveSession(
   drinks: Drink[],
   allBeers: Beer[],
   profile: UserProfile | null,
+  checkIns: CheckInResponse[] = [],
 ): SessionArchive {
   const timestamps = drinks.map((d) => d.timestamp);
   const startTimestamp = Math.min(...timestamps);
@@ -84,6 +91,7 @@ export function archiveSession(
     peakBAC,
     drinks,
     bacCurve,
+    checkIns,
   };
 }
 

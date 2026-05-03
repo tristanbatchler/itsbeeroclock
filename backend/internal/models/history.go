@@ -9,4 +9,5 @@ type HistoryRecord struct {
 	TotalStdDrinks  float64 `dynamodbav:"TotalStdDrinks" json:"totalStandardDrinks"`
 	PeakBAC         float64 `dynamodbav:"PeakBAC" json:"peakBAC"`
 	Drinks          string  `dynamodbav:"Drinks" json:"drinks"` // JSON-encoded []DrinkRecord
+	CheckIns        string  `dynamodbav:"CheckIns" json:"checkIns"`
 }
