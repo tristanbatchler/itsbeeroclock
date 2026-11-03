@@ -3,6 +3,7 @@
 *.test
 /tmp
 *.zip
+backend/**/bootstrap
 
 # Node
 node_modules/
@@ -27,5 +28,8 @@ backend/cmd/local/__debug_*
 ProjectSummary.md
 
 frontend/public/beer_images/thumbs/*.webp
-.kiro/specs/
+docs/specs/*
+!docs/specs/bac-graph/
+CLAUDE.local.md
+.claude/settings.local.json
 TODO.txt
