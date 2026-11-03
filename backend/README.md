@@ -163,7 +163,7 @@ For GSI2 queries, use `DrinkTimeRangeQuery()` from `keys.go`. Note: `Timestamp` 
 
 **`DeleteItem` always returns 200** — even if the item didn't exist. Use `ConditionExpression: attribute_exists(PK)` if you need to confirm existence. `DeleteDrinkHandler` does not currently do this.
 
-**Single-table purges** — deleting a profile record does not delete drinks or custom beers. `ClearUserDataHandler` queries all items under the user's PK and batch-deletes them in chunks of 25 (DynamoDB batch limit).
+**Single-table purges** — deleting a profile record does not delete drinks or custom beers. `ClearUserDataHandler` queries all items under the user's PK, deletes their custom beer thumbnails from S3, then batch-deletes the items in chunks of 25 (DynamoDB batch limit).
 
 **`S3_BUCKET` in local dev** — in production this is injected by CDK automatically. For local dev, set it in `.env` to the `UploadsBucketName` value from your CDK deploy output.
 

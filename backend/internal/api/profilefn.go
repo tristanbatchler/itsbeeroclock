@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -116,7 +117,14 @@ var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
 		}
 	}
 
-	// 2. Batch Delete in chunks of 25 (DynamoDB limit)
+	// 2. Delete custom beer thumbnails first. Their keys come from the items below,
+	// so if this fails, nothing is lost and a retry can still find them.
+	if err := DeleteThumbnails(ctx, customBeerThumbKeys(authCtx.UserID, allItems)); err != nil {
+		log.Printf("ClearUserDataHandler: failed to delete thumbnails for user %s: %v", authCtx.UserID, err)
+		return ErrorResponse(500, "Failed to delete custom beer images")
+	}
+
+	// 3. Batch Delete in chunks of 25 (DynamoDB limit)
 	tableName := *TableName()
 	for i := 0; i < len(allItems); i += 25 {
 		end := i + 25
@@ -152,4 +160,19 @@ var ClearUserDataHandler AuthenticatedApiProxyGatewayHandler = func(
 	}
 
 	return SuccessResponse(map[string]bool{"success": true})
+}
+
+// customBeerThumbKeys returns the S3 keys for every custom beer among a user's items.
+func customBeerThumbKeys(userID string, items []map[string]types.AttributeValue) []string {
+	var keys []string
+	for _, item := range items {
+		sk, ok := item["SK"].(*types.AttributeValueMemberS)
+		if !ok {
+			continue
+		}
+		if beerID, found := strings.CutPrefix(sk.Value, PrefixCustomBeer); found {
+			keys = append(keys, CustomBeerThumbKey(userID, beerID))
+		}
+	}
+	return keys
 }
