@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
@@ -22,6 +23,40 @@ func init() {
 		log.Fatalf("s3: failed to load AWS config: %v", err)
 	}
 	s3Client = s3.NewFromConfig(cfg)
+}
+
+// CustomBeerThumbKey is the S3 object key of a custom beer's thumbnail.
+func CustomBeerThumbKey(userID, beerID string) string {
+	return fmt.Sprintf("custom/%s/%s/thumb.webp", userID, beerID)
+}
+
+// DeleteThumbnails removes objects from S3. Keys that don't exist aren't an error.
+// With DynamoDB Local it does nothing, because thumbnails never went to S3.
+func DeleteThumbnails(ctx context.Context, keys []string) error {
+	if LocalDynamoDBEndpoint() != "" || len(keys) == 0 {
+		return nil
+	}
+
+	const s3BatchSize = 1000
+	bucket := utils.GetVar("S3_BUCKET")
+	for start := 0; start < len(keys); start += s3BatchSize {
+		end := min(start+s3BatchSize, len(keys))
+		objects := make([]s3types.ObjectIdentifier, 0, end-start)
+		for _, key := range keys[start:end] {
+			objects = append(objects, s3types.ObjectIdentifier{Key: aws.String(key)})
+		}
+		out, err := s3Client.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+			Bucket: aws.String(bucket),
+			Delete: &s3types.Delete{Objects: objects},
+		})
+		if err != nil {
+			return fmt.Errorf("S3 DeleteObjects failed: %w", err)
+		}
+		if len(out.Errors) > 0 {
+			return fmt.Errorf("S3 DeleteObjects left %d objects", len(out.Errors))
+		}
+	}
+	return nil
 }
 
 // UploadThumbnail decodes a base64 WebP data URL and writes it to S3.

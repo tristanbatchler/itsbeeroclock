@@ -94,6 +94,7 @@ export class BeerOClockStack extends cdk.Stack {
     apiFn.addEnvironment("TABLE_NAME", table.tableName);
 
     uploadsBucket.grantPut(apiFn);
+    uploadsBucket.grantDelete(apiFn); // Delete data removes custom beer images
     apiFn.addEnvironment("S3_BUCKET", uploadsBucket.bucketName);
     apiFn.addEnvironment("APP_DOMAIN_NAME", domainName);
 

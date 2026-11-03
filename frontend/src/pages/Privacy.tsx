@@ -33,8 +33,8 @@ export function Privacy() {
             <h2 className="text-lg font-semibold text-foreground mb-2">How we use data</h2>
             <p>
               We use your data to run core app features, including BAC
-              estimates, active session tracking, history, sync between devices
-              (if signed in), and account support.
+              estimates, active session tracking, history, and sync between
+              devices (if signed in).
             </p>
             <p className="mt-2">
               We do not sell your personal data.
@@ -64,10 +64,11 @@ export function Privacy() {
             <ul className="list-disc list-inside space-y-1 text-foreground">
               <li>You can use Beer O&apos;Clock without creating an account.</li>
               <li>You can turn history saving on or off in your profile.</li>
-              <li>You can purge local data at any time from the Profile page.</li>
+              <li>You can remove the data stored on your device at any time by clearing this site&apos;s data in your browser.</li>
               <li>
                 Signed-in users can delete all of their data, on this device and
-                in the cloud, using &quot;Delete data&quot; on the Profile page.
+                in the cloud, including images uploaded for custom beers, using
+                &quot;Delete data&quot; on the Profile page.
                 We don&apos;t hold your email address, so we can&apos;t find your
                 data from it. You need to sign in to delete it.
               </li>

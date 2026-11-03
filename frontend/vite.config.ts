@@ -74,7 +74,11 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+          globPatterns: [
+            "**/*.{js,css,html,ico,png,svg}",
+            // The app's own fonts work offline. KaTeX's are left out on purpose.
+            "assets/barlow-*.woff2",
+          ],
           globIgnores: ["**/beer_images/**"],
           // Don't intercept navigations to asset paths — let the browser
           // fetch them directly from S3/CloudFront.

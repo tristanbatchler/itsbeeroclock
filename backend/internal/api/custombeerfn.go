@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -49,7 +48,7 @@ var AddCustomBeerHandler AuthenticatedApiProxyGatewayHandler = func(
 	}
 
 	if body.Image != "" {
-		key := fmt.Sprintf("custom/%s/%s/thumb.webp", authCtx.UserID, body.ID)
+		key := CustomBeerThumbKey(authCtx.UserID, body.ID)
 		url, err := UploadThumbnail(ctx, body.Image, key)
 		if err != nil {
 			log.Printf("AddCustomBeerHandler: thumbnail upload failed for %s: %v", body.ID, err)

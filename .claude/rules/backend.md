@@ -36,4 +36,4 @@ paths:
 - Build PK and SK values with the helpers in `internal/api/keys.go`, never with raw strings or `fmt.Sprintf`.
 - Query a user's drinks by time range with `DrinkTimeRangeQuery()` on `IndexDrinksByTime` (GSI2). `Timestamp` is a reserved word, so alias it as `#ts`.
 - `DeleteItem` returns 200 even if the item didn't exist. Add `ConditionExpression: attribute_exists(PK)` when you need to know. `DeleteDrinkHandler` doesn't currently do this.
-- Deleting a profile record leaves the user's other items behind. `ClearUserDataHandler` queries everything under the user's PK and batch-deletes in chunks of 25, the DynamoDB batch limit.
+- Deleting a profile record leaves the user's other items behind. `ClearUserDataHandler` queries everything under the user's PK, deletes their custom beer thumbnails from S3, and batch-deletes in chunks of 25, the DynamoDB batch limit. Thumbnails go first, because their keys come from those items.
