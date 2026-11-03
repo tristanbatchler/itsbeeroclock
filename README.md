@@ -136,7 +136,11 @@ go run ./cmd/seed
 
 Custom beer thumbnails stay in the local table instead of going to S3. Sign-in still uses the real Supabase project.
 
-The backend and seed script refuse to run without `DYNAMODB_ENDPOINT`. Pass `-prod` to use the real table on purpose, for example to update the production catalogue with `go run ./cmd/seed -prod`.
+The backend and seed script refuse to run without `DYNAMODB_ENDPOINT`. To use the real table on purpose, pass `-prod` and override your local settings in the shell, for example to update the production catalogue:
+
+```bash
+DYNAMODB_ENDPOINT= TABLE_NAME=<real table name> go run ./cmd/seed -prod
+```
 
 Terminal 1 — backend:
 
