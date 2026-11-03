@@ -10,8 +10,8 @@ export default defineConfig(({ mode }) => {
   const rootDir = path.resolve(__dirname, "..");
 
   // Only prefer .env.prod over .env during production builds.
-  // Local dev (mode !== 'production') always uses .env so the test Turnstile
-  // key and localhost settings are active.
+  // Local dev (mode !== 'production') always uses .env so the localhost
+  // settings are active.
   const prodEnvPath = path.join(rootDir, ".env.prod");
   const envFilePath =
     mode === "production" && fs.existsSync(prodEnvPath)
@@ -79,6 +79,8 @@ export default defineConfig(({ mode }) => {
           // Don't intercept navigations to asset paths — let the browser
           // fetch them directly from S3/CloudFront.
           navigateFallbackDenylist: [
+            // Sign-in is a navigation to /api/, and has to reach the backend.
+            /^\/api\//,
             /^\/beer_images\//,
             /^\/custom\//,
             /^\/assets\//,
@@ -102,15 +104,6 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            supabase: ["@supabase/supabase-js"],
-          },
-        },
-      },
-    },
     server: {
       proxy: {
         "/api": {
@@ -125,19 +118,12 @@ export default defineConfig(({ mode }) => {
       setupFiles: ["./src/test-setup.ts"],
     },
     define: {
-      "import.meta.env.SUPABASE_URL": JSON.stringify(env.SUPABASE_URL),
-      "import.meta.env.SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-        env.SUPABASE_PUBLISHABLE_KEY,
-      ),
       "import.meta.env.APP_DOMAIN_NAME": JSON.stringify(env.APP_DOMAIN_NAME),
       "import.meta.env.APP_SUPPORT_EMAIL": JSON.stringify(
         env.APP_SUPPORT_EMAIL,
       ),
       "import.meta.env.TABLE_NAME": JSON.stringify(env.TABLE_NAME),
       "import.meta.env.S3_BUCKET": JSON.stringify(env.S3_BUCKET),
-      "import.meta.env.CF_TURNSTILE_SITE_KEY": JSON.stringify(
-        env.CF_TURNSTILE_SITE_KEY,
-      ),
     },
   };
 });

@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"syscall"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/api"
 )
+
+var devUserPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +55,11 @@ func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 		for k, v := range resp.Headers {
 			w.Header().Set(k, v)
 		}
+		for k, values := range resp.MultiValueHeaders {
+			for _, v := range values {
+				w.Header().Add(k, v)
+			}
+		}
 
 		corsOrigin := os.Getenv("CORS_ORIGIN")
 		if corsOrigin == "" {
@@ -60,7 +68,7 @@ func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 
 		w.Header().Set("Access-Control-Allow-Origin", corsOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") // Ensure Auth is allowed!
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
@@ -72,6 +80,26 @@ func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 	}
 }
 
+// devLogin signs in a fake user without Google, for browser tests against DynamoDB
+// Local. It isn't in the shared routes table, so the Lambda has no such route.
+// The dev- prefix keeps test IDs apart from real Google subjects.
+func devLogin(w http.ResponseWriter, r *http.Request) {
+	user := r.URL.Query().Get("user")
+	if !devUserPattern.MatchString(user) {
+		http.Error(w, "pass ?user=<letters, digits, - or _>", http.StatusBadRequest)
+		return
+	}
+
+	cookie, err := api.IssueSessionCookie("dev-" + user)
+	if err != nil {
+		log.Printf("devLogin: %v", err)
+		http.Error(w, "couldn't create a session: check SESSION_SECRET", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Add("Set-Cookie", cookie)
+	http.Redirect(w, r, "/profile", http.StatusFound)
+}
+
 func main() {
 	prod := flag.Bool("prod", false, "use the real DynamoDB table instead of DynamoDB Local")
 	flag.Parse()
@@ -80,6 +108,10 @@ func main() {
 	mux := http.NewServeMux()
 	// Route all /api/* requests through the production router
 	mux.HandleFunc("/api/", adaptHandler(api.Router))
+	// RequireLocalDynamoDB has confirmed DYNAMODB_ENDPOINT is set unless -prod was passed.
+	if !*prod {
+		mux.HandleFunc("/api/dev/login", devLogin)
+	}
 
 	server := &http.Server{
 		Addr:    ":8080",

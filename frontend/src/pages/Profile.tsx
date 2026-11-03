@@ -1,6 +1,7 @@
 import { api } from "../lib/api";
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useNavigate, Link } from "react-router-dom";
 import { saveUserProfile, getFavouriteIds } from "../utils/storage";
 import { useBeerStore } from "../store/beerStore";
@@ -21,9 +22,10 @@ interface ProfileFormProps {
   user: { id: string } | null;
   onSave: (profile: UserProfile) => void;
   onDeleteRequest: () => void;
+  isOnline: boolean;
 }
 
-function ProfileForm({ initialProfile, user, onSave, onDeleteRequest }: ProfileFormProps) {
+function ProfileForm({ initialProfile, user, onSave, onDeleteRequest, isOnline }: ProfileFormProps) {
   const [sex, setGender] = useState<"male" | "female">(
     initialProfile?.profileSetup ? (initialProfile.sex ?? "male") : "male",
   );
@@ -169,7 +171,7 @@ function ProfileForm({ initialProfile, user, onSave, onDeleteRequest }: ProfileF
           {saved ? <><CheckCircle2 className="size-4 mr-2" /> Saved!</> : "Save Profile"}
         </Button>
         {user && (
-          <Button variant="destructive" onClick={onDeleteRequest} className="shrink-0">
+          <Button variant="destructive" onClick={onDeleteRequest} disabled={!isOnline} className="shrink-0">
             Delete data
           </Button>
         )}
@@ -188,6 +190,8 @@ export function Profile() {
   const [showPurgeModal, setShowPurgeModal] = useState(false);
   const [showFirstSaveNotice, setShowFirstSaveNotice] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [accountError, setAccountError] = useState("");
+  const isOnline = useOnlineStatus();
 
   const handleSave = (updated: UserProfile) => {
     const isFirstSetup = !profile?.profileSetup;
@@ -196,13 +200,27 @@ export function Profile() {
     if (isFirstSetup) setShowFirstSaveNotice(true);
   };
 
+  const handleSignOut = async () => {
+    setAccountError("");
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Sign out failed", err);
+      setAccountError("Couldn't sign you out. Please try again.");
+    }
+  };
+
   const handlePurge = async () => {
+    setAccountError("");
     // Clear cloud data first
     if (user) {
       try {
         await api.clearUserData();
       } catch (err) {
         console.error("Failed to purge backend data", err);
+        setShowPurgeModal(false);
+        setAccountError("Couldn't delete your data, so nothing was removed. Please try again.");
+        return;
       }
     }
     // Wipe localStorage before signing out so auth state change handlers
@@ -213,6 +231,9 @@ export function Profile() {
         await signOut();
       } catch (err) {
         console.error("Sign out failed", err);
+        setShowPurgeModal(false);
+        setAccountError("Your data was deleted, but we couldn't sign you out. Please try signing out again.");
+        return;
       }
     }
     window.location.href = "/";
@@ -255,16 +276,25 @@ export function Profile() {
         </div>
       )}
 
+      {accountError && (
+        <p role="alert" className="text-sm text-destructive">{accountError}</p>
+      )}
+
       {!user ? (
         <SignIn />
       ) : (
         <Card className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-foreground">Your Details</h2>
-            <Button variant="ghost" size="sm" onClick={signOut} className="hover:bg-destructive hover:text-destructive-foreground">
+            <Button variant="ghost" size="sm" onClick={handleSignOut} disabled={!isOnline} className="hover:bg-destructive hover:text-destructive-foreground">
               Sign Out
             </Button>
           </div>
+          {!isOnline && (
+            <p className="text-sm text-muted-foreground mb-2">
+              Signing out and deleting your data need a connection.
+            </p>
+          )}
           <p className="text-sm text-muted-foreground mb-6">
             Used to calculate accurate BAC estimates
           </p>
@@ -274,6 +304,7 @@ export function Profile() {
             user={user}
             onSave={handleSave}
             onDeleteRequest={() => { setDeleteConfirmText(""); setShowPurgeModal(true); }}
+            isOnline={isOnline}
           />
         </Card>
       )}
@@ -302,7 +333,7 @@ export function Profile() {
               <Button
                 variant="destructive"
                 className="flex-1"
-                disabled={deleteConfirmText !== "delete"}
+                disabled={deleteConfirmText !== "delete" || !isOnline}
                 onClick={handlePurge}
               >
                 Delete everything

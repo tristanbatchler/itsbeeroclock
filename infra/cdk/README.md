@@ -35,8 +35,10 @@ The CDK reads these from your local environment at deploy time and injects them 
 | `TABLE_NAME`              | DynamoDB table name (set automatically from stack output)  |
 | `S3_BUCKET`               | Uploads bucket name (set automatically from stack output)  |
 | `APP_DOMAIN_NAME`         | Your domain (used to construct CloudFront image URLs)      |
-| `SUPABASE_URL`            | Supabase project URL                                       |
-| `CF_TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key for server-side validation |
+| `GOOGLE_CLIENT_ID`        | Google OAuth client ID. The stack throws if it's missing   |
+| `GOOGLE_CLIENT_SECRET`    | Google OAuth client secret. The stack throws if it's missing |
+| `SESSION_SECRET`          | Signs session cookies. The stack throws if it's missing    |
+| `APP_ORIGIN`              | Set by the stack to `https://{APP_DOMAIN_NAME}`            |
 
 You do **not** need to manage these manually in production — CDK handles it.
 

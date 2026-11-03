@@ -20,7 +20,7 @@ A session begins when the first drink is logged and ends when the user's estimat
 
 ### v0.1.0 (current)
 
-Anonymous sessions, drink logging, beer catalogue, BAC estimates, offline-first sync, opt-in accounts, BAC graph, drinking history dashboard, OTP sign-in, Cloudflare Turnstile bot protection
+Anonymous sessions, drink logging, beer catalogue, BAC estimates, offline-first sync, opt-in accounts, BAC graph, drinking history dashboard, Google sign-in
 
 ### v0.2.0
 
@@ -32,22 +32,20 @@ Optional AI session tips, UI polish based on user feedback
 
 ## Technology stack
 
-| Layer    | Tech                                                        |
-| -------- | ----------------------------------------------------------- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4                 |
-| Backend  | Go, AWS Lambda (provided.al2023, ARM64)                     |
-| Database | DynamoDB single-table design                                |
-| Auth     | Supabase (Google SSO + email OTP)                           |
-| Security | Cloudflare Turnstile (invisible CAPTCHA on magic link send) |
-| Infra    | AWS CDK, CloudFront, S3                                     |
+| Layer    | Tech                                                 |
+| -------- | ---------------------------------------------------- |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4          |
+| Backend  | Go, AWS Lambda (provided.al2023, ARM64)              |
+| Database | DynamoDB single-table design                         |
+| Auth     | Google sign-in, with the backend's own session cookie |
+| Infra    | AWS CDK, CloudFront, S3                              |
 
 ## Prerequisites
 
 You will need accounts / credentials for:
 
 - **AWS** — with a profile configured locally (`aws configure`)
-- **Supabase** — project with Google OAuth and magic link/OTP enabled; OTP length set to 6
-- **Cloudflare** — Turnstile widget (invisible mode) with site key and secret key
+- **Google Cloud** — an OAuth web client requesting only `openid`, with redirect URIs `https://<your domain>/api/auth/google/callback` and `http://localhost:5173/api/auth/google/callback`
 - A domain name with an ACM certificate in `us-east-1` (CloudFront requires it there)
 
 ## First-time setup
@@ -78,16 +76,15 @@ Fill in every value. Leave `TABLE_NAME` and `S3_BUCKET` blank for now — you'll
 
 | Variable                   | Used by         | Purpose                                            |
 | -------------------------- | --------------- | -------------------------------------------------- |
-| `SUPABASE_URL`             | All             | Supabase project URL                               |
-| `SUPABASE_PUBLISHABLE_KEY` | Frontend        | Supabase anon key                                  |
-| `SUPABASE_SECRET_KEY`      | Backend         | Supabase service role key (send OTP via Admin API) |
+| `GOOGLE_CLIENT_ID`         | Backend, CDK    | Google OAuth client ID                             |
+| `GOOGLE_CLIENT_SECRET`     | Backend, CDK    | Google OAuth client secret                         |
+| `SESSION_SECRET`           | Backend, CDK    | `openssl rand -base64 32`, different for production |
+| `APP_ORIGIN`               | Backend (local) | `http://localhost:5173`. CDK sets it in production |
 | `TABLE_NAME`               | Backend, CDK    | DynamoDB table name                                |
 | `S3_BUCKET`                | Backend, CDK    | Uploads bucket name                                |
 | `APP_DOMAIN_NAME`          | All             | Domain (e.g. itsbeeroclock.au)                     |
 | `APP_SUPPORT_EMAIL`        | Frontend        | Support email shown in UI                          |
 | `CORS_ORIGIN`              | Backend (local) | Allowed CORS origin for local dev                  |
-| `CF_TURNSTILE_SITE_KEY`    | Frontend        | Cloudflare Turnstile site key (baked in at build)  |
-| `CF_TURNSTILE_SECRET_KEY`  | Backend, CDK    | Cloudflare Turnstile secret key (Lambda env var)   |
 | `DYNAMODB_ENDPOINT`        | Backend (local) | DynamoDB Local URL. Never set this in `.env.prod`  |
 
 ### 3. Install dependencies
@@ -134,7 +131,7 @@ cd backend
 go run ./cmd/seed
 ```
 
-Custom beer thumbnails stay in the local table instead of going to S3. Sign-in still uses the real Supabase project.
+Custom beer thumbnails stay in the local table instead of going to S3.
 
 The backend and seed script refuse to run without `DYNAMODB_ENDPOINT`. To use the real table on purpose, pass `-prod` and override your local settings in the shell, for example to update the production catalogue:
 
@@ -158,7 +155,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-> **Turnstile in local dev:** there is no bypass, so use Cloudflare's test pair in `.env`: `CF_TURNSTILE_SITE_KEY=1x00000000000000000000AA` and `CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`. Mixing test and real keys fails verification.
+To sign in locally without Google, open [http://localhost:5173/api/dev/login?user=alice](http://localhost:5173/api/dev/login?user=alice). Change `user` to act as a different person. This signs in as `dev-alice`, and only `cmd/local` offers it. Real Google sign-in also works on `localhost`.
 
 ### AWS login troubleshooting (real DynamoDB access)
 
@@ -223,16 +220,25 @@ Then add the following secrets to your GitHub repo (Settings → Secrets and var
 | Secret                     | Value                               |
 | -------------------------- | ----------------------------------- |
 | `AWS_DEPLOY_ROLE_ARN`      | RoleArn output from GitHubRoleStack |
-| `SUPABASE_URL`             | from `.env.prod`                    |
-| `SUPABASE_PUBLISHABLE_KEY` | from `.env.prod`                    |
-| `SUPABASE_SECRET_KEY`      | from `.env.prod`                    |
+| `GOOGLE_CLIENT_ID`         | from `.env.prod`                    |
+| `GOOGLE_CLIENT_SECRET`     | from `.env.prod`                    |
+| `SESSION_SECRET`           | from `.env.prod`                    |
 | `TABLE_NAME`               | from `.env.prod`                    |
 | `APP_DOMAIN_NAME`          | `itsbeeroclock.au`                  |
 | `APP_SUPPORT_EMAIL`        | from `.env.prod`                    |
 | `CORS_ORIGIN`              | `https://itsbeeroclock.au`          |
 | `S3_BUCKET`                | from `.env.prod`                    |
-| `CF_TURNSTILE_SITE_KEY`    | from `.env.prod`                    |
-| `CF_TURNSTILE_SECRET_KEY`  | from `.env.prod`                    |
+
+## Google sign-in cutover
+
+This is a one-off. Run the wipe after sign-in works in production, with an admin login, because the read-only agent profile can't read or delete items. Without `-execute` it's a dry run that only prints counts:
+
+```bash
+cd backend
+DYNAMODB_ENDPOINT= TABLE_NAME=<real table name> S3_BUCKET=<real bucket name> go run ./cmd/wipeusers -prod
+```
+
+Check the counts, then add `-execute` and type the table name when asked. It deletes every `USER#` item and everything under `custom/`, and keeps the `CATALOGUE` items. Restoring afterwards needs point-in-time recovery, which restores to a new table.
 
 ## Recommended VS Code extensions
 

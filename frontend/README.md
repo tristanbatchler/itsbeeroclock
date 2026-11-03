@@ -47,9 +47,11 @@ Tests use Vitest + jsdom + Testing Library + fast-check (property-based tests). 
 
 ### Auth flow
 
-Sign-in uses Supabase email OTP (6-digit code). The magic link send is proxied through `/api/send-magic-link` on the Go backend, which verifies a Cloudflare Turnstile token before calling the Supabase Admin API. This keeps the Supabase service role key server-side and gates email sending behind bot protection.
+"Continue with Google" is a full-page navigation to `/api/auth/google/start`. The Go backend handles the whole flow and sets an `httpOnly` session cookie, so frontend JavaScript never sees a token. Same-origin `fetch` calls send the cookie automatically.
 
-After sending, `SignIn.tsx` shows a 6-cell OTP input. On completion it calls `supabase.auth.verifyOtp()` directly. On success, `onAuthStateChange` fires and the app reacts automatically.
+`src/store/authStore.ts` holds the signed-in user. It checks `/api/auth/session` on startup, and keeps a non-secret hint in `localStorage` so the signed-in UI still shows offline. A failed check doesn't sign anyone out: only a `{ user: null }` response or a 401 does.
+
+When a session expires, the app goes signed out and keeps local drinks and the offline queue. A successful sign-out clears the queue too. The installed iPhone app doesn't offer sign-in, and shows a message about using Safari instead.
 
 ### Profile setup gate
 
@@ -59,10 +61,6 @@ A new user's profile is not written to DynamoDB until they explicitly save it. `
 - Shows `<ProfileNotice variant="incomplete">` to nag signed-in users who haven't set up their profile
 - `getUserProfile()` in `storage.ts` rejects any cached profile where `profileSetup !== true`
 - `ProfileForm` uses a `key` prop so it remounts with correct initial values when the cloud profile loads
-
-### Turnstile
-
-`Turnstile.tsx` uses explicit rendering (required for React SPAs). There is no local-dev bypass, so set `CF_TURNSTILE_SITE_KEY` to Cloudflare's test site key in `.env`. In production it runs invisibly — no visible widget.
 
 ### Theme
 
@@ -105,7 +103,8 @@ npx tsx scripts/prerender-latex.ts
 | File                                     | Purpose                                                           |
 | ---------------------------------------- | ----------------------------------------------------------------- |
 | `src/store/beerStore.ts`                 | Zustand store: beer catalogue, profile, loading state             |
-| `src/lib/api.ts`                         | All HTTP calls, offline queue, token refresh                      |
+| `src/store/authStore.ts`                 | Signed-in user, session check, offline sign-in hint               |
+| `src/lib/api.ts`                         | All HTTP calls, offline queue                                     |
 | `src/hooks/useSession.ts`                | Local drinks array for the current session                        |
 | `src/hooks/useProfile.ts`                | Fetches cloud profile on sign-in, syncs to Zustand + localStorage |
 | `src/hooks/useHistorySync.ts`            | History hydration from remote, owns archives state                |
@@ -114,7 +113,6 @@ npx tsx scripts/prerender-latex.ts
 | `src/utils/storage.ts`                   | localStorage helpers; getUserProfile rejects profileSetup=false   |
 | `src/lib/constants.ts`                   | All storage keys and API routes                                   |
 | `src/lib/latexPrerendered.ts`            | Auto-generated pre-rendered KaTeX HTML (do not edit manually)     |
-| `src/components/Turnstile.tsx`           | Cloudflare Turnstile widget (invisible, explicit rendering)       |
 | `src/components/ProfileNotice.tsx`       | Unified notice for unauthenticated + incomplete profile states    |
 | `src/components/SessionCardSkeleton.tsx` | Skeleton placeholder for history cards during sync                |
 | `src/components/ErrorBoundary.tsx`       | Wraps all BAC/math-heavy components                               |
@@ -131,8 +129,6 @@ npx tsx scripts/prerender-latex.ts
 **`localStorage` is not state** — writing to it does not trigger a re-render. Always update React state first.
 
 **History archives live in the hook** — `useHistorySync` owns `archives` state and returns it. `History.tsx` does not maintain its own archives state or re-read localStorage after sync.
-
-**Turnstile tokens are single-use** — after any error, set `turnstileToken` to null so the widget re-challenges. Never retry with the same token.
 
 **Session checker fires on every drink change** — `useSessionChecker` runs immediately when the `drinks` array changes. The check logic must be fast and idempotent.
 

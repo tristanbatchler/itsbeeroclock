@@ -2,16 +2,11 @@ package api
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"encoding/base64"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -19,176 +14,151 @@ import (
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/utils"
 )
 
-var (
-	jwksCache     *JWKS
-	jwksCacheTime time.Time
-	jwksMutex     sync.RWMutex
-	cacheDuration = 24 * time.Hour
+const (
+	sessionCookieName = "boc_session"
+	sessionCookiePath = "/api"
+	sessionLifetime   = 90 * 24 * time.Hour
+	sessionRenewAfter = 24 * time.Hour
+	sessionIssuer     = "beeroclock"
+	sessionAudience   = "beeroclock-session"
+	minSessionSecret  = 32
 )
 
-type JWKS struct {
-	Keys []JSONWebKey `json:"keys"`
+type sessionClaims struct {
+	jwt.RegisteredClaims
 }
 
-type JSONWebKey struct {
-	Kty string `json:"kty"`
-	Kid string `json:"kid"`
-	Use string `json:"use"`
-	Alg string `json:"alg"`
-	X   string `json:"x"`
-	Y   string `json:"y"`
-	Crv string `json:"crv"`
+// sessionSecret fails closed: without a strong secret nothing can be signed or verified.
+func sessionSecret() ([]byte, error) {
+	secret := utils.GetVar("SESSION_SECRET")
+	if len(secret) < minSessionSecret {
+		log.Printf("sessionSecret: SESSION_SECRET is missing or under %d bytes", minSessionSecret)
+		return nil, errors.New("session secret not configured")
+	}
+	return []byte(secret), nil
 }
 
-func getJWKS() (*JWKS, error) {
-	log.Printf("getJWKS called, cache age: %v", time.Since(jwksCacheTime))
-	jwksMutex.RLock()
-	if jwksCache != nil && time.Since(jwksCacheTime) < cacheDuration {
-		jwksMutex.RUnlock()
-		return jwksCache, nil
+func createSessionToken(userID string, now time.Time) (string, error) {
+	secret, err := sessionSecret()
+	if err != nil {
+		return "", err
 	}
-	jwksMutex.RUnlock()
-
-	jwksMutex.Lock()
-	defer jwksMutex.Unlock()
-
-	// Double-check after acquiring write lock
-	if jwksCache != nil && time.Since(jwksCacheTime) < cacheDuration {
-		return jwksCache, nil
+	if userID == "" {
+		return "", errors.New("no user ID")
 	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss": sessionIssuer,
+		"aud": sessionAudience,
+		"sub": userID,
+		"iat": now.Unix(),
+		"exp": now.Add(sessionLifetime).Unix(),
+	}).SignedString(secret)
+}
 
-	supabaseURL := utils.GetVar("SUPABASE_URL")
-	if supabaseURL == "" {
-		return nil, fmt.Errorf("SUPABASE_URL not set")
-	}
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(supabaseURL + "/auth/v1/.well-known/jwks.json")
+func verifySessionToken(token string, now time.Time) (*sessionClaims, error) {
+	secret, err := sessionSecret()
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
-	var jwks JWKS
-	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+	claims := &sessionClaims{}
+	_, err = jwt.ParseWithClaims(
+		token,
+		claims,
+		func(*jwt.Token) (any, error) { return secret, nil },
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithIssuer(sessionIssuer),
+		jwt.WithAudience(sessionAudience),
+		jwt.WithExpirationRequired(),
+		jwt.WithTimeFunc(func() time.Time { return now }),
+	)
+	if err != nil {
 		return nil, err
 	}
-
-	jwksCache = &jwks
-	jwksCacheTime = time.Now()
-	return jwksCache, nil
+	if claims.Subject == "" || claims.IssuedAt == nil {
+		return nil, errors.New("session is missing sub or iat")
+	}
+	return claims, nil
 }
 
-func parseECPublicKey(xStr, yStr string, crv string) (*ecdsa.PublicKey, error) {
-	xBytes, err := base64.RawURLEncoding.DecodeString(xStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode x coordinate: %w", err)
+// buildCookie is Secure only when the app itself is served over HTTPS, so that
+// sign-in also works on http://localhost.
+func buildCookie(name, value, path string, maxAge int) string {
+	cookie := http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     path,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		Secure:   strings.HasPrefix(utils.GetVar("APP_ORIGIN"), "https://"),
+		SameSite: http.SameSiteLaxMode,
 	}
-	yBytes, err := base64.RawURLEncoding.DecodeString(yStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode y coordinate: %w", err)
-	}
-
-	var curve elliptic.Curve
-	switch crv {
-	case "P-256":
-		curve = elliptic.P256()
-	case "P-384":
-		curve = elliptic.P384()
-	case "P-521":
-		curve = elliptic.P521()
-	default:
-		return nil, fmt.Errorf("unsupported curve: %s", crv)
-	}
-
-	publicKey := &ecdsa.PublicKey{
-		Curve: curve,
-		X:     new(big.Int).SetBytes(xBytes),
-		Y:     new(big.Int).SetBytes(yBytes),
-	}
-	return publicKey, nil
+	return cookie.String()
 }
 
-func VerifyJWT(tokenString string) (*AuthContext, error) {
-	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+func sessionCookie(token string) string {
+	return buildCookie(sessionCookieName, token, sessionCookiePath, int(sessionLifetime.Seconds()))
+}
 
-	jwks, err := getJWKS()
+func expiredSessionCookie() string {
+	return buildCookie(sessionCookieName, "", sessionCookiePath, -1)
+}
+
+// requestCookie returns the named cookie's value, or "" if it isn't there.
+func requestCookie(headers map[string]string, name string) string {
+	// Safely check for both uppercase and lowercase
+	raw := headers["Cookie"]
+	if raw == "" {
+		raw = headers["cookie"]
+	}
+	if raw == "" {
+		return ""
+	}
+
+	req := http.Request{Header: http.Header{"Cookie": {raw}}}
+	cookie, err := req.Cookie(name)
 	if err != nil {
-		log.Printf("Error getting JWKS: %s", err.Error())
-		return nil, err
+		return ""
 	}
+	return cookie.Value
+}
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Find the key ID in the token header
-		kid, ok := token.Header["kid"].(string)
-		if !ok {
-			return nil, fmt.Errorf("no kid in token header")
-		}
-
-		// Find matching key in JWKS
-		for _, key := range jwks.Keys {
-			if key.Kid == kid {
-				return parseECPublicKey(key.X, key.Y, key.Crv)
-			}
-		}
-		return nil, fmt.Errorf("no matching key found for kid: %s", kid)
-	}, jwt.WithLeeway(5*time.Minute))
-
+// IssueSessionCookie is exported for Dev_Login in cmd/local. It returns a Set-Cookie value.
+func IssueSessionCookie(userID string) (string, error) {
+	token, err := createSessionToken(userID, time.Now())
 	if err != nil {
-		log.Printf("Error parsing JWT: %s", err.Error())
-		return nil, err
+		return "", fmt.Errorf("creating session: %w", err)
 	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		// 1. Verify Audience
-		aud, _ := claims["aud"].(string)
-		if aud != "authenticated" {
-			return nil, fmt.Errorf("invalid audience: %s", aud)
-		}
-
-		// 2. Verify Issuer
-		iss, _ := claims["iss"].(string)
-		supabaseURL := utils.GetVar("SUPABASE_URL")
-		expectedIss := supabaseURL + "/auth/v1"
-		if iss != expectedIss {
-			return nil, fmt.Errorf("invalid issuer")
-		}
-
-		userID, ok := claims["sub"].(string)
-		if !ok {
-			return nil, fmt.Errorf("no sub claim")
-		}
-		email, _ := claims["email"].(string)
-
-		log.Printf("JWT valid for userID: %s, email: %s", userID, email)
-		return &AuthContext{
-			UserID: userID,
-			Email:  email,
-		}, nil
-	}
-
-	log.Printf("Invalid JWT")
-	return nil, fmt.Errorf("invalid token")
+	return sessionCookie(token), nil
 }
 
 func WithAuth(handler AuthenticatedApiProxyGatewayHandler) ApiProxyGatewayHandler {
 	return func(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		now := time.Now()
 
-		// Safely check for both uppercase and lowercase
-		authHeader := req.Headers["Authorization"]
-		if authHeader == "" {
-			authHeader = req.Headers["authorization"]
+		token := requestCookie(req.Headers, sessionCookieName)
+		if token == "" {
+			return ErrorResponse(http.StatusUnauthorized, "not signed in")
 		}
 
-		if authHeader == "" {
-			return ErrorResponse(http.StatusUnauthorized, "missing Authorization header")
-		}
-
-		authCtx, err := VerifyJWT(authHeader)
+		claims, err := verifySessionToken(token, now)
 		if err != nil {
-			return ErrorResponse(http.StatusUnauthorized, "invalid token: "+err.Error())
+			return ErrorResponse(http.StatusUnauthorized, "not signed in")
 		}
 
-		return handler(ctx, authCtx, req)
+		resp, err := handler(ctx, &AuthContext{UserID: claims.Subject}, req)
+		if err != nil {
+			return resp, err
+		}
+
+		if now.Sub(claims.IssuedAt.Time) > sessionRenewAfter {
+			renewed, err := createSessionToken(claims.Subject, now)
+			if err != nil {
+				log.Printf("WithAuth: failed to renew session: %v", err)
+				return resp, nil
+			}
+			return withCookies(resp, sessionCookie(renewed)), nil
+		}
+		return resp, nil
 	}
 }

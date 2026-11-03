@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { type User } from "@supabase/supabase-js";
-import { api } from "../lib/api";
+import { type AuthUser } from "../store/authStore";
+import { api, UnauthorizedError } from "../lib/api";
 import { getCustomBeers, saveCustomBeer } from "../utils/storage";
 import { getHistory } from "../utils/sessionArchive";
 import { type Drink, type UserProfile } from "../types/drinks";
@@ -9,7 +9,7 @@ import { useBeerStore } from "../store/beerStore";
 interface UseCloudSyncOptions {
   drinks: Drink[];
   setAllDrinks: (drinks: Drink[]) => void;
-  user: User | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   isOnline: boolean;
 }
@@ -111,9 +111,11 @@ export function useCloudSync({
 
         setIsApiDown(false);
       } catch (err) {
+        hasHydratedRef.current = false; // allow retry on next reconnect
+        // An expired session isn't an outage: the app has already gone signed out.
+        if (err instanceof UnauthorizedError) return;
         console.error("Hydration failed", err);
         setIsApiDown(true);
-        hasHydratedRef.current = false; // allow retry on next reconnect
       }
     };
 
@@ -135,7 +137,9 @@ export function useCloudSync({
       return;
 
     const timeout = setTimeout(() => {
-      api.syncDrinks(drinks).catch(() => setIsApiDown(true));
+      api.syncDrinks(drinks).catch((err) => {
+        if (!(err instanceof UnauthorizedError)) setIsApiDown(true);
+      });
     }, 300);
 
     return () => clearTimeout(timeout);

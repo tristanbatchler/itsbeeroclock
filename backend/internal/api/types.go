@@ -10,7 +10,6 @@ type ApiProxyGatewayHandler func(context.Context, events.APIGatewayProxyRequest)
 
 type AuthContext struct {
 	UserID string
-	Email  string
 }
 
 type AuthenticatedApiProxyGatewayHandler func(context.Context, *AuthContext, events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)

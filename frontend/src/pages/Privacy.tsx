@@ -7,7 +7,7 @@ export function Privacy() {
       <Card className="p-6">
         <h1 className="text-2xl font-bold text-foreground mb-4">Privacy Policy</h1>
         <p className="text-muted-foreground mb-4">
-          Last updated: 1 April 2026
+          Last updated: 3 November 2026
         </p>
 
         <div className="space-y-4">
@@ -25,7 +25,7 @@ export function Privacy() {
               <li>Profile inputs (sex, weight, height, age, history preference).</li>
               <li>Session data (drinks logged, times, BAC estimates, session summaries).</li>
               <li>Beer preferences (favourites and custom beers).</li>
-              <li>Account details from sign-in providers (such as your email address).</li>
+              <li>If you sign in, an account identifier from Google. We don&apos;t receive or store your email address, name or profile picture.</li>
             </ul>
           </section>
 
@@ -49,8 +49,13 @@ export function Privacy() {
               services to support authenticated features and cross-device sync.
             </p>
             <p className="mt-2">
-              We use infrastructure providers (including AWS and Supabase) to
-              host and process data on our behalf.
+              We use infrastructure providers (including AWS) to host and
+              process data on our behalf. Sign-in is provided by Google.
+            </p>
+            <p className="mt-2">
+              If you sign in, we set a cookie that keeps you signed in. It
+              lasts 90 days from when you last used the app, and signing out
+              removes it from that device.
             </p>
           </section>
 
@@ -61,14 +66,10 @@ export function Privacy() {
               <li>You can turn history saving on or off in your profile.</li>
               <li>You can purge local data at any time from the Profile page.</li>
               <li>
-                Signed-in users can request full data deletion by contacting{" "}
-                <a
-                  href={`mailto:${APP_SUPPORT_EMAIL}`}
-                  className="text-primary-foreground"
-                >
-                  {APP_SUPPORT_EMAIL}
-                </a>
-                .
+                Signed-in users can delete all of their data, on this device and
+                in the cloud, using &quot;Delete data&quot; on the Profile page.
+                We don&apos;t hold your email address, so we can&apos;t find your
+                data from it. You need to sign in to delete it.
               </li>
             </ul>
           </section>

@@ -21,7 +21,7 @@ var SyncDrinksHandler AuthenticatedApiProxyGatewayHandler = func(
 	authCtx *AuthContext,
 	req events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
-	log.Printf("SyncDrinks for user: %s (%s)", authCtx.UserID, authCtx.Email)
+	log.Printf("SyncDrinks for user: %s", authCtx.UserID)
 
 	var drinks []models.DrinkRecord
 	if err := json.Unmarshal([]byte(req.Body), &drinks); err != nil {

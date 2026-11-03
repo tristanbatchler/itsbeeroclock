@@ -19,6 +19,15 @@ export class BeerOClockStack extends cdk.Stack {
       throw new Error("APP_DOMAIN_NAME environment variable not set");
     }
 
+    // A forgotten secret fails the deploy rather than shipping broken sign-in.
+    const requireEnv = (name: string): string => {
+      const value = process.env[name];
+      if (!value) {
+        throw new Error(`${name} environment variable not set`);
+      }
+      return value;
+    };
+
     const frontendBucket = new s3.Bucket(this, "FrontendBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -39,9 +48,10 @@ export class BeerOClockStack extends cdk.Stack {
       code: lambda.Code.fromAsset("../../backend/deployment.zip"),
       timeout: cdk.Duration.seconds(15),
       environment: {
-        SUPABASE_URL: process.env.SUPABASE_URL || "",
-        SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || "",
-        CF_TURNSTILE_SECRET_KEY: process.env.CF_TURNSTILE_SECRET_KEY || "",
+        GOOGLE_CLIENT_ID: requireEnv("GOOGLE_CLIENT_ID"),
+        GOOGLE_CLIENT_SECRET: requireEnv("GOOGLE_CLIENT_SECRET"),
+        SESSION_SECRET: requireEnv("SESSION_SECRET"),
+        APP_ORIGIN: `https://${domainName}`,
       },
     });
 
@@ -179,7 +189,8 @@ export class BeerOClockStack extends cdk.Stack {
       deployOptions: {
         stageName: "prod",
         loggingLevel: apigw.MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
+        // Data tracing would write Cookie and Set-Cookie values and sign-in codes to CloudWatch.
+        dataTraceEnabled: false,
         metricsEnabled: true,
       },
     });

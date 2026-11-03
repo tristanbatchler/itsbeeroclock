@@ -1,6 +1,6 @@
 # Beer O'Clock
 
-Queensland drink tracker: React frontend, Go on AWS Lambda, DynamoDB, Supabase auth. Live at https://itsbeeroclock.au.
+Queensland drink tracker: React frontend, Go on AWS Lambda, DynamoDB, Google sign-in with the backend's own session cookie. Live at https://itsbeeroclock.au.
 Setup and architecture for humans are in `README.md`, `frontend/README.md`, `backend/README.md` and `infra/cdk/README.md`.
 
 ## Commands
@@ -11,7 +11,7 @@ Run Go and Node through `mise exec --`, which uses the versions pinned in `mise.
 - One test file: `cd frontend && mise exec -- npx vitest run src/utils/__tests__/calculations.test.ts`
 - Typecheck: `cd frontend && mise exec -- npx tsc -b`
 - Lint: `cd frontend && mise exec -- npm run lint`
-- Backend check: `cd backend && mise exec -- go vet ./...` (there are no Go tests yet)
+- Backend check: `cd backend && mise exec -- go vet ./... && mise exec -- go test ./...`
 - Infra check: `cd infra/cdk && mise exec -- npx cdk diff` (`infra/cdk/test/` is only a placeholder). This needs admin credentials, so ask the user to run it.
 - Local database: `docker compose up -d`, then `cd backend && mise exec -- go run ./cmd/seed` to create and fill the table
 - Local dev: `cd backend && mise exec -- go run ./cmd/local` (port 8080), then `cd frontend && mise exec -- npm run dev` (port 5173, proxies `/api/*` to the backend)
@@ -20,7 +20,7 @@ Run Go and Node through `mise exec --`, which uses the versions pinned in `mise.
 
 - Pushing to `master` deploys to production through GitHub Actions.
 - `npm run deploy` runs `cdk deploy` with `--require-approval never`, and `infra/cdk/bin/cdk.ts` prefers `.env.prod` over `.env`.
-- `npm run deploy` runs `npm run check` first (tests, lint, `go vet`, `go build`), so a failing check stops the deploy. Run it locally through `mise exec --` to build with the pinned Go.
+- `npm run deploy` runs `npm run check` first (tests, lint, `go vet`, `go test`, `go build`), so a failing check stops the deploy. Run it locally through `mise exec --` to build with the pinned Go.
 - Don't push to `master` or deploy unless asked.
 
 ## Environment
@@ -30,7 +30,7 @@ All three packages read `.env` from the repo root. Production builds and CDK pre
 - Claude Code runs with `AWS_PROFILE=beeroclock-agent` here, set in `.claude/settings.json`. That profile is read-only and can't read DynamoDB items. DynamoDB Local uses dummy credentials, so it isn't affected.
 - `DYNAMODB_ENDPOINT` switches the backend to DynamoDB Local and skips S3 uploads. Without it, `cmd/local` and `cmd/seed` refuse to run unless passed `-prod`, which uses real data, so don't pass it unless asked.
 - CDK refuses to run when `DYNAMODB_ENDPOINT` is set, so production values must be in `.env.prod`.
-- Supabase has no local copy, so local sign-in uses the real Supabase project.
+- Local sign-in uses `/api/dev/login?user=<name>`, which only `cmd/local` registers. Real Google sign-in also works on `localhost`.
 - `.claude/settings.json` and `.claude/hooks/block-env-reads.sh` block Claude from reading `.env*`. Ask the user for any value you need.
 
 ## Product rules
