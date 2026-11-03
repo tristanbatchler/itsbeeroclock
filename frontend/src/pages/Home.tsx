@@ -20,6 +20,7 @@ import { PrivacyNotice } from "../components/PrivacyNotice";
 import { ProfileNotice } from "../components/ProfileNotice";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { useBACGraph } from "../hooks/useBACGraph";
+import { useFadeOut } from "../hooks/useFadeOut";
 import type { Drink, CheckInResponse } from "../types/drinks";
 import { calculateBAC, getStandardDrinks } from "../utils/calculations";
 
@@ -112,7 +113,7 @@ export function Home() {
     clearCheckIns();
     processedDrinkIdRef.current = null;
     previousDrinkCountRef.current = 0;
-  }, [drinks.length]);
+  }, [clearCheckIns, drinks.length]);
 
   const handleCheckInClose = () => {
     setCheckInQueue((prev) => prev.slice(1));
@@ -124,21 +125,7 @@ export function Home() {
   };
 
   // Keep drink UI visible briefly after the last drink is removed so it can fade out
-  const [showDrinkUI, setShowDrinkUI] = useState(drinks.length > 0);
-  const [fadingOut, setFadingOut] = useState(false);
-  useEffect(() => {
-    if (drinks.length > 0) {
-      setShowDrinkUI(true);
-      setFadingOut(false);
-    } else if (showDrinkUI) {
-      setFadingOut(true);
-      const t = setTimeout(() => {
-        setShowDrinkUI(false);
-        setFadingOut(false);
-      }, 300);
-      return () => clearTimeout(t);
-    }
-  }, [drinks.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { mounted: showDrinkUI, fadingOut } = useFadeOut(drinks.length > 0, 300);
 
   if (!beersLoading && allBeers.length === 0 && (isApiDown || !isOnline)) {
     return (

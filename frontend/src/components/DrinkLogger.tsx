@@ -3,7 +3,8 @@ import { Plus, AlertTriangle, CheckCircle2, ChevronRight, Search, ChevronDown, B
 import { type Beer, type Drink, type DrinkSize } from "../types/drinks";
 import { Button } from "./Button";
 import { Card } from "./Card";
-import { DrinkSizeSelector, type DrinkMode, PUB_SIZES, HOME_SIZES } from "./DrinkSizeSelector";
+import { DrinkSizeSelector } from "./DrinkSizeSelector";
+import { HOME_SIZES, PUB_SIZES, type DrinkMode } from "../types/drinks";
 import { BeerSelector } from "./BeerSelector";
 import { BeerPlaceholder } from "./BeerPlaceholder";
 import { beerThumbUrl } from "../utils/image";

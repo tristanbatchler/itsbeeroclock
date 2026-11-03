@@ -97,6 +97,7 @@ npx cdk destroy  # tear down (UploadsBucket is RETAIN — won't be deleted)
 ## Notes
 
 - The ACM certificate ARN is hardcoded in `cdk-stack.ts`. It must be in `us-east-1` (CloudFront requirement). Update it if you're deploying to a different account.
+- `BeerTable` uses `RETAIN` with point-in-time recovery on, so deleting the stack leaves the table and its data in place.
 - The `FrontendBucket` uses `DESTROY` + `autoDeleteObjects` — it is fully replaced on every deploy. Never store anything important there manually.
 - The `UploadsBucket` uses `RETAIN` — it will not be deleted even if you run `cdk destroy`. This protects user-uploaded images.
 - Cache TTL for the default behavior is 7 days (`max-age=604800`). Assets under `/assets/*` use immutable caching and are content-hashed by Vite, so they can be cached indefinitely.

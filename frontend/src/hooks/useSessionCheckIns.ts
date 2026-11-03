@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { STORAGE_KEYS } from "../lib/constants";
 import type { CheckInResponse } from "../types/drinks";
 
@@ -48,10 +48,11 @@ export function useSessionCheckIns() {
     setCheckIns((prev) => [...prev, checkIn]);
   };
 
-  const clearCheckIns = () => {
+  // Stable because Home calls it from an effect that also sets state.
+  const clearCheckIns = useCallback(() => {
     setCheckIns([]);
     setCheckInTriggered(false);
-  };
+  }, []);
 
   return {
     checkIns,

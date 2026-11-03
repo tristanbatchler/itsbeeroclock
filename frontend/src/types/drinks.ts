@@ -22,6 +22,12 @@ export const DRINK_SIZES = {
 
 export type DrinkSize = keyof typeof DRINK_SIZES;
 
+export type DrinkMode = "pub" | "home";
+
+export const PUB_SIZES: DrinkSize[] = ["pot", "schooner", "pint"];
+export const HOME_SIZES: DrinkSize[] = ["bottle330", "tinnie", "longneck"];
+export const ALL_SIZES: DrinkSize[] = [...PUB_SIZES, ...HOME_SIZES];
+
 export const DRINK_LABELS: Record<DrinkSize, string> = {
   pot: "Pot",
   schooner: "Schooner",

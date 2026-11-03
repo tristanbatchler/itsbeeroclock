@@ -1,4 +1,12 @@
-import { DRINK_SIZES, DRINK_LABELS, type DrinkSize } from "../types/drinks";
+import {
+  ALL_SIZES,
+  DRINK_LABELS,
+  DRINK_SIZES,
+  HOME_SIZES,
+  PUB_SIZES,
+  type DrinkMode,
+  type DrinkSize,
+} from "../types/drinks";
 import {
   PotIcon,
   SchonerIcon,
@@ -6,12 +14,6 @@ import {
   CanIcon,
   BottleIcon,
 } from "./BeerSizeIcons";
-
-export type DrinkMode = "pub" | "home";
-
-export const PUB_SIZES: DrinkSize[] = ["pot", "schooner", "pint"];
-export const HOME_SIZES: DrinkSize[] = ["bottle330", "tinnie", "longneck"];
-export const ALL_SIZES: DrinkSize[] = [...PUB_SIZES, ...HOME_SIZES];
 
 interface Props {
   selectedSize: DrinkSize | null;
