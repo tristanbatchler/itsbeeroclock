@@ -15,8 +15,12 @@ func LocalDynamoDBEndpoint() string {
 // RequireLocalDynamoDB stops local tools from reaching real data by accident.
 // allowProd is the tool's explicit -prod flag.
 func RequireLocalDynamoDB(allowProd bool) {
-	if LocalDynamoDBEndpoint() == "" && !allowProd {
+	endpoint := LocalDynamoDBEndpoint()
+	if endpoint == "" && !allowProd {
 		log.Fatal("DYNAMODB_ENDPOINT is not set, so this would use the real DynamoDB table. Set it to use DynamoDB Local, or pass -prod to use real data")
+	}
+	if endpoint != "" && allowProd {
+		log.Fatal("-prod was passed, but DYNAMODB_ENDPOINT is set, so this would use DynamoDB Local. Empty it in the shell, and set TABLE_NAME to the real table: DYNAMODB_ENDPOINT= TABLE_NAME=<table> ... -prod")
 	}
 }
 
