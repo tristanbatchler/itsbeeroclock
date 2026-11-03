@@ -39,7 +39,7 @@ Produces `deployment.zip` which the CDK stack uploads to Lambda.
 
 - `cmd/api/main.go` — production Lambda handler
 - `cmd/local/main.go` — local HTTP server (simulates Lambda)
-- `cmd/seed/main.go` — one-off DynamoDB seeder for the beer catalogue
+- `cmd/seed/main.go` — fills the beer catalogue, creating the table first on DynamoDB Local. Pass `-prod` to write to the real table
 
 ### Request flow
 

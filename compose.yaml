@@ -1,0 +1,15 @@
+# Local-only database for development. See "Run locally" in README.md.
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:3.3.2
+    command: -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
+    working_dir: /home/dynamodblocal
+    # Docker creates the named volume as root, and the image's default user can't write to it.
+    user: root
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - dynamodb-local-data:/home/dynamodblocal/data
+
+volumes:
+  dynamodb-local-data:

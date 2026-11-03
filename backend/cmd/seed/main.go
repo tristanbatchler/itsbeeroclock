@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"fmt"
 	"log"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	beerAws "github.com/tristanbatchler/itsbeeroclock/backend/internal/api"
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
 )
@@ -24,12 +27,56 @@ type CatalogueItem struct {
 	Image   string  `dynamodbav:"Image"`
 }
 
+// createLocalTable mirrors BeerTable in infra/cdk/lib/cdk-stack.ts.
+func createLocalTable(ctx context.Context, db *dynamodb.Client) error {
+	stringAttr := func(name string) types.AttributeDefinition {
+		return types.AttributeDefinition{AttributeName: aws.String(name), AttributeType: types.ScalarAttributeTypeS}
+	}
+	keys := func(partition, sort string) []types.KeySchemaElement {
+		return []types.KeySchemaElement{
+			{AttributeName: aws.String(partition), KeyType: types.KeyTypeHash},
+			{AttributeName: aws.String(sort), KeyType: types.KeyTypeRange},
+		}
+	}
+	allAttrs := &types.Projection{ProjectionType: types.ProjectionTypeAll}
+
+	_, err := db.CreateTable(ctx, &dynamodb.CreateTableInput{
+		TableName:   beerAws.TableName(),
+		BillingMode: types.BillingModePayPerRequest,
+		AttributeDefinitions: []types.AttributeDefinition{
+			stringAttr("PK"),
+			stringAttr("SK"),
+			stringAttr("GSI1PK"),
+			stringAttr("GSI1SK"),
+			{AttributeName: aws.String("Timestamp"), AttributeType: types.ScalarAttributeTypeN},
+		},
+		KeySchema: keys("PK", "SK"),
+		GlobalSecondaryIndexes: []types.GlobalSecondaryIndex{
+			{IndexName: aws.String("GSI1"), KeySchema: keys("GSI1PK", "GSI1SK"), Projection: allAttrs},
+			{IndexName: aws.String("GSI2"), KeySchema: keys("PK", "Timestamp"), Projection: allAttrs},
+		},
+	})
+	var exists *types.ResourceInUseException
+	if errors.As(err, &exists) {
+		return nil
+	}
+	return err
+}
+
 func main() {
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("ap-southeast-2"))
+	prod := flag.Bool("prod", false, "write to the real DynamoDB table instead of DynamoDB Local")
+	flag.Parse()
+	beerAws.RequireLocalDynamoDB(*prod)
+
+	db, err := beerAws.NewDynamoClient(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-	db := dynamodb.NewFromConfig(cfg)
+	if beerAws.LocalDynamoDBEndpoint() != "" {
+		if err := createLocalTable(context.Background(), db); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	beers := []models.Beer{
 		{ID: "1-pacific-ale", Name: "Pacific Ale", Brewery: "Stone & Wood", ABV: 4.4, Image: "beer_images/Stone_WoodPacificCan.webp"},
