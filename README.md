@@ -74,7 +74,20 @@ mise install
 cp .env.example .env
 ```
 
-Fill in every value. See `.env.example` for descriptions. Leave `TABLE_NAME` and `S3_BUCKET` blank for now — you'll get them after the first deploy.
+Fill in every value. Leave `TABLE_NAME` and `S3_BUCKET` blank for now — you'll get them after the first deploy.
+
+| Variable                   | Used by         | Purpose                                            |
+| -------------------------- | --------------- | -------------------------------------------------- |
+| `SUPABASE_URL`             | All             | Supabase project URL                               |
+| `SUPABASE_PUBLISHABLE_KEY` | Frontend        | Supabase anon key                                  |
+| `SUPABASE_SECRET_KEY`      | Backend         | Supabase service role key (send OTP via Admin API) |
+| `TABLE_NAME`               | Backend, CDK    | DynamoDB table name                                |
+| `S3_BUCKET`                | Backend, CDK    | Uploads bucket name                                |
+| `APP_DOMAIN_NAME`          | All             | Domain (e.g. itsbeeroclock.au)                     |
+| `APP_SUPPORT_EMAIL`        | Frontend        | Support email shown in UI                          |
+| `CORS_ORIGIN`              | Backend (local) | Allowed CORS origin for local dev                  |
+| `CF_TURNSTILE_SITE_KEY`    | Frontend        | Cloudflare Turnstile site key (baked in at build)  |
+| `CF_TURNSTILE_SECRET_KEY`  | Backend, CDK    | Cloudflare Turnstile secret key (Lambda env var)   |
 
 ### 3. Install dependencies
 
@@ -121,7 +134,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-> **Turnstile in local dev:** if `CF_TURNSTILE_SITE_KEY` is not set, the Turnstile widget auto-passes silently. For the backend to accept the token, set `CF_TURNSTILE_SECRET_KEY` to Cloudflare's test secret key: `1x0000000000000000000000000000000AA`.
+> **Turnstile in local dev:** there is no bypass, so use Cloudflare's test pair in `.env`: `CF_TURNSTILE_SITE_KEY=1x00000000000000000000AA` and `CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`. Mixing test and real keys fails verification.
 
 ### AWS login troubleshooting (local DynamoDB access)
 

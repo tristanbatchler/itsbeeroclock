@@ -160,7 +160,7 @@ For GSI2 queries, use `DrinkTimeRangeQuery()` from `keys.go`. Note: `Timestamp` 
 &http.Client{Timeout: 5 * time.Second}
 ```
 
-**`DeleteItem` always returns 200** — even if the item didn't exist. Use `ConditionExpression: attribute_exists(PK)` if you need to confirm existence. See `deletedrinkfn.go`.
+**`DeleteItem` always returns 200** — even if the item didn't exist. Use `ConditionExpression: attribute_exists(PK)` if you need to confirm existence. `DeleteDrinkHandler` does not currently do this.
 
 **Single-table purges** — deleting a profile record does not delete drinks or custom beers. `ClearUserDataHandler` queries all items under the user's PK and batch-deletes them in chunks of 25 (DynamoDB batch limit).
 

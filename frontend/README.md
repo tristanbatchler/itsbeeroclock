@@ -32,7 +32,7 @@ Output goes to `dist/`. The CDK stack picks this up automatically during `cdk de
 npx vitest run
 ```
 
-Tests use Vitest + jsdom + Testing Library + fast-check (property-based tests). The test suite runs automatically after each completed agent task via a Kiro hook.
+Tests use Vitest + jsdom + Testing Library + fast-check (property-based tests). When `frontend/` has uncommitted changes, a Claude Code `Stop` hook in `.claude/settings.json` also runs the suite at the end of each Claude turn.
 
 ---
 
@@ -62,7 +62,7 @@ A new user's profile is not written to DynamoDB until they explicitly save it. `
 
 ### Turnstile
 
-`Turnstile.tsx` uses explicit rendering (required for React SPAs). When `CF_TURNSTILE_SITE_KEY` is not set (local dev), it immediately calls `onSuccess("dev-bypass")` and renders nothing. In production it runs invisibly — no visible widget.
+`Turnstile.tsx` uses explicit rendering (required for React SPAs). There is no local-dev bypass, so set `CF_TURNSTILE_SITE_KEY` to Cloudflare's test site key in `.env`. In production it runs invisibly — no visible widget.
 
 ### Theme
 
@@ -86,7 +86,7 @@ All BAC math lives in `src/utils/calculations.ts` as pure functions. The formula
 
 ### KaTeX formulas
 
-The Profile page displays BAC formula explanations using KaTeX. To avoid shipping the KaTeX JS runtime (~500 KB), formulas are **pre-rendered to static HTML at build time** by `scripts/prerender-latex.ts`. The output is committed to `src/lib/latexPrerendered.ts`. The `Latex` component simply injects the pre-rendered HTML. KaTeX CSS is imported only in `Profile.tsx`.
+The Profile page displays BAC formula explanations using KaTeX. To avoid shipping the KaTeX JS runtime (~500 KB), formulas are **pre-rendered to static HTML at build time** by `scripts/prerender-latex.ts`. The output is committed to `src/lib/latexPrerendered.ts`. The `Latex` component simply injects the pre-rendered HTML. KaTeX CSS is imported only in `Profile.tsx` and `About.tsx`.
 
 If you change a formula, re-run:
 
