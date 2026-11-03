@@ -113,7 +113,7 @@ export function Home() {
     clearCheckIns();
     processedDrinkIdRef.current = null;
     previousDrinkCountRef.current = 0;
-  }, [drinks.length]);
+  }, [clearCheckIns, drinks.length]);
 
   const handleCheckInClose = () => {
     setCheckInQueue((prev) => prev.slice(1));
