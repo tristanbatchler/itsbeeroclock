@@ -1,7 +1,8 @@
 {
   "scripts": {
     "build": "cd frontend && npm run build && cd ../backend && ./build_lambda.sh",
-    "deploy": "npm run build && cd infra/cdk && npx cdk deploy BeerOClockStack --require-approval never",
+    "check": "cd frontend && npm test && npm run lint && cd ../backend && go vet ./... && go build ./...",
+    "deploy": "npm run check && npm run build && cd infra/cdk && npx cdk deploy BeerOClockStack --require-approval never",
     "dev": "cd frontend && npm run dev"
   }
 }

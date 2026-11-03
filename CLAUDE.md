@@ -19,6 +19,7 @@ Run Go and Node through `mise exec --`, which uses the versions pinned in `mise.
 
 - Pushing to `master` deploys to production through GitHub Actions.
 - `npm run deploy` runs `cdk deploy` with `--require-approval never`, and `infra/cdk/bin/cdk.ts` prefers `.env.prod` over `.env`.
+- `npm run deploy` runs `npm run check` first (tests, lint, `go vet`, `go build`), so a failing check stops the deploy. Run it locally through `mise exec --` to build with the pinned Go.
 - Don't push to `master` or deploy unless asked.
 
 ## Environment
