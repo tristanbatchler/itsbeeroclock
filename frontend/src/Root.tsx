@@ -6,6 +6,7 @@ import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { useBeerInit } from "./hooks/useBeerInit";
 import { useProfileInit } from "./hooks/useProfile";
 import { useAuth } from "./hooks/useAuth";
+import { useAuthStore } from "./store/authStore";
 
 export function Root() {
   const location = useLocation();
@@ -20,6 +21,11 @@ export function Root() {
 
   useBeerInit();
   useProfileInit(user, isOnline);
+
+  const initAuth = useAuthStore((s) => s.initAuth);
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
 
   useEffect(() => {
     const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')

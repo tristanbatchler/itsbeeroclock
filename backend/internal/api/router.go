@@ -26,7 +26,10 @@ var routes = []Route{
 	{"/api/health", http.MethodGet, HealthHandler, false},
 	{"/api/beers", http.MethodGet, GetBeersHandler, false},
 	{"/api/beers/batch", http.MethodGet, GetBeersBatchHandler, false},
-	{"/api/send-magic-link", http.MethodPost, SendMagicLinkHandler, false},
+	{"/api/auth/google/start", http.MethodGet, GoogleStartHandler, false},
+	{"/api/auth/google/callback", http.MethodGet, GoogleCallbackHandler, false},
+	{"/api/auth/session", http.MethodGet, GetSessionHandler, false},
+	{"/api/auth/signout", http.MethodPost, SignOutHandler, false},
 
 	// Protected
 	{"/api/drinks", http.MethodPost, wrapAuth(AddDrinkHandler), true},

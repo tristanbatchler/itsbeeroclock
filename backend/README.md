@@ -1,6 +1,6 @@
 # Beer O'Clock — Backend
 
-Go service running on AWS Lambda (ARM64, `provided.al2023`), fronted by API Gateway, with DynamoDB for storage and Supabase for JWT auth.
+Go service running on AWS Lambda (ARM64, `provided.al2023`), fronted by API Gateway, with DynamoDB for storage and Google sign-in handled by the backend.
 
 ## Running locally
 
@@ -14,13 +14,14 @@ This starts an HTTP server on `:8080` that wraps incoming requests into `APIGate
 Required `.env` values for local dev (see `.env.example`):
 
 ```
-SUPABASE_URL=
-SUPABASE_SECRET_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+SESSION_SECRET=         # openssl rand -base64 32
+APP_ORIGIN=             # http://localhost:5173
 TABLE_NAME=              # from first CDK deploy output
 S3_BUCKET=               # UploadsBucketName from first CDK deploy output
 APP_DOMAIN_NAME=         # e.g. localhost:5173 (used to build image URLs)
 CORS_ORIGIN=             # e.g. http://localhost:5173
-CF_TURNSTILE_SECRET_KEY= # use 1x0000000000000000000000000000000AA for local dev
 ```
 
 ## Building for Lambda
@@ -40,6 +41,7 @@ Produces `deployment.zip` which the CDK stack uploads to Lambda.
 - `cmd/api/main.go` — production Lambda handler
 - `cmd/local/main.go` — local HTTP server (simulates Lambda)
 - `cmd/seed/main.go` — fills the beer catalogue, creating the table first on DynamoDB Local. Pass `-prod` to write to the real table
+- `cmd/wipeusers/main.go` — deletes all user data and keeps the catalogue, for the Google sign-in cutover. A dry run unless passed `-execute`
 
 ### Request flow
 
@@ -51,23 +53,22 @@ All routing is a declarative slice in `internal/api/router.go`. To add an endpoi
 
 ### Auth
 
-Supabase issues JWTs (ES256). The Lambda verifies them locally by fetching the JWKS from Supabase on first request and caching it for 24 hours. Authenticated routes use `AuthenticatedApiProxyGatewayHandler` which injects an `AuthContext` (containing `UserID`) into the handler.
+The backend runs Google's authorization code flow with PKCE, requesting only `openid`, and uses Google's `sub` as the user ID. No email address is stored.
 
-### Bot protection (Turnstile)
+| Route                       | Purpose                                                |
+| --------------------------- | ------------------------------------------------------ |
+| `/api/auth/google/start`    | Sets `boc_oauth` (state and verifier), redirects to Google |
+| `/api/auth/google/callback` | Exchanges the code, sets `boc_session`, redirects      |
+| `/api/auth/session`         | Returns `{ user: { id } }` or `{ user: null }`, always 200 |
+| `/api/auth/signout`         | Expires `boc_session`                                  |
 
-`internal/api/turnstile.go` provides `verifyTurnstile(token, ip string) error`. Call it in any public handler that triggers expensive operations before doing any real work. The `/api/send-magic-link` endpoint uses it to gate Supabase OTP sends.
+`boc_session` is an HS256 JWT in an `httpOnly` cookie signed with `SESSION_SECRET`. It lasts 90 days, and protected routes renew it once it's over a day old. Authenticated routes use `AuthenticatedApiProxyGatewayHandler`, which injects an `AuthContext` (containing `UserID`) into the handler.
 
-For local dev, set `CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA` — Cloudflare's always-passes test secret.
+Sessions are stateless, so a single session can't be revoked. Rotating `SESSION_SECRET` signs everyone out.
 
-### Magic link / OTP send
+Set cookies with `withCookies`, never in `resp.Headers`. `defaultHeaders` is shared by every response, so a cookie written there could reach another user on a warm Lambda.
 
-`/api/send-magic-link` (in `sendmagiclink.go`) is a public endpoint that:
-
-1. Verifies the Cloudflare Turnstile token
-2. Calls the Supabase Admin API (`POST /auth/v1/otp`) using the service role key
-3. Returns `{ "sent": true }` on success
-
-This keeps `SUPABASE_SECRET_KEY` server-side and prevents bots from burning your SES/email quota.
+For local development, `cmd/local` also offers `GET /api/dev/login?user=alice`, which signs in as `dev-alice` without Google. The Lambda has no such route.
 
 ### S3 (custom beer thumbnails)
 
@@ -154,7 +155,7 @@ For GSI2 queries, use `DrinkTimeRangeQuery()` from `keys.go`. Note: `Timestamp` 
 
 **CORS in local dev** — `cmd/local/main.go` reads `CORS_ORIGIN` from `.env`, defaulting to `http://localhost:5173`. If your frontend runs on a different port, update `.env`.
 
-**No default HTTP client timeouts** — always set a timeout on external calls (JWKS fetch, Turnstile verify, Supabase OTP):
+**No default HTTP client timeouts** — always set a timeout on external calls, such as the Google token exchange:
 
 ```go
 &http.Client{Timeout: 5 * time.Second}

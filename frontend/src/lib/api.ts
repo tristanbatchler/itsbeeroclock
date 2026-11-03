@@ -1,8 +1,16 @@
 import type { Beer, Drink, UserProfile, SessionArchive } from "../types/drinks";
 import { STORAGE_KEYS } from "./constants";
-import { supabase } from "./supabase";
+import { useAuthStore } from "../store/authStore";
 
 const QUEUE_KEY = STORAGE_KEYS.OFFLINE_QUEUE;
+
+/** The user isn't signed in, or the server says their session is no longer valid. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("User is not authenticated");
+    this.name = "UnauthorizedError";
+  }
+}
 
 export interface QueuedRequest {
   id: string;
@@ -59,13 +67,16 @@ export function queueRequest(endpoint: string, options: RequestInit) {
 }
 
 export async function processOfflineQueue() {
+  // Signed out requests can't succeed, and must wait for the next sign-in.
+  if (!useAuthStore.getState().user) return;
+
   const queue: QueuedRequest[] = JSON.parse(
     localStorage.getItem(QUEUE_KEY) || "[]",
   );
   if (queue.length === 0) return;
 
   const remaining: QueuedRequest[] = [];
-  for (const req of queue) {
+  for (const [index, req] of queue.entries()) {
     try {
       // Pass TRUE to skipQueue
       await fetchWithAuth(
@@ -74,6 +85,11 @@ export async function processOfflineQueue() {
         true,
       );
     } catch (err) {
+      // The session ended, so this and everything after it can't be sent yet.
+      if (err instanceof UnauthorizedError) {
+        remaining.push(...queue.slice(index));
+        break;
+      }
       // If it's a TypeError, we're likely still offline. Keep it in the queue.
       if (err instanceof TypeError) {
         remaining.push(req);
@@ -86,58 +102,19 @@ export async function processOfflineQueue() {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(remaining));
 }
 
-async function getAuthToken(): Promise<string | null> {
-  try {
-    // Force a fresh session check, not cached
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-
-    if (error) {
-      console.error("Error getting session:", error);
-      return null;
-    }
-
-    if (session?.access_token) {
-      // Check if token is expired
-      const expiresAt = session.expires_at;
-      if (expiresAt && expiresAt * 1000 < Date.now()) {
-        const {
-          data: { session: refreshed },
-          error: refreshError,
-        } = await supabase.auth.refreshSession();
-        if (refreshError || !refreshed) {
-          console.log("Could not refresh token");
-          return null;
-        }
-        return refreshed.access_token;
-      }
-      return session.access_token;
-    }
-    return null;
-  } catch (err) {
-    console.error("Failed to get auth token:", err);
-    return null;
-  }
-}
-
 async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
   skipQueue: boolean = false,
 ): Promise<T> {
-  const token = await getAuthToken();
+  if (!useAuthStore.getState().user) {
+    throw new UnauthorizedError();
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  } else {
-    throw new Error("User is not authenticated");
-  }
 
   const isMutation =
     options.method && ["POST", "PUT", "DELETE"].includes(options.method);
@@ -151,6 +128,11 @@ async function fetchWithAuth<T>(
       throw new Error("NETWORK_ERROR_QUEUED");
     }
     throw err; // If skipQueue is true, let the caller handle the standard fetch failure
+  }
+
+  if (response.status === 401) {
+    useAuthStore.getState().setSignedOut();
+    throw new UnauthorizedError();
   }
 
   if (!response.ok) {
@@ -222,7 +204,9 @@ export const api = {
       body: JSON.stringify(profile),
     }),
   processOfflineQueue,
-  clearUserData: () => fetchWithAuth("/api/clear", { method: "DELETE" }),
+  // Never queued: a failed purge reports an error, so it mustn't run later on its own.
+  clearUserData: () =>
+    fetchWithAuth("/api/clear", { method: "DELETE" }, true),
   getCustomBeers: () => fetchWithAuth<Beer[]>("/api/custom-beers"),
   addCustomBeer: (beer: Beer): Promise<Beer> =>
     fetchWithAuth<Beer>("/api/custom-beers", {

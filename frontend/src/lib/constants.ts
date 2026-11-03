@@ -31,9 +31,12 @@ export const STORAGE_KEYS = {
   LAST_BEER: "beeroclock_last_beer",
   LAST_SIZE: "beeroclock_last_size",
   DRINK_MODE: "beeroclock_drink_mode",
+  SIGNED_IN_USER: "beeroclock_signed_in_user",
 } as const;
 
 export const API_ROUTES = {
   HISTORY: "/api/history",
-  SEND_MAGIC_LINK: "/api/send-magic-link",
+  GOOGLE_START: "/api/auth/google/start",
+  AUTH_SESSION: "/api/auth/session",
+  SIGN_OUT: "/api/auth/signout",
 } as const;

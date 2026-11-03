@@ -30,7 +30,7 @@ if (fs.existsSync(envPath)) {
   );
 }
 
-// Local dev values must never reach production, such as the test Turnstile key.
+// Local dev values must never reach production, such as the local session secret.
 if (process.env.DYNAMODB_ENDPOINT) {
   throw new Error(
     `${envPath} has local dev settings (DYNAMODB_ENDPOINT is set). Put production values in .env.prod before using CDK.`,

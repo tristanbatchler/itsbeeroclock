@@ -18,7 +18,7 @@ var SaveHistoryHandler AuthenticatedApiProxyGatewayHandler = func(
 	req events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
 
-	log.Printf("SaveHistory by user: %s (%s)", authCtx.UserID, authCtx.Email)
+	log.Printf("SaveHistory by user: %s", authCtx.UserID)
 
 	var body struct {
 		StartTimestamp  int64   `json:"startTimestamp"`

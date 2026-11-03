@@ -15,7 +15,7 @@ var AddDrinkHandler AuthenticatedApiProxyGatewayHandler = func(
 	req events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
 
-	log.Printf("AddDrink by user: %s (%s)", authCtx.UserID, authCtx.Email)
+	log.Printf("AddDrink by user: %s", authCtx.UserID)
 	log.Printf("Request body: %s", req.Body)
 
 	// Parse request

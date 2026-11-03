@@ -1,145 +1,15 @@
-import { useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { Button } from "../components/Button";
-import { Input } from "../components/Input";
 import { Card } from "../components/Card";
-import { Turnstile } from "../components/Turnstile";
-import { Mail, ArrowRight } from "lucide-react";
+import { isInstalledIOS } from "../utils/platform";
 
 export function SignIn() {
-  const { signInWithGoogle, signInWithMagicLink, verifyOtp } = useAuth();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [sendError, setSendError] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [otpError, setOtpError] = useState("");
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const handleMagicLink = async () => {
-    if (!email || !turnstileToken) return;
-    setLoading(true);
-    setSendError("");
-    try {
-      await signInWithMagicLink(email, turnstileToken);
-      setSent(true);
-      setOtp(["", "", "", "", "", ""]);
-      setOtpError("");
-    } catch {
-      setSendError("Something went wrong. Please try again.");
-      setTurnstileToken(null); // token is single-use, force re-challenge
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = async (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return; // digits only
-    const next = [...otp];
-    next[index] = value.slice(-1); // one digit per cell
-    setOtp(next);
-    setOtpError("");
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-submit when all 6 digits are filled
-    if (next.every((d) => d !== "") && next.join("").length === 6) {
-      const token = next.join("");
-      setLoading(true);
-      const { error } = await verifyOtp(email, token);
-      setLoading(false);
-      if (error) {
-        setOtpError("Invalid code — please check your email and try again.");
-        setOtp(["", "", "", "", "", ""]);
-        inputRefs.current[0]?.focus();
-      } else {
-        navigate("/profile");
-      }
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = async (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pasted.length !== 6) return;
-    e.preventDefault();
-    const next = pasted.split("");
-    setOtp(next);
-    setOtpError("");
-    setLoading(true);
-    const { error } = await verifyOtp(email, pasted);
-    setLoading(false);
-    if (error) {
-      setOtpError("Invalid code — please check your email and try again.");
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-    } else {
-      navigate("/profile");
-    }
-  };
-
-  if (sent) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <Card className="p-8 max-w-md w-full text-center">
-          <Mail className="size-12 mx-auto mb-4 text-foreground" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
-          <p className="text-muted-foreground mb-6">
-            We sent a 6-digit code to{" "}
-            <span className="font-medium text-foreground">{email}</span>
-          </p>
-
-          <div className="flex justify-center gap-2 mb-2" onPaste={handleOtpPaste}>
-            {otp.map((digit, i) => (
-              <input
-                key={i}
-                ref={(el) => { inputRefs.current[i] = el; }}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(i, e.target.value)}
-                onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                disabled={loading}
-                className="w-11 h-14 text-center text-xl font-bold rounded-xl border border-border bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                aria-label={`OTP digit ${i + 1}`}
-              />
-            ))}
-          </div>
-
-          {otpError && (
-            <p className="text-sm text-destructive mt-2 mb-4">{otpError}</p>
-          )}
-          {loading && (
-            <p className="text-sm text-muted-foreground mt-2 mb-4">Verifying...</p>
-          )}
-
-          <Button
-            onClick={() => {
-              setSent(false);
-              setEmail("");
-              setOtp(["", "", "", "", "", ""]);
-              setOtpError("");
-            }}
-            className="mt-4 w-full"
-            variant="outline"
-          >
-            Use a different email
-          </Button>
-        </Card>
-      </div>
-    );
-  }
+  const { signInWithGoogle } = useAuth();
+  const isOnline = useOnlineStatus();
+  const [searchParams] = useSearchParams();
+  const failed = searchParams.get("error") === "failed";
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -148,45 +18,33 @@ export function SignIn() {
           Sign in to Beer O'Clock
         </h1>
 
-        <Button onClick={signInWithGoogle} className="w-full mb-6 h-12">
-          Continue with Google
-        </Button>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border"></div>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
-            <span className="bg-card px-4">or</span>
-          </div>
-        </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleMagicLink();
-          }}
-          className="space-y-4"
-        >
-          <Input
-            type="email"
-            placeholder="ilovebeer@gmail.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Turnstile
-            action="magic_link"
-            onSuccess={setTurnstileToken}
-            onError={() => setTurnstileToken(null)}
-          />
-          {sendError && (
-            <p className="text-sm text-destructive">{sendError}</p>
-          )}
-          <Button type="submit" disabled={loading || !turnstileToken} className="w-full">
-            {loading ? "Sending..." : "Send one-time code"}
-            {!loading && <ArrowRight className="ml-2 size-4" />}
-          </Button>
-        </form>
+        {isInstalledIOS() ? (
+          <p className="text-sm text-muted-foreground text-center">
+            Signing in isn't available in the installed iPhone app. To sync your
+            drinks, open itsbeeroclock.au in Safari and sign in there. You can
+            keep logging drinks here without signing in.
+          </p>
+        ) : (
+          <>
+            {failed && (
+              <p role="alert" className="text-sm text-destructive text-center mb-4">
+                Sign-in didn't work. Please try again.
+              </p>
+            )}
+            <Button
+              onClick={signInWithGoogle}
+              disabled={!isOnline}
+              className="w-full h-12"
+            >
+              Continue with Google
+            </Button>
+            {!isOnline && (
+              <p className="text-sm text-muted-foreground text-center mt-4">
+                Signing in needs a connection.
+              </p>
+            )}
+          </>
+        )}
       </Card>
     </div>
   );

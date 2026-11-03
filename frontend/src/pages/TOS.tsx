@@ -6,7 +6,7 @@ export function TOS() {
     <div className="space-y-6">
       <Card className="p-6">
         <h1 className="text-2xl font-bold text-foreground mb-4">Terms of Service</h1>
-        <p className="text-muted-foreground mb-4">Last updated: 1 April 2026</p>
+        <p className="text-muted-foreground mb-4">Last updated: 3 November 2026</p>
 
         <div className="space-y-4">
           <section>
@@ -44,9 +44,15 @@ export function TOS() {
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-2">4. Accounts and data</h2>
             <p className="text-foreground">
-              You may use Beer O&apos;Clock anonymously. If you sign in, you are
-              responsible for account access under your credentials and for the
-              accuracy of information you provide in your profile.
+              You may use Beer O&apos;Clock anonymously. If you sign in with
+              Google, you are responsible for account access under your
+              credentials and for the accuracy of information you provide in
+              your profile.
+            </p>
+            <p className="text-foreground mt-2">
+              You can delete your data yourself at any time while signed in,
+              using &quot;Delete data&quot; on the Profile page. We don&apos;t
+              hold your email address, so we can&apos;t find your data from it.
             </p>
             <p className="text-foreground mt-2">
               Your use of personal data is governed by our Privacy Policy.

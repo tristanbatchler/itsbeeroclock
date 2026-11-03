@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // Bug G fix: next-themes removed — theme toggle managed via localStorage in AppMenu.tsx
 import { Root } from './Root';
-import { AuthCallback } from './pages/AuthCallback';
 import { InitialLoading } from './components/InitialLoading';
 
 const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
@@ -27,7 +26,6 @@ export default function App() {
               <Route path="add-beer" element={<AddBeer />} />
               <Route path="privacy" element={<Privacy />} />
               <Route path="tos" element={<TOS />} />
-              <Route path="auth/callback" element={<AuthCallback />} />
               <Route path="sign-in" element={<SignIn />} />
               <Route path="about" element={<About />} />
               <Route path="*" element={<NotFound />} />

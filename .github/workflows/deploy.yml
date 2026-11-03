@@ -54,16 +54,14 @@ jobs:
       - name: Write .env.prod
         run: |
           cat > .env.prod << 'EOF'
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
           TABLE_NAME=${{ secrets.TABLE_NAME }}
           APP_DOMAIN_NAME=${{ secrets.APP_DOMAIN_NAME }}
           APP_SUPPORT_EMAIL=${{ secrets.APP_SUPPORT_EMAIL }}
           CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
           S3_BUCKET=${{ secrets.S3_BUCKET }}
-          CF_TURNSTILE_SITE_KEY=${{ secrets.CF_TURNSTILE_SITE_KEY }}
-          CF_TURNSTILE_SECRET_KEY=${{ secrets.CF_TURNSTILE_SECRET_KEY }}
           EOF
 
       - name: Deploy

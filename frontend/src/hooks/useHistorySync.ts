@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { type User } from "@supabase/supabase-js";
+import { type AuthUser } from "../store/authStore";
 import { api, queueRequest } from "../lib/api";
 import {
   getHistory,
@@ -15,7 +15,7 @@ import {
 import { API_ROUTES } from "../lib/constants";
 
 interface UseHistorySyncOptions {
-  user: User | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   allBeers: Beer[];
   isOnline: boolean;

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { type User } from "@supabase/supabase-js";
+import { type AuthUser } from "../store/authStore";
 import { api } from "../lib/api";
 import { saveUserProfile } from "../utils/storage";
 import { STORAGE_KEYS } from "../lib/constants";
@@ -16,7 +16,7 @@ import { useBeerStore } from "../store/beerStore";
  * Components that need the profile read from:
  *   const profile = useBeerStore((s) => s.profile);
  */
-export function useProfileInit(user: User | null, isOnline: boolean) {
+export function useProfileInit(user: AuthUser | null, isOnline: boolean) {
   const setProfile = useBeerStore((s) => s.setProfile);
 
   useEffect(() => {
