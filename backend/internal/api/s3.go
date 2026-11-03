@@ -27,7 +27,13 @@ func init() {
 // UploadThumbnail decodes a base64 WebP data URL and writes it to S3.
 // Returns the public HTTPS URL of the stored object.
 // key should be a full S3 object key, e.g. "custom/{userID}/{beerID}/thumb.webp".
+// With DynamoDB Local it skips S3 and returns the data URL, so local dev never
+// writes to the real bucket.
 func UploadThumbnail(ctx context.Context, base64DataURL string, key string) (string, error) {
+	if LocalDynamoDBEndpoint() != "" {
+		return base64DataURL, nil
+	}
+
 	// Strip the data URL prefix ("data:image/webp;base64,")
 	parts := strings.SplitN(base64DataURL, ",", 2)
 	if len(parts) != 2 {

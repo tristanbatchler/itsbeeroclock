@@ -88,6 +88,7 @@ Fill in every value. Leave `TABLE_NAME` and `S3_BUCKET` blank for now — you'll
 | `CORS_ORIGIN`              | Backend (local) | Allowed CORS origin for local dev                  |
 | `CF_TURNSTILE_SITE_KEY`    | Frontend        | Cloudflare Turnstile site key (baked in at build)  |
 | `CF_TURNSTILE_SECRET_KEY`  | Backend, CDK    | Cloudflare Turnstile secret key (Lambda env var)   |
+| `DYNAMODB_ENDPOINT`        | Backend (local) | DynamoDB Local URL. Never set this in `.env.prod`  |
 
 ### 3. Install dependencies
 
@@ -113,16 +114,35 @@ BeerOClockStack.UploadsBucketName = beeroclockstack-uploadsbucket...
 BeerOClockStack.CloudFrontUrl = https://xxxx.cloudfront.net
 ```
 
-Copy `TableName` → `TABLE_NAME` in your `.env`.
-Copy `UploadsBucketName` → `S3_BUCKET` in your `.env`.
+Copy `TableName` → `TABLE_NAME` in your `.env.prod`.
+Copy `UploadsBucketName` → `S3_BUCKET` in your `.env.prod`.
 
 ### 5. Run locally
+
+Local dev uses DynamoDB Local, so it can't touch production data. Keep your production values in `.env.prod`, then set these in `.env`. CDK refuses to run if it would pick up these local settings.
+
+```
+DYNAMODB_ENDPOINT=http://localhost:8000
+TABLE_NAME=beeroclock-local
+```
+
+Start the database, then create and fill the table. Data persists across restarts, and `docker compose down -v` resets it.
+
+```bash
+docker compose up -d
+cd backend
+go run ./cmd/seed
+```
+
+Custom beer thumbnails stay in the local table instead of going to S3. Sign-in still uses the real Supabase project.
+
+The backend and seed script refuse to run without `DYNAMODB_ENDPOINT`. Pass `-prod` to use the real table on purpose, for example to update the production catalogue with `go run ./cmd/seed -prod`.
 
 Terminal 1 — backend:
 
 ```bash
 cd backend
-go run cmd/local/main.go
+go run ./cmd/local
 ```
 
 Terminal 2 — frontend:
@@ -136,9 +156,9 @@ Open [http://localhost:5173](http://localhost:5173).
 
 > **Turnstile in local dev:** there is no bypass, so use Cloudflare's test pair in `.env`: `CF_TURNSTILE_SITE_KEY=1x00000000000000000000AA` and `CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`. Mixing test and real keys fails verification.
 
-### AWS login troubleshooting (local DynamoDB access)
+### AWS login troubleshooting (real DynamoDB access)
 
-If backend logs show errors like:
+This only applies when using `-prod`. If backend logs show errors like:
 
 `create oauth2 token: login session has expired, please reauthenticate`
 

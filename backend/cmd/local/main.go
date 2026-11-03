@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -72,6 +73,10 @@ func adaptHandler(fn api.ApiProxyGatewayHandler) http.HandlerFunc {
 }
 
 func main() {
+	prod := flag.Bool("prod", false, "use the real DynamoDB table instead of DynamoDB Local")
+	flag.Parse()
+	api.RequireLocalDynamoDB(*prod)
+
 	mux := http.NewServeMux()
 	// Route all /api/* requests through the production router
 	mux.HandleFunc("/api/", adaptHandler(api.Router))
