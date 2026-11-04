@@ -2,99 +2,58 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/tristanbatchler/itsbeeroclock/backend/internal/models"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+const maxBeersPerPage = 100
+
 var GetBeersHandler ApiProxyGatewayHandler = func(ctx context.Context, apr events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	limit := int32(30)
+	limit := 30
 	if l := apr.QueryStringParameters["limit"]; l != "" {
-		if parsed, err := strconv.ParseInt(l, 10, 32); err == nil && parsed > 0 {
-			limit = int32(parsed)
+		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 {
+			limit = min(parsed, maxBeersPerPage)
 		}
 	}
 
-	search := strings.ToLower(apr.QueryStringParameters["search"])
-
-	var startKey map[string]types.AttributeValue
-	if lastKeyStr := apr.QueryStringParameters["lastKey"]; lastKeyStr != "" {
-		var lastKeyRaw map[string]interface{}
-		if err := json.Unmarshal([]byte(lastKeyStr), &lastKeyRaw); err == nil {
-			if parsedKey, err := attributevalue.MarshalMap(lastKeyRaw); err == nil {
-				startKey = parsedKey
-			}
-		}
+	entries, err := loadCatalogue(ctx)
+	if err != nil {
+		log.Printf("Error querying beers: %v", err)
+		return ErrorResponse(500, "failed to query beers")
 	}
 
-	var beers []models.Beer
-	lastKey := startKey
+	return JSONResponse(200, beersPage(
+		searchCatalogue(entries, apr.QueryStringParameters["search"]),
+		apr.QueryStringParameters["lastKey"],
+		limit,
+	))
+}
 
-	for int32(len(beers)) < limit {
-		input := &dynamodb.QueryInput{
-			TableName:              TableName(),
-			IndexName:              aws.String("GSI1"),
-			KeyConditionExpression: aws.String("GSI1PK = :pk"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":pk": &types.AttributeValueMemberS{Value: KeyCatalog},
-			},
-			Limit:             aws.Int32(50),
-			ExclusiveStartKey: lastKey,
-		}
-
-		out, err := dbClient.Query(ctx, input)
-		if err != nil {
-			log.Printf("Error querying beers: %v", err)
-			return ErrorResponse(500, "failed to query beers")
-		}
-
-		for _, item := range out.Items {
-			var beer models.Beer
-			if err := attributevalue.UnmarshalMap(item, &beer); err != nil {
-				continue
-			}
-			if skVal, ok := item["SK"].(*types.AttributeValueMemberS); ok {
-				beer.ID = strings.TrimPrefix(skVal.Value, "BEER#")
-			}
-			if search != "" &&
-				!strings.Contains(strings.ToLower(beer.Name), search) &&
-				!strings.Contains(strings.ToLower(beer.Brewery), search) {
-				continue
-			}
-			beers = append(beers, beer)
-			if int32(len(beers)) == limit {
-				break
-			}
-		}
-
-		lastKey = out.LastEvaluatedKey
-		if len(lastKey) == 0 {
-			break
-		}
+// beersPage slices one page out of matches. lastKey is the opaque cursor from the
+// previous page: its offset into matches. An unreadable cursor starts from the top.
+func beersPage(matches []catalogueEntry, lastKey string, limit int) map[string]interface{} {
+	start, err := strconv.Atoi(lastKey)
+	if err != nil || start < 0 {
+		start = 0
 	}
+	start = min(start, len(matches))
+	end := min(start+limit, len(matches))
 
-	hasMore := len(lastKey) > 0
+	beers := make([]models.Beer, 0, end-start)
+	for _, e := range matches[start:end] {
+		beers = append(beers, e.beer)
+	}
 
 	response := map[string]interface{}{
 		"beers":   beers,
-		"hasMore": hasMore,
+		"hasMore": end < len(matches),
 	}
-	if hasMore {
-		var lastKeyRaw map[string]interface{}
-		if err := attributevalue.UnmarshalMap(lastKey, &lastKeyRaw); err == nil {
-			cursorBytes, _ := json.Marshal(lastKeyRaw)
-			response["lastKey"] = string(cursorBytes)
-		}
+	if end < len(matches) {
+		response["lastKey"] = strconv.Itoa(end)
 	}
-
-	return JSONResponse(200, response)
+	return response
 }

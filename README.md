@@ -139,6 +139,8 @@ The backend and seed script refuse to run without `DYNAMODB_ENDPOINT`. To use th
 DYNAMODB_ENDPOINT= TABLE_NAME=<real table name> go run ./cmd/seed -prod
 ```
 
+Seeding only adds and overwrites. To also remove catalogue rows that are no longer in `beers.json`, add `-prune`, which is a dry run reporting how many rows and logged drinks are affected, then `-prune -execute`. A logged drink whose beer is gone counts as no alcohol.
+
 Terminal 1 — backend:
 
 ```bash
