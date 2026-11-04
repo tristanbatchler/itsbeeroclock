@@ -28,6 +28,11 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced;
 }
 
+function matchesSearch(beer: Beer, search: string): boolean {
+  const q = search.toLowerCase();
+  return !q || beer.name.toLowerCase().includes(q) || !!beer.brewery?.toLowerCase().includes(q);
+}
+
 export function BeerSelector({ onSelect, onClose }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const addBeersToStore = useBeerStore((s) => s.addBeersToStore);
@@ -36,6 +41,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [favouriteIds, setFavouriteIds] = useState<string[]>(getFavouriteIds());
   const [activeTab, setActiveTab] = useState<"all" | "favourites">("all");
+  const [fetchedFavourites, setFetchedFavourites] = useState<Beer[]>([]);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -62,11 +68,7 @@ export function BeerSelector({ onSelect, onClose }: Props) {
         });
         const newBeers: Beer[] = data.beers ?? [];
 
-        const custom = reset ? getCustomBeers().filter((b) =>
-          !debouncedSearch || 
-          b.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          b.brewery?.toLowerCase().includes(debouncedSearch.toLowerCase())
-        ) : [];
+        const custom = reset ? getCustomBeers().filter((b) => matchesSearch(b, debouncedSearch)) : [];
         setBeers((prev) => reset ? [...custom, ...newBeers] : [...prev, ...newBeers]);
         addBeersToStore(newBeers);
 
@@ -127,9 +129,29 @@ export function BeerSelector({ onSelect, onClose }: Props) {
     }
   };
 
-  const displayedBeers = beers.filter((b) =>
-    activeTab === "favourites" ? favouriteIds.includes(b.id) : true
-  );
+  // A favourite may be far past what's been scrolled to, so fetch it directly.
+  useEffect(() => {
+    if (activeTab !== "favourites") return;
+    let cancelled = false;
+    const known = new Set([...getCustomBeers(), ...getCachedBeers()].map((b) => b.id));
+    const missing = favouriteIds.filter((id) => !known.has(id));
+    api.getBeersByIds(missing)
+      .then((fetched) => {
+        if (cancelled) return;
+        setFetchedFavourites(fetched);
+        addBeersToStore(fetched);
+      })
+      .catch((err) => console.error("Failed to load favourites:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, favouriteIds, addBeersToStore]);
+
+  const displayedBeers = activeTab === "favourites"
+    ? [...new Map(
+        [...getCustomBeers(), ...getCachedBeers(), ...fetchedFavourites].map((b) => [b.id, b]),
+      ).values()].filter((b) => favouriteIds.includes(b.id) && matchesSearch(b, searchQuery))
+    : beers;
 
   return (
     <div

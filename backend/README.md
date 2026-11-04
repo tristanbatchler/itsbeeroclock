@@ -40,7 +40,7 @@ Produces `deployment.zip` which the CDK stack uploads to Lambda.
 
 - `cmd/api/main.go` — production Lambda handler
 - `cmd/local/main.go` — local HTTP server (simulates Lambda)
-- `cmd/seed/main.go` — fills the beer catalogue, creating the table first on DynamoDB Local. Pass `-prod` to write to the real table
+- `cmd/seed/main.go` — fills the beer catalogue, creating the table first on DynamoDB Local. Pass `-prod` to write to the real table, and `-prune` to report or, with `-execute`, delete rows no longer in `beers.json`
 - `cmd/wipeusers/main.go` — deletes all user data and keeps the catalogue, for the Google sign-in cutover. A dry run unless passed `-execute`
 
 ### Request flow
