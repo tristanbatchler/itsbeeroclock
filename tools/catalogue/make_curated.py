@@ -94,6 +94,15 @@ add("Sierra Nevada", "unchecked", [("Pale Ale", 5.6, 15)])
 add("Lagunitas", "unchecked", [("IPA", 6.2, 15)])
 add("Goose Island", "unchecked", [("Goose IPA", 5.9, 10)])
 add("BrewDog", "unchecked", [("Punk IPA", 5.4, 20), ("Hazy Jane", 5.0, 10)])
+# Sourced 2026-11-04: Wikipedia, trade press or Australian retailer listings, with no conflict between them.
+add("Swan", "official", [("Swan Gold", 3.5, 30)])
+add("Heineken", "secondary", [("Heineken Lager", 5.0, 70), ("Heineken Silver", 4.0, 40), ("Heineken 0.0", 0.0, 30)])
+add("Peroni", "secondary", [("Nastro Azzurro 3.5%", 3.5, 30), ("Red", 4.7, 30)])
+add("Asahi", "secondary", [("Asahi Super Dry 0.0", 0.0, 30)])
+add("J. Boag & Son", "secondary", [("Boag's Premium Lager", 4.6, 50), ("Boag's Draught", 4.6, 40), ("Boag's Wizard Smith's Ale", 5.0, 10)])
+add("West End", "secondary", [("West End Draught", 4.5, 50)])
+add("Coopers", "secondary", [("Original Pale Ale", 4.5, 85), ("Best Extra Stout", 6.3, 60), ("Dark Ale", 4.5, 50)])
+add("4 Pines", "secondary", [("Pacific Ale", 3.5, 60), ("Draught", 4.6, 40), ("Hefeweizen", 5.2, 30), ("Japanese Style Lager", 4.5, 30), ("Indian Summer Pale Ale", 4.2, 20)])
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROWS += json.load(open(os.path.join(HERE, "feral.json")))  # Scraped from its beer pages: it has no shop feed.
